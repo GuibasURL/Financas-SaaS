@@ -7,23 +7,46 @@ import {
   getTransactions,
   getByCategoryTotals,
   getMonthlyTotals,
+  getCategories,
+  updateTransactionCategory,
 } from "../services/api";
-import type { Transaction, CategoryTotal, MonthlyTotal } from "../types/transaction";
+import type {
+  Transaction,
+  Category,
+  CategoryTotal,
+  MonthlyTotal,
+} from "../types/transaction";
 
 export default function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [byCategory, setByCategory] = useState<CategoryTotal[]>([]);
   const [monthly, setMonthly] = useState<MonthlyTotal[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   async function loadAll() {
-    const [t, c, m] = await Promise.all([
+    const [t, c, m, cats] = await Promise.all([
       getTransactions(),
       getByCategoryTotals(),
       getMonthlyTotals(),
+      getCategories(),
     ]);
     setTransactions(t);
     setByCategory(c);
     setMonthly(m);
+    setCategories(cats);
+  }
+
+  async function handleCategoryChange(transactionId: number, categoryId: number) {
+    try {
+      const updated = await updateTransactionCategory(transactionId, categoryId);
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === updated.id ? updated : t))
+      );
+      // Recategorizar muda os totais do gráfico de pizza
+      setByCategory(await getByCategoryTotals());
+    } catch {
+      alert("Não foi possível atualizar a categoria.");
+    }
   }
 
   useEffect(() => {
@@ -51,7 +74,11 @@ export default function Dashboard() {
 
       <section>
         <h2>Transações</h2>
-        <TransactionTable transactions={transactions} />
+        <TransactionTable
+          transactions={transactions}
+          categories={categories}
+          onCategoryChange={handleCategoryChange}
+        />
       </section>
     </div>
   );
