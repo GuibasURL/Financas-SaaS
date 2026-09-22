@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 
 class TransactionBase(BaseModel):
@@ -10,6 +10,10 @@ class TransactionBase(BaseModel):
     description: str
     amount: Decimal
     category_id: Optional[int] = None
+
+    @field_serializer("amount")
+    def serialize_amount(self, amount: Decimal) -> float:
+        return float(amount)
 
 
 class TransactionUpdate(BaseModel):
