@@ -5,6 +5,7 @@ from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.models.category import Category
 from app.models.transaction import Transaction
 from app.schemas.transaction import TransactionOut, TransactionUpdate
 
@@ -38,7 +39,11 @@ def update_transaction(
     if not transaction:
         raise HTTPException(status_code=404, detail="Transação não encontrada")
 
-    if payload.category_id is not None:
+    # Checa se o campo foi enviado (e não só se é None) para permitir
+    # remover a categoria mandando {"category_id": null}.
+    if "category_id" in payload.model_fields_set:
+        if payload.category_id is not None and not db.get(Category, payload.category_id):
+            raise HTTPException(status_code=404, detail="Categoria não encontrada")
         transaction.category_id = payload.category_id
 
     db.commit()

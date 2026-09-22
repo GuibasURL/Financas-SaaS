@@ -36,7 +36,10 @@ export default function Dashboard() {
     setCategories(cats);
   }
 
-  async function handleCategoryChange(transactionId: number, categoryId: number) {
+  async function handleCategoryChange(
+    transactionId: number,
+    categoryId: number | null
+  ) {
     try {
       const updated = await updateTransactionCategory(transactionId, categoryId);
       setTransactions((prev) =>
