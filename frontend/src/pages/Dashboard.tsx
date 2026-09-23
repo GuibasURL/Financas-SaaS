@@ -20,8 +20,14 @@ import type {
   CategoryTotal,
   MonthlyTotal,
 } from "../types/transaction";
+import type { User } from "../types/user";
 
-export default function Dashboard() {
+interface Props {
+  user: User;
+  onLogout: () => void;
+}
+
+export default function Dashboard({ user, onLogout }: Props) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [byCategory, setByCategory] = useState<CategoryTotal[]>([]);
   const [monthly, setMonthly] = useState<MonthlyTotal[]>([]);
@@ -31,20 +37,29 @@ export default function Dashboard() {
   const [selectedStatementId, setSelectedStatementId] = useState<number | null>(
     null
   );
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function loadAll() {
-    const [t, c, m, cats, s] = await Promise.all([
-      getTransactions(selectedStatementId),
-      getByCategoryTotals(selectedStatementId),
-      getMonthlyTotals(selectedStatementId),
-      getCategories(),
-      getStatements(),
-    ]);
-    setTransactions(t);
-    setByCategory(c);
-    setMonthly(m);
-    setCategories(cats);
-    setStatements(s);
+    try {
+      const [t, c, m, cats, s] = await Promise.all([
+        getTransactions(selectedStatementId),
+        getByCategoryTotals(selectedStatementId),
+        getMonthlyTotals(selectedStatementId),
+        getCategories(),
+        getStatements(),
+      ]);
+      setTransactions(t);
+      setByCategory(c);
+      setMonthly(m);
+      setCategories(cats);
+      setStatements(s);
+      setLoadError(null);
+    } catch (err) {
+      // 401 já é tratado no api.ts (volta para o login); o resto vira aviso
+      if ((err as any)?.response?.status !== 401) {
+        setLoadError("Não foi possível carregar os dados. Verifique se a API está rodando.");
+      }
+    }
   }
 
   async function handleCategoryChange(
@@ -91,7 +106,17 @@ export default function Dashboard() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 24 }}>
-      <h1>Finanças SaaS</h1>
+      <header
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}
+      >
+        <h1>Finanças SaaS</h1>
+        <div>
+          <span>{user.email}</span>{" "}
+          <button onClick={onLogout}>Sair</button>
+        </div>
+      </header>
+
+      {loadError && <p style={{ color: "red" }}>{loadError}</p>}
 
       <section>
         <h2>Importar extrato</h2>
