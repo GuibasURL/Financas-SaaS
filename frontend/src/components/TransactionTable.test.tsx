@@ -5,9 +5,9 @@ import TransactionTable from "./TransactionTable";
 import type { Category, Transaction } from "../types/transaction";
 
 const categories: Category[] = [
-  { id: 1, name: "Alimentação", keywords: "ifood", ignore_in_reports: false },
-  { id: 2, name: "Transporte", keywords: "uber", ignore_in_reports: false },
-  { id: 3, name: "Pagamento de fatura", keywords: "fatura", ignore_in_reports: true },
+  { id: 1, name: "Alimentação", keywords: "ifood", ignore_in_reports: false, direction: "all" },
+  { id: 2, name: "Transporte", keywords: "uber", ignore_in_reports: false, direction: "all" },
+  { id: 3, name: "Pagamento de fatura", keywords: "fatura", ignore_in_reports: true, direction: "all" },
 ];
 
 const transaction: Transaction = {

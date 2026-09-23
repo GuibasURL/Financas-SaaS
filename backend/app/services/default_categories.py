@@ -3,7 +3,8 @@ Categorias sugeridas: criadas automaticamente para contas novas e
 disponíveis para contas existentes (POST /categories/defaults).
 
 A ORDEM IMPORTA: quando mais de uma categoria bate com a descrição, vence
-a criada primeiro. Por isso as mais específicas vêm antes:
+a criada primeiro. Por isso as mais específicas vêm antes (e as genéricas,
+como as transferências, por último):
 - "Assinaturas" (amazon prime) antes de "Compras" (amazon)
 - "Compras" (mercado livre) antes de "Mercado" (mercado)
 - "Alimentação" (uber eats) antes de "Transporte" (uber)
@@ -17,74 +18,88 @@ frente excluem: "-mercado pago" impede "Mercado" de pegar "MERCADO PAGO".
 Os testes em tests/test_default_categories.py pegam esses conflitos.
 """
 import unicodedata
+from typing import NamedTuple
 
 from sqlalchemy.orm import Session
 
 from app.models.category import Category
 from app.services.text import normalize_text
 
-# (nome, palavras-chave, ignorar nos gráficos)
-DEFAULT_CATEGORIES: tuple[tuple[str, str, bool], ...] = (
-    (
+class DefaultCategory(NamedTuple):
+    name: str
+    keywords: str
+    # Transações desta categoria não entram nos gráficos nem nos totais
+    ignore_in_reports: bool = False
+    # "all": entradas e saídas; "in": só entradas; "out": só saídas
+    direction: str = "all"
+
+
+DEFAULT_CATEGORIES: tuple[DefaultCategory, ...] = (
+    DefaultCategory(
         "Pagamento de fatura",
         "pagamento de fatura,pagamento recebido,pgto fatura,pagto fatura",
-        True,
+        ignore_in_reports=True,
     ),
-    ("Salário", "salário,proventos", False),
-    (
+    # Só entradas: dinheiro de volta de uma compra não é renda nem gasto novo
+    DefaultCategory("Estornos e reembolsos", "estorno,reembolso,devolução,cashback", direction="in"),
+    DefaultCategory("Salário", "salário,proventos", direction="in"),
+    # Dinheiro que só muda de lugar (conta -> aplicação e volta): fora dos totais.
+    # Antes das transferências, para "TRANSF PARA POUPANCA" cair aqui.
+    DefaultCategory(
+        "Investimentos",
+        "aplicação,resgate,investimento,cdb,rdb,lci,lca,tesouro direto,poupança",
+        ignore_in_reports=True,
+    ),
+    DefaultCategory(
         "Assinaturas",
         "netflix,spotify,amazon prime,prime video,disney,hbo,youtube premium,"
         "globoplay,apple.com,deezer",
-        False,
     ),
-    (
+    DefaultCategory(
         "Compras",
         "mercado livre,mercadolivre,amazon,shopee,magazine luiza,magalu,americanas,shein,"
         "aliexpress",
-        False,
     ),
-    (
+    DefaultCategory(
         "Alimentação",
         "ifood,uber eats,ubereats,rappi,restaurante,lanchonete,padaria,pizzaria,hamburgueria,"
         "mcdonalds,mc donalds,burger king,subway,cafeteria,starbucks",
-        False,
     ),
-    (
+    DefaultCategory(
         "Mercado",
         "supermercado,mercado,atacadão,assaí,carrefour,pão de açúcar,hortifruti,"
         "-mercado pago,-mercadopago",
-        False,
     ),
-    (
+    DefaultCategory(
         "Transporte",
         "uber,99 pop,99pop,99app,cabify,posto,combustível,shell,ipiranga,petrobras,"
         "estacionamento,pedágio,sem parar,metrô,bilhete único",
-        False,
     ),
-    (
+    DefaultCategory(
         "Saúde",
         "farmácia,drogaria,drogasil,droga raia,pague menos,hospital,clínica,laboratório,"
         "consulta,dentista,odonto,unimed,amil,hapvida,sulamerica,bradesco saude,academia,"
         "smart fit,smartfit",
-        False,
     ),
-    (
+    DefaultCategory(
         "Moradia",
         "aluguel,condomínio,iptu,conta de luz,boleto de luz,energia elétrica,enel,cemig,"
         "copel,sabesp,comgás,conta de água",
-        False,
     ),
-    (
+    DefaultCategory(
         "Educação",
         "escola,colégio,faculdade,universidade,curso,udemy,alura,coursera,livraria",
-        False,
     ),
-    (
-        "Lazer",
-        "cinema,cinemark,ingresso,teatro,show,steam,playstation,xbox",
-        False,
-    ),
-    ("Tarifas bancárias", "tarifa,anuidade,iof,juros", False),
+    DefaultCategory("Lazer", "cinema,cinemark,ingresso,teatro,show,steam,playstation,xbox"),
+    DefaultCategory("Tarifas bancárias", "tarifa,anuidade,iof,juros"),
+    DefaultCategory("Saques", "saque", direction="out"),
+    # Por último: "pix" e "transf" são genéricas, então qualquer categoria mais
+    # específica acima vence ("PIX ALUGUEL" vai para Moradia). O mesmo texto
+    # aparece nos dois sentidos; o sinal do valor decide qual das duas pega.
+    # Contam nos totais: Pix para outra pessoa costuma ser gasto (ou renda) de
+    # verdade. Entre as próprias contas, o usuário cria uma categoria ignorada.
+    DefaultCategory("Transferências enviadas", "pix,transf,ted", direction="out"),
+    DefaultCategory("Transferências recebidas", "pix,transf,ted", direction="in"),
 )
 
 
@@ -99,14 +114,15 @@ def add_default_categories(db: Session, user_id: int) -> list[Category]:
         for (name,) in db.query(Category.name).filter(Category.user_id == user_id)
     }
     created = []
-    for name, keywords, ignore_in_reports in DEFAULT_CATEGORIES:
-        if normalize_text(name) in existing:
+    for default in DEFAULT_CATEGORIES:
+        if normalize_text(default.name) in existing:
             continue
         category = Category(
-            name=name,
+            name=default.name,
             # Mesmo formato que o schema salva: minúsculo, sem espaços extras
-            keywords=unicodedata.normalize("NFC", keywords).lower(),
-            ignore_in_reports=ignore_in_reports,
+            keywords=unicodedata.normalize("NFC", default.keywords).lower(),
+            ignore_in_reports=default.ignore_in_reports,
+            direction=default.direction,
             user_id=user_id,
         )
         db.add(category)

@@ -23,7 +23,11 @@ export interface Category {
   keywords: string;
   // Transações desta categoria não entram nos gráficos (ex: pagamento de fatura)
   ignore_in_reports: boolean;
+  // Para que transações a regra vale: entradas e saídas, só entradas ou só saídas
+  direction: CategoryDirection;
 }
+
+export type CategoryDirection = "all" | "in" | "out";
 
 export interface CategoryTotal {
   category: string;

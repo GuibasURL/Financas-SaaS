@@ -66,12 +66,20 @@
 
 .name {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   font-weight: 600;
 }
+.nameText {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+}
 .dot {
+  /* Alinhada com a primeira linha do nome */
+  margin-top: 0.4em;
   width: 0.55rem;
   height: 0.55rem;
   flex: none;
@@ -191,6 +199,12 @@
   color: var(--text);
   background: var(--glass-strong);
   font-family: var(--font-mono);
+}
+.fieldHelp {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
 }
 .checkboxHelp {
   margin: 0.35rem 0 0 1.45rem;

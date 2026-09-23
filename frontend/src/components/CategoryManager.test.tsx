@@ -87,6 +87,65 @@ describe("CategoryManager", () => {
     expect(within(newForm()).getByLabelText("Ignorar nos gráficos")).not.toBeChecked();
   });
 
+  it("cria categoria que vale só para entradas e mostra isso na linha", async () => {
+    const user = renderManager();
+
+    await user.type(await within(newForm()).findByLabelText("Nome"), "Transferências recebidas");
+    await user.type(within(newForm()).getByLabelText("Palavras-chave"), "pix");
+    const direction = within(newForm()).getByLabelText("Vale para");
+    expect(direction).toHaveDisplayValue("Entradas e saídas");
+    expect(direction).toHaveAccessibleDescription(/o sinal do valor/);
+    await user.selectOptions(direction, "Só entradas");
+    await user.click(screen.getByRole("button", { name: "Criar categoria" }));
+
+    const row = await findCategoryRow("Transferências recebidas");
+    expect(within(row).getByText("só entradas")).toBeInTheDocument();
+    expect(db.categories[0].direction).toBe("in");
+    expect(within(newForm()).getByLabelText("Vale para")).toHaveDisplayValue("Entradas e saídas");
+  });
+
+  it("categoria que vale para os dois sentidos não mostra etiqueta de sentido", async () => {
+    addCategory({ name: "Lazer" });
+    addCategory({ name: "Saques", direction: "out" });
+    renderManager();
+
+    const lazer = await findCategoryRow("Lazer");
+    expect(within(lazer).queryByText(/^só /)).not.toBeInTheDocument();
+    expect(within(categoryRow("Saques")).getByText("só saídas")).toBeInTheDocument();
+  });
+
+  it("edição mostra e salva o sentido", async () => {
+    addCategory({ name: "Salário", keywords: "salario", direction: "in" });
+    const user = renderManager();
+
+    await user.click(
+      within(await findCategoryRow("Salário")).getByRole("button", { name: "Editar Salário" })
+    );
+    const form = screen.getByRole("form", { name: "Editar Salário" });
+    expect(within(form).getByLabelText("Vale para")).toHaveDisplayValue("Só entradas");
+    await user.selectOptions(within(form).getByLabelText("Vale para"), "Entradas e saídas");
+    await user.click(within(form).getByRole("button", { name: "Salvar" }));
+
+    await screen.findByText("Categoria atualizada.");
+    expect(db.categories[0].direction).toBe("all");
+  });
+
+  it("aplicar regras respeita o sentido da categoria", async () => {
+    addCategory({ name: "Transferências recebidas", keywords: "pix", direction: "in" });
+    addStatement("extrato.csv", [
+      { date: "2025-03-01", description: "PIX TRANSF MARIA", amount: -80 },
+      { date: "2025-03-02", description: "PIX TRANSF JOAO", amount: 150 },
+    ]);
+    const user = renderManager();
+    await findCategoryRow("Transferências recebidas");
+
+    await user.click(screen.getByRole("button", { name: "Aplicar regras" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("1 transação foi categorizada.");
+    const byDescription = Object.fromEntries(db.transactions.map((t) => [t.description, t.category_id]));
+    expect(byDescription).toEqual({ "PIX TRANSF MARIA": null, "PIX TRANSF JOAO": db.categories[0].id });
+  });
+
   it("palavra-chave de exclusão aparece marcada e sem palavras mostra aviso", async () => {
     addCategory({ name: "Mercado", keywords: "mercado,-mercado pago" });
     addCategory({ name: "Outros", keywords: "" });

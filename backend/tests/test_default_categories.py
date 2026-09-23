@@ -12,14 +12,21 @@ FIXTURES = Path(__file__).parent / "fixtures" / "extratos"
 
 # As sugeridas em memória, com ids na ordem da lista (= ordem de prioridade)
 CATEGORIES = [
-    Category(id=index + 1, name=name, keywords=keywords, ignore_in_reports=ignore)
-    for index, (name, keywords, ignore) in enumerate(DEFAULT_CATEGORIES)
+    Category(
+        id=index + 1,
+        name=d.name,
+        keywords=d.keywords,
+        ignore_in_reports=d.ignore_in_reports,
+        direction=d.direction,
+    )
+    for index, d in enumerate(DEFAULT_CATEGORIES)
 ]
 NAMES = {c.id: c.name for c in CATEGORIES}
 
 
-def _category_of(description: str):
-    return NAMES.get(categorize(description, CATEGORIES))
+def _category_of(description: str, amount: float = -10.0):
+    """Categoria sugerida para a descrição; por padrão como saída (valor negativo)."""
+    return NAMES.get(categorize(description, amount, CATEGORIES))
 
 
 # ---------- Regras (descrições típicas de extrato) ----------
@@ -60,13 +67,58 @@ def _category_of(description: str):
         ("SHOPEE BRASIL", "Compras"),
         ("TARIFA MENSAL", "Tarifas bancárias"),
         ("IOF COMPRA INTERNACIONAL", "Tarifas bancárias"),
-        ("SALARIO EMPRESA X", "Salário"),
         ("PAGAMENTO DE FATURA NUBANK", "Pagamento de fatura"),
         ("Pagamento recebido", "Pagamento de fatura"),
     ],
 )
 def test_descricoes_tipicas(description, expected):
     assert _category_of(description) == expected
+
+
+@pytest.mark.parametrize(
+    "description, amount, expected",
+    [
+        # Pix e transferências: o sinal do valor decide o sentido
+        ("PIX ENVIADO - JOAO DA SILVA", -150, "Transferências enviadas"),
+        ("PIX TRANSF MARIA12/04", -80, "Transferências enviadas"),  # Itaú: sem sentido no texto
+        ("PIX TRANSF MARIA12/04", 80, "Transferências recebidas"),
+        ("Transferência enviada - João da Silva", -150.5, "Transferências enviadas"),
+        ("TRANSFERENCIA RECEBIDA", 200, "Transferências recebidas"),
+        ("PIX RECEBIDO MARIA", 200, "Transferências recebidas"),
+        ("TED RECEBIDA 341 EMPRESA", 1000, "Transferências recebidas"),
+        # A mais específica vence a transferência genérica
+        ("PIX - ALUGUEL APTO 12", -1500, "Moradia"),
+        ("PIX RECEBIDO Transferência de SALARIO", 4500, "Salário"),
+        ("Transferência recebida - SALARIO EMPRESA X", 4500, "Salário"),
+        ("TRANSF PARA POUPANCA", -500, "Investimentos"),
+        # Salário e estornos só valem para entradas
+        ("SALARIO EMPRESA X", 5000, "Salário"),
+        ("Estorno de Compra", 35.5, "Estornos e reembolsos"),
+        ("REEMBOLSO PLANO DE SAUDE", 120, "Estornos e reembolsos"),
+        ("CASHBACK NUBANK", 3.2, "Estornos e reembolsos"),
+        # Investimentos nos dois sentidos
+        ("APLICACAO CDB", -1000, "Investimentos"),
+        ("RESGATE CDB", 1000, "Investimentos"),
+        ("TESOURO DIRETO", -300, "Investimentos"),
+        # Saques
+        ("SAQUE BANCO24HORAS", -200, "Saques"),
+    ],
+)
+def test_sentido_do_dinheiro(description, amount, expected):
+    assert _category_of(description, amount) == expected
+
+
+@pytest.mark.parametrize(
+    "description, amount",
+    [
+        ("SALARIO EMPRESA X", -5000),  # "salário" só vale para entrada
+        ("ESTORNO DE TARIFA", -10),  # estorno negativo não é reembolso (cai em Tarifas)
+        ("SAQUE", 200),  # saque só vale para saída
+    ],
+)
+def test_sentido_errado_nao_usa_a_categoria(description, amount):
+    category = _category_of(description, amount)
+    assert category not in {"Salário", "Estornos e reembolsos", "Saques"}
 
 
 @pytest.mark.parametrize(
@@ -92,17 +144,16 @@ def test_conflitos_resolvidos_pela_ordem(description, expected):
         # Palavra-chave no meio de outra palavra não conta
         "IMPOSTO DE RENDA",  # "posto"
         "RECURSOS HUMANOS",  # "curso"
-        "TRANSF PARA FAMILIA",  # "amil"
+        "PAGAMENTO FAMILIA SILVA",  # "amil"
         "PAGAMENTO CONCURSO PUBLICO",  # "curso"
         # Exclusões ("-mercado pago" na categoria Mercado)
         "MERCADO PAGO *LOJA",
         "MERCADOPAGO*PAGAMENTO",
         # Palavras que ficaram fora da lista de propósito
-        "TRANSF INTERNET BANKING",  # "internet"
-        "PIX ENVIADO - JOAO DA SILVA",
+        "PAGAMENTO INTERNET BANKING",  # "internet"
         "BARBEARIA DO ZE",  # "bar" não é palavra-chave
         "LOJA 99 CENTAVOS",  # "99" sozinho não é palavra-chave
-        "TRANSFERENCIA RECEBIDA",
+        "DOCERIA DA ANA",  # "doc" (DOC foi extinto em 2024) não é palavra-chave
     ],
 )
 def test_palavras_curtas_nao_pegam_coisa_errada(description):
@@ -113,27 +164,37 @@ def test_palavras_curtas_nao_pegam_coisa_errada(description):
 
 
 def test_nomes_unicos():
-    names = [name for name, _, _ in DEFAULT_CATEGORIES]
+    names = [d.name for d in DEFAULT_CATEGORIES]
     assert len(names) == len(set(names))
 
 
 def test_palavras_chave_ja_no_formato_que_o_app_salva():
     # Mesmo formato do CategoryCreate: minúsculo, sem espaços nas pontas, sem repetição
-    for name, keywords, _ in DEFAULT_CATEGORIES:
-        assert normalize_keywords(keywords) == keywords, name
+    for d in DEFAULT_CATEGORIES:
+        assert normalize_keywords(d.keywords) == d.keywords, d.name
 
 
-def test_nenhuma_palavra_chave_repetida_entre_categorias():
+def test_sentidos_validos():
+    assert {d.direction for d in DEFAULT_CATEGORIES} <= {"all", "in", "out"}
+
+
+def test_palavra_chave_repetida_so_em_sentidos_opostos():
+    # "pix" em "enviadas" (só saídas) e "recebidas" (só entradas) não conflita;
+    # em qualquer outro caso, a segunda categoria nunca pegaria nada
     seen = {}
-    for name, keywords, _ in DEFAULT_CATEGORIES:
-        for keyword in keywords.split(","):
-            assert keyword not in seen, f"'{keyword}' em {seen.get(keyword)} e {name}"
-            seen[keyword] = name
+    for d in DEFAULT_CATEGORIES:
+        for keyword in d.keywords.split(","):
+            if keyword in seen:
+                other = seen[keyword]
+                assert {other.direction, d.direction} == {"in", "out"}, (
+                    f"'{keyword}' em {other.name} e {d.name}"
+                )
+            seen[keyword] = d
 
 
-def test_so_pagamento_de_fatura_e_ignorada_nos_graficos():
-    ignored = [name for name, _, ignore in DEFAULT_CATEGORIES if ignore]
-    assert ignored == ["Pagamento de fatura"]
+def test_ignoradas_nos_graficos():
+    ignored = [d.name for d in DEFAULT_CATEGORIES if d.ignore_in_reports]
+    assert ignored == ["Pagamento de fatura", "Investimentos"]
 
 
 # ---------- Extratos de exemplo dos bancos ----------
@@ -142,7 +203,7 @@ def test_so_pagamento_de_fatura_e_ignorada_nos_graficos():
 @pytest.mark.parametrize("filename", sorted(p.name for p in FIXTURES.glob("*.csv")))
 def test_extratos_de_exemplo_compras_tipicas_sao_categorizadas(filename):
     by_description = {
-        t["description"]: _category_of(t["description"])
+        t["description"]: _category_of(t["description"], t["amount"])
         for t in parse_statement((FIXTURES / filename).read_bytes()).transactions
     }
     categorized = {c for c in by_description.values() if c}
@@ -168,9 +229,11 @@ def test_conta_nova_nasce_com_as_sugeridas_na_ordem_da_lista(anon_client, db_ses
     _register(anon_client)
 
     categories = db_session.query(Category).order_by(Category.id).all()
-    assert [c.name for c in categories] == [name for name, _, _ in DEFAULT_CATEGORIES]
+    assert [c.name for c in categories] == [d.name for d in DEFAULT_CATEGORIES]
     fatura = next(c for c in categories if c.name == "Pagamento de fatura")
     assert fatura.ignore_in_reports is True
+    recebidas = next(c for c in categories if c.name == "Transferências recebidas")
+    assert recebidas.direction == "in"
 
 
 def test_conta_nova_ja_categoriza_o_primeiro_extrato(anon_client):

@@ -59,6 +59,7 @@ def create_category(
         name=payload.name,
         keywords=payload.keywords,
         ignore_in_reports=payload.ignore_in_reports,
+        direction=payload.direction,
         user_id=user.id,
     )
     db.add(category)
@@ -83,6 +84,8 @@ def update_category(
         category.keywords = payload.keywords
     if payload.ignore_in_reports is not None:
         category.ignore_in_reports = payload.ignore_in_reports
+    if payload.direction is not None:
+        category.direction = payload.direction
 
     db.commit()
     db.refresh(category)
