@@ -1,0 +1,61 @@
+/*
+ * Design tokens do app (cores, fontes, raios, sombras).
+ * Use sempre as variáveis nos componentes, em vez de valores soltos,
+ * para o visual continuar consistente quando as outras telas forem redesenhadas.
+ */
+:root {
+  /* Fundo e texto */
+  --bg: #081322;
+  --bg-2: #102038;
+  --text: #eaf3f8;
+  --muted: #9db3c9;
+
+  /* Destaques */
+  --cyan: #22d3ee;
+  --sky: #38bdf8;
+  --amber: #f5a524;
+  --rose: #fb4d6b;
+
+  /* Semânticas: entrada / saída */
+  --income: #46d6a0;
+  --expense: #ff758c;
+
+  /* Superfícies de "vidro" e bordas */
+  --glass: rgba(234, 243, 248, 0.07);
+  --glass-strong: rgba(234, 243, 248, 0.13);
+  --line: rgba(234, 243, 248, 0.15);
+
+  /* Tipografia */
+  --font-display: "Bricolage Grotesque", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+
+  /* Raios e sombras */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --shadow: 0 24px 70px rgba(0, 5, 15, 0.42), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 2px;
+}
