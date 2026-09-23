@@ -72,7 +72,7 @@ def _summary_sheet(sheet: Worksheet, counted, total_count, filters: ReportFilter
     ignored = total_count - len(counted)
 
     rows = [
-        ("Relatório financeiro", None),
+        ("Vexira — Relatório financeiro", None),
         (None, None),
         ("Período", _period_label(filters)),
         ("Extrato", filters.statement_name or "Todos"),

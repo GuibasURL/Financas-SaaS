@@ -7,7 +7,10 @@ from app.routers import auth, upload, transactions, categories, dashboard, state
 # O schema do banco é gerenciado pelo Alembic: rode `alembic upgrade head`
 # (dentro de backend/) antes de subir a API e sempre que houver migration nova.
 
-app = FastAPI(title="Finanças SaaS API")
+app = FastAPI(
+    title="Vexira API",
+    description="Vexira — Controle financeiro inteligente.",
+)
 
 # Libera o frontend a chamar a API (padrão: Vite local na 5173; ver CORS_ORIGINS)
 app.add_middleware(

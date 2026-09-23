@@ -231,7 +231,7 @@ export async function downloadReport(
       responseType: "blob",
     });
     const disposition = String(response.headers["content-disposition"] ?? "");
-    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "relatorio-financas.xlsx";
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "vexira-relatorio.xlsx";
     return { blob: response.data, filename };
   } catch (error) {
     // Com responseType "blob" até o erro chega como Blob; converte de volta

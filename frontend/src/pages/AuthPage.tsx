@@ -92,9 +92,9 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
         <section className={styles.story}>
           <div className={styles.brand}>
             <span className={styles.mark} aria-hidden="true">
-              F
+              V
             </span>
-            <span>Finanças SaaS</span>
+            <span>Vexira</span>
           </div>
 
           <div className={styles.storyCopy}>
