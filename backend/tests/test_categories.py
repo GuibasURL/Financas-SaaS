@@ -179,3 +179,14 @@ def test_reaplicar_regras_sem_nada_para_categorizar(client, upload):
     upload(CSV_JANEIRO)  # sem categorias, nada bate
 
     assert client.post("/categories/apply-rules").json() == {"categorized": 0}
+
+
+def test_palavra_chave_de_exclusao_pela_api(client, upload):
+    upload("data,descricao,valor\n2025-03-01,MERCADO PAGO *LOJA,-10\n2025-03-02,MERCADO EXTRA,-20\n")
+    created = client.post("/categories", json={"name": "Mercado", "keywords": "mercado, - Mercado Pago"})
+
+    assert created.json()["keywords"] == "mercado,-mercado pago"
+    assert client.post("/categories/apply-rules").json() == {"categorized": 1}
+    by_description = {t["description"]: t["category_id"] for t in client.get("/transactions").json()}
+    assert by_description["MERCADO PAGO *LOJA"] is None
+    assert by_description["MERCADO EXTRA"] == created.json()["id"]

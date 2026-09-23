@@ -34,20 +34,23 @@ def upload_csv(
     statement = Statement(filename=file.filename, user_id=user.id)
     db.add(statement)
 
-    created = []
     for item in parsed:
-        transaction = Transaction(
-            date=item["date"],
-            description=item["description"],
-            amount=item["amount"],
-            category_id=item.get("category_id"),
-            statement=statement,
+        db.add(
+            Transaction(
+                date=item["date"],
+                description=item["description"],
+                amount=item["amount"],
+                category_id=item.get("category_id"),
+                statement=statement,
+            )
         )
-        db.add(transaction)
-        created.append(transaction)
-
     db.commit()
-    for t in created:
-        db.refresh(t)
 
-    return created
+    # Uma consulta só para devolver as transações criadas (com id e
+    # created_at), em vez de um refresh por transação
+    return (
+        db.query(Transaction)
+        .filter(Transaction.statement_id == statement.id)
+        .order_by(Transaction.id)
+        .all()
+    )

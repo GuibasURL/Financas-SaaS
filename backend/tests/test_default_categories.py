@@ -34,11 +34,15 @@ def _category_of(description: str):
         ("UBER *TRIP", "Transporte"),
         ("99APP *99POP", "Transporte"),
         ("AUTO POSTO CENTRAL", "Transporte"),
+        ("POSTO SHELL", "Transporte"),
         ("SEM PARAR", "Transporte"),
         ("FARMACIA PRECO BOM", "Saúde"),  # sem acento no extrato
         ("DROGASIL 1234", "Saúde"),
         ("SMART FIT MENSALIDADE", "Saúde"),
         ("ACADEMIA CORPO SAO", "Saúde"),
+        ("SMARTFIT*MENSAL", "Saúde"),
+        ("AMIL ASSISTENCIA MEDICA", "Saúde"),
+        ("FARMACIAS PAGUE MENOS", "Saúde"),  # plural: a palavra só precisa começar igual
         ("HOSPITAL SANTA CRUZ", "Saúde"),
         ("SUPERMERCADO DIA", "Mercado"),
         ("ASSAI ATACADISTA", "Mercado"),  # palavra-chave "assaí" com acento
@@ -48,7 +52,9 @@ def _category_of(description: str):
         ("ALUGUEL APTO 12", "Moradia"),
         ("CONDOMINIO EDIFICIO SOL", "Moradia"),
         ("ENEL DISTRIBUICAO", "Moradia"),
+        ("PAGAMENTO - Boleto de Luz", "Moradia"),
         ("UDEMY CURSO PYTHON", "Educação"),
+        ("CURSO DE INGLES", "Educação"),
         ("CINEMARK SHOPPING", "Lazer"),
         ("STEAM PURCHASE", "Lazer"),
         ("SHOPEE BRASIL", "Compras"),
@@ -70,9 +76,10 @@ def test_descricoes_tipicas(description, expected):
         ("MERCADO LIVRE *LOJA", "Compras"),  # não "Mercado"
         ("AMAZON PRIME VIDEO", "Assinaturas"),  # não "Compras"
         ("AMAZON.COM.BR", "Compras"),
-        # Limitação conhecida: sem "uber eats" junto na descrição, cai em Transporte
-        ("UBER *EATS", "Transporte"),
+        ("UBER *EATS", "Alimentação"),  # pontuação vira espaço: "uber eats"
         ("UBER EATS", "Alimentação"),  # não "Transporte"
+        ("UBEREATS*PEDIDO", "Alimentação"),
+        ("MERCADOLIVRE*VENDEDOR", "Compras"),  # não "Mercado"
     ],
 )
 def test_conflitos_resolvidos_pela_ordem(description, expected):
@@ -82,9 +89,15 @@ def test_conflitos_resolvidos_pela_ordem(description, expected):
 @pytest.mark.parametrize(
     "description",
     [
-        "IMPOSTO DE RENDA",  # "posto" ficaria dentro
+        # Palavra-chave no meio de outra palavra não conta
+        "IMPOSTO DE RENDA",  # "posto"
         "RECURSOS HUMANOS",  # "curso"
         "TRANSF PARA FAMILIA",  # "amil"
+        "PAGAMENTO CONCURSO PUBLICO",  # "curso"
+        # Exclusões ("-mercado pago" na categoria Mercado)
+        "MERCADO PAGO *LOJA",
+        "MERCADOPAGO*PAGAMENTO",
+        # Palavras que ficaram fora da lista de propósito
         "TRANSF INTERNET BANKING",  # "internet"
         "PIX ENVIADO - JOAO DA SILVA",
         "BARBEARIA DO ZE",  # "bar" não é palavra-chave

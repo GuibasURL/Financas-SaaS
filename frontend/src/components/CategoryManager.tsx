@@ -220,7 +220,7 @@ export default function CategoryManager({ categories, onChanged }: Props) {
         <input
           value={newKeywords}
           onChange={(e) => setNewKeywords(e.target.value)}
-          placeholder="Palavras-chave, separadas por vírgula"
+          placeholder="Palavras-chave: ifood, restaurante, -mercado pago"
           aria-label="Palavras-chave da nova categoria"
           style={{ flex: 1 }}
         />
@@ -228,6 +228,11 @@ export default function CategoryManager({ categories, onChanged }: Props) {
           Adicionar
         </button>
       </form>
+      <p style={{ margin: "4px 0", color: "#555", fontSize: "0.9em" }}>
+        Separe as palavras-chave por vírgula. Elas valem no começo de uma palavra da descrição,
+        sem diferenciar maiúsculas, acentos e pontuação. Use <code>-</code> na frente para excluir:{" "}
+        <code>mercado, -mercado pago</code> pega "MERCADO EXTRA", mas não "MERCADO PAGO".
+      </p>
       <label style={{ display: "block", marginTop: 4 }} title={IGNORE_HINT}>
         <input
           type="checkbox"

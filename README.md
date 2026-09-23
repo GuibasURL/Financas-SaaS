@@ -85,6 +85,12 @@ pytest
 
 Cada teste usa um banco SQLite em memória, então o `financas.db` não é tocado. Há também um teste que roda as migrations do Alembic e confere se batem com os models.
 
+Para ver quais linhas nenhum teste executa (o CI exige pelo menos 95%):
+
+```bash
+pytest --cov=app --cov-report=term-missing
+```
+
 ## Rodando o frontend
 
 ```bash
@@ -101,6 +107,7 @@ O app sobe em `http://localhost:5173`.
 cd frontend
 npm test            # roda uma vez
 npm run test:watch  # fica rodando e repete a cada alteração
+npm run test:coverage  # com relatório de cobertura (texto + frontend/coverage/index.html)
 ```
 
 Vitest + Testing Library, com os componentes renderizados no jsdom. As chamadas HTTP vão para uma API falsa em memória (`src/test/fakeApi.ts`, feita com [MSW](https://mswjs.io/)), então o `api.ts` roda de verdade, incluindo o envio do token e a volta para o login quando a sessão expira. Cada teste começa com a API falsa vazia; os helpers `addUser`, `loginAs`, `addCategory` e `addStatement` montam o cenário.
@@ -109,8 +116,8 @@ Vitest + Testing Library, com os componentes renderizados no jsdom. As chamadas 
 
 A cada push e pull request para `dev` ou `main`, o workflow `.github/workflows/ci.yml` roda em paralelo:
 
-- **Backend:** instala `requirements-dev.txt` e roda o `pytest`
-- **Frontend:** `npm ci`, `npm test` e `npm run build` (que também faz o typecheck)
+- **Backend:** instala `requirements-dev.txt` e roda o `pytest` com cobertura (falha abaixo de 95%)
+- **Frontend:** `npm ci`, testes com cobertura (mínimos em `vite.config.ts`) e `npm run build` (que também faz o typecheck)
 
 O resultado aparece no PR (✓ ou ✗) e na aba **Actions** do repositório.
 
@@ -150,7 +157,13 @@ Cada categoria tem uma lista de palavras-chave separadas por vírgula, ex:
 { "name": "Alimentação", "keywords": "ifood,restaurante,lanchonete" }
 ```
 
-Toda vez que uma transação for importada, o sistema verifica se alguma palavra-chave aparece na descrição (sem diferenciar maiúsculas nem acentos: "farmácia" pega "FARMACIA SAO JOAO") e categoriza automaticamente. Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
+Toda vez que uma transação for importada, o sistema verifica se alguma palavra-chave aparece na descrição e categoriza automaticamente. A comparação:
+
+- ignora maiúsculas, acentos e pontuação: "farmácia" pega "FARMACIA SAO JOAO", e "uber eats" pega "UBER *EATS";
+- exige que a palavra-chave esteja no **começo de uma palavra** da descrição: "farmacia" pega "FARMACIAS", mas "posto" não pega "IMPOSTO";
+- aceita **exclusões** com `-` na frente: `mercado, -mercado pago` pega "MERCADO EXTRA", mas não "MERCADO PAGO".
+
+ Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
 
 As categorias são gerenciadas na seção **Categorias** do app (ou pela API):
 
@@ -169,7 +182,7 @@ Contas novas já nascem com 12 categorias prontas (Alimentação, Mercado, Trans
 A lista fica em `backend/app/services/default_categories.py`. Ao mexer nela, lembre que:
 
 - **A ordem importa:** quando duas categorias batem, vence a que vem primeiro (por isso "Compras", com "mercado livre", vem antes de "Mercado").
-- **Palavras curtas pegam demais:** a busca é por "contém", então "posto" pegaria "IMPOSTO" e "curso" pegaria "RECURSOS". Os testes em `tests/test_default_categories.py` cobrem esses casos.
+- **Palavras curtas ou genéricas pegam demais:** mesmo valendo só no começo das palavras, "bar" pegaria "BARBEARIA" e "99" pegaria "LOJA 99 CENTAVOS". Use exclusões (`-`) ou palavras mais específicas. Os testes em `tests/test_default_categories.py` cobrem esses casos.
 
 ### Ignorar nos gráficos (pagamento de fatura, transferências)
 

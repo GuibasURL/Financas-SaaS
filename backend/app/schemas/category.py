@@ -12,15 +12,18 @@ def normalize_name(value: str) -> str:
 
 def normalize_keywords(value: str) -> str:
     """
-    " iFood, Restaurante ,,uber " -> "ifood,restaurante,uber"
+    " iFood, Restaurante ,,uber, - Mercado Pago " -> "ifood,restaurante,uber,-mercado pago"
 
     A comparação com a descrição já ignora maiúsculas; normalizar aqui só
-    deixa o que fica salvo (e aparece na tela) limpo e sem repetição.
+    deixa o que fica salvo (e aparece na tela) limpo e sem repetição. O "-"
+    na frente (palavra-chave de exclusão) é mantido, colado na palavra.
     """
     keywords = []
     for keyword in value.split(","):
         keyword = keyword.strip().lower()
-        if keyword and keyword not in keywords:
+        if keyword.startswith("-"):
+            keyword = "-" + keyword.lstrip("-").strip()
+        if keyword.strip("-") and keyword not in keywords:
             keywords.append(keyword)
     return ",".join(keywords)
 
