@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import func, extract
+from sqlalchemy import extract, func, or_
 from sqlalchemy.orm import Session
 
 from app.db import get_db
@@ -20,7 +20,10 @@ def by_category(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Soma de gastos (valores negativos) agrupada por categoria."""
+    """Soma de gastos (valores negativos) agrupada por categoria.
+
+    Categorias marcadas com ignore_in_reports ficam de fora.
+    """
     query = (
         db.query(
             Category.name,
@@ -28,7 +31,11 @@ def by_category(
         )
         .join(Category, Transaction.category_id == Category.id)
         .join(Transaction.statement)
-        .filter(Statement.user_id == user.id, Transaction.amount < 0)
+        .filter(
+            Statement.user_id == user.id,
+            Transaction.amount < 0,
+            Category.ignore_in_reports.is_(False),
+        )
     )
     if statement_id:
         query = query.filter(Transaction.statement_id == statement_id)
@@ -43,7 +50,11 @@ def monthly(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Evolução de gastos por mês/ano."""
+    """Evolução de gastos por mês/ano.
+
+    Transações sem categoria entram; as de categorias com
+    ignore_in_reports ficam de fora.
+    """
     query = (
         db.query(
             extract("year", Transaction.date).label("year"),
@@ -51,7 +62,12 @@ def monthly(
             func.sum(Transaction.amount).label("total"),
         )
         .join(Transaction.statement)
-        .filter(Statement.user_id == user.id, Transaction.amount < 0)
+        .outerjoin(Category, Transaction.category_id == Category.id)
+        .filter(
+            Statement.user_id == user.id,
+            Transaction.amount < 0,
+            or_(Category.id.is_(None), Category.ignore_in_reports.is_(False)),
+        )
     )
     if statement_id:
         query = query.filter(Transaction.statement_id == statement_id)

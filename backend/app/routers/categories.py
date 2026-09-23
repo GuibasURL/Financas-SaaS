@@ -48,7 +48,12 @@ def create_category(
 ):
     _ensure_name_available(db, user, payload.name)
 
-    category = Category(name=payload.name, keywords=payload.keywords, user_id=user.id)
+    category = Category(
+        name=payload.name,
+        keywords=payload.keywords,
+        ignore_in_reports=payload.ignore_in_reports,
+        user_id=user.id,
+    )
     db.add(category)
     db.commit()
     db.refresh(category)
@@ -69,6 +74,8 @@ def update_category(
         category.name = payload.name
     if payload.keywords is not None:
         category.keywords = payload.keywords
+    if payload.ignore_in_reports is not None:
+        category.ignore_in_reports = payload.ignore_in_reports
 
     db.commit()
     db.refresh(category)

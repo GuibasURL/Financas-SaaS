@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, UniqueConstraint, false
 from sqlalchemy.orm import relationship
 
 from app.db import Base
@@ -15,6 +15,11 @@ class Category(Base):
     # Palavras-chave separadas por vírgula, ex: "ifood,restaurante,lanchonete"
     # Simples de começar; se quiser evoluir, migra para uma tabela separada depois.
     keywords = Column(String, default="")
+    # Transações desta categoria não entram nos gráficos: serve para
+    # movimentações que não são gasto nem renda de verdade, como pagamento
+    # da fatura do cartão (as compras da fatura já são os gastos) ou
+    # transferência entre contas do próprio usuário.
+    ignore_in_reports = Column(Boolean, nullable=False, default=False, server_default=false())
     # NULL só para categorias criadas antes da autenticação, que ainda não
     # foram atribuídas a ninguém (ver app/create_user.py).
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)

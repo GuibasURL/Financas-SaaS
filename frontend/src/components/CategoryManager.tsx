@@ -14,6 +14,11 @@ interface Props {
   onChanged: () => void;
 }
 
+const IGNORE_HINT =
+  "Transações desta categoria continuam na lista, mas não entram nos gráficos. " +
+  "Use para o que não é gasto de verdade: o pagamento da fatura do cartão (as compras " +
+  "da fatura já são os gastos) ou transferências entre suas próprias contas.";
+
 // "ifood,restaurante" -> "ifood, restaurante" (mais fácil de ler e editar)
 function formatKeywords(keywords: string) {
   return keywords.split(",").filter(Boolean).join(", ");
@@ -22,9 +27,11 @@ function formatKeywords(keywords: string) {
 export default function CategoryManager({ categories, onChanged }: Props) {
   const [newName, setNewName] = useState("");
   const [newKeywords, setNewKeywords] = useState("");
+  const [newIgnore, setNewIgnore] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editKeywords, setEditKeywords] = useState("");
+  const [editIgnore, setEditIgnore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,12 +57,18 @@ export default function CategoryManager({ categories, onChanged }: Props) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     const ok = await run(
-      () => createCategory(newName, newKeywords).then(() => undefined),
+      () =>
+        createCategory({
+          name: newName,
+          keywords: newKeywords,
+          ignore_in_reports: newIgnore,
+        }).then(() => undefined),
       "Não foi possível criar a categoria."
     );
     if (ok) {
       setNewName("");
       setNewKeywords("");
+      setNewIgnore(false);
     }
   }
 
@@ -63,6 +76,7 @@ export default function CategoryManager({ categories, onChanged }: Props) {
     setEditingId(category.id);
     setEditName(category.name);
     setEditKeywords(formatKeywords(category.keywords));
+    setEditIgnore(category.ignore_in_reports);
     setError(null);
     setMessage(null);
   }
@@ -72,9 +86,11 @@ export default function CategoryManager({ categories, onChanged }: Props) {
     if (editingId === null) return;
     const ok = await run(
       () =>
-        updateCategory(editingId, { name: editName, keywords: editKeywords }).then(
-          () => undefined
-        ),
+        updateCategory(editingId, {
+          name: editName,
+          keywords: editKeywords,
+          ignore_in_reports: editIgnore,
+        }).then(() => undefined),
       "Não foi possível salvar a categoria."
     );
     if (ok) setEditingId(null);
@@ -111,6 +127,7 @@ export default function CategoryManager({ categories, onChanged }: Props) {
             <tr>
               <th>Nome</th>
               <th>Palavras-chave</th>
+              <th title={IGNORE_HINT}>Nos gráficos</th>
               <th></th>
             </tr>
           </thead>
@@ -138,6 +155,17 @@ export default function CategoryManager({ categories, onChanged }: Props) {
                     />
                   </td>
                   <td>
+                    <label title={IGNORE_HINT}>
+                      <input
+                        type="checkbox"
+                        form="edit-category"
+                        checked={editIgnore}
+                        onChange={(e) => setEditIgnore(e.target.checked)}
+                      />{" "}
+                      ignorar
+                    </label>
+                  </td>
+                  <td>
                     <form id="edit-category" onSubmit={handleSave} style={{ display: "inline" }}>
                       <button type="submit" disabled={busy}>
                         Salvar
@@ -152,6 +180,9 @@ export default function CategoryManager({ categories, onChanged }: Props) {
                 <tr key={c.id}>
                   <td>{c.name}</td>
                   <td>{c.keywords ? formatKeywords(c.keywords) : <em>nenhuma</em>}</td>
+                  <td title={c.ignore_in_reports ? IGNORE_HINT : undefined}>
+                    {c.ignore_in_reports ? <em>ignorada</em> : "conta"}
+                  </td>
                   <td>
                     <button onClick={() => startEditing(c)} disabled={busy}>
                       Editar
@@ -186,6 +217,14 @@ export default function CategoryManager({ categories, onChanged }: Props) {
           Adicionar
         </button>
       </form>
+      <label style={{ display: "block", marginTop: 4 }} title={IGNORE_HINT}>
+        <input
+          type="checkbox"
+          checked={newIgnore}
+          onChange={(e) => setNewIgnore(e.target.checked)}
+        />{" "}
+        Ignorar nos gráficos (ex: pagamento de fatura do cartão, transferência entre suas contas)
+      </label>
 
       <p>
         <button onClick={handleApplyRules} disabled={busy || categories.length === 0}>

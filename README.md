@@ -140,6 +140,18 @@ As categorias são gerenciadas na seção **Categorias** do app (ou pela API):
 
 O nome e as palavras-chave são normalizados ao salvar (espaços nas pontas removidos, palavras-chave em minúsculo e sem repetição).
 
+### Ignorar nos gráficos (pagamento de fatura, transferências)
+
+Uma categoria pode ser marcada como **ignorar nos gráficos** (`ignore_in_reports`): as transações dela continuam na lista, mas não entram em "Gastos por categoria" nem em "Evolução mensal".
+
+Isso resolve a contagem dupla quando você importa a conta **e** a fatura do cartão: as compras da fatura já são os gastos, e o pagamento da fatura na conta é só o dinheiro indo da conta para o cartão. Exemplo:
+
+```json
+{ "name": "Pagamento de fatura", "keywords": "pagamento de fatura,pagamento recebido", "ignore_in_reports": true }
+```
+
+O mesmo vale para transferências entre suas próprias contas ou aplicações em investimento. Ajuste as palavras-chave para o texto que o seu banco usa.
+
 ## Extratos
 
 Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e a quantidade de transações. Dá para filtrar transações e dashboard por extrato com `?statement_id=` e excluir um extrato inteiro (junto com as transações dele) via `DELETE /statements/{id}`.
