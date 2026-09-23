@@ -29,8 +29,11 @@ interface FakeDb {
 }
 
 export let db: FakeDb;
+// Último pedido de relatório recebido, para os testes conferirem os filtros
+export let lastReportQuery: URLSearchParams | null = null;
 
 export function resetDb() {
+  lastReportQuery = null;
   db = { users: [], categories: [], statements: [], transactions: [], nextId: 1, tokens: new Map() };
 }
 resetDb();
@@ -305,5 +308,29 @@ export const handlers = [
     })
   ),
 ];
+
+handlers.push(
+  http.get(
+    `${API}/reports/export`,
+    authed(({ request }) => {
+      const query = new URL(request.url).searchParams;
+      lastReportQuery = query;
+      const start = query.get("start_date");
+      const end = query.get("end_date");
+      if (start && end && start > end) {
+        return HttpResponse.json(
+          { detail: "A data inicial é depois da data final" },
+          { status: 400 }
+        );
+      }
+      return new HttpResponse("conteudo-xlsx", {
+        headers: {
+          "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "Content-Disposition": `attachment; filename="relatorio-financas_${start ?? "inicio"}_a_${end ?? "hoje"}.xlsx"`,
+        },
+      });
+    })
+  )
+);
 
 export const server = setupServer(...handlers);

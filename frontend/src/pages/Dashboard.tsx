@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import UploadCSV from "../components/UploadCSV";
 import StatementList from "../components/StatementList";
 import CategoryManager from "../components/CategoryManager";
+import ReportExport from "../components/ReportExport";
 import TransactionTable from "../components/TransactionTable";
 import CategoryPieChart from "../components/charts/CategoryPieChart";
 import MonthlyTrendChart from "../components/charts/MonthlyTrendChart";
@@ -147,6 +148,13 @@ export default function Dashboard({ user, onLogout }: Props) {
       <section>
         <h2>Evolução mensal</h2>
         <MonthlyTrendChart data={monthly} />
+      </section>
+
+      <section>
+        <h2>Exportar relatório</h2>
+        <ReportExport
+          statement={statements.find((s) => s.id === selectedStatementId) ?? null}
+        />
       </section>
 
       <section>
