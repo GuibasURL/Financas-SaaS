@@ -1,5 +1,7 @@
 # Finanças SaaS
 
+[![CI](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml)
+
 SaaS simples de gestão financeira: importa extrato em CSV, categoriza gastos automaticamente por regras de palavra-chave, e mostra dashboard com gráficos.
 
 ## Rodando o backend
@@ -102,6 +104,15 @@ npm run test:watch  # fica rodando e repete a cada alteração
 ```
 
 Vitest + Testing Library, com os componentes renderizados no jsdom. As chamadas HTTP vão para uma API falsa em memória (`src/test/fakeApi.ts`, feita com [MSW](https://mswjs.io/)), então o `api.ts` roda de verdade, incluindo o envio do token e a volta para o login quando a sessão expira. Cada teste começa com a API falsa vazia; os helpers `addUser`, `loginAs`, `addCategory` e `addStatement` montam o cenário.
+
+## Integração contínua (GitHub Actions)
+
+A cada push e pull request para `dev` ou `main`, o workflow `.github/workflows/ci.yml` roda em paralelo:
+
+- **Backend:** instala `requirements-dev.txt` e roda o `pytest`
+- **Frontend:** `npm ci`, `npm test` e `npm run build` (que também faz o typecheck)
+
+O resultado aparece no PR (✓ ou ✗) e na aba **Actions** do repositório.
 
 ## Formatos de extrato aceitos
 
