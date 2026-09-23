@@ -4,13 +4,31 @@ SaaS simples de gestão financeira: importa extrato em CSV, categoriza gastos au
 
 ## Rodando o backend
 
+O ambiente virtual (`venv`) fica na raiz do projeto e o servidor roda de dentro de `backend/`.
+
+Primeira vez (a partir da raiz do projeto):
+
+```bash
+python -m venv venv
+source venv/bin/activate          # Windows (PowerShell): venv\Scripts\Activate.ps1
+pip install -r backend/requirements.txt
+```
+
+Para subir a API (a partir da raiz, com o venv ativado):
+
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
+
+Atalho no Windows (PowerShell), sem precisar ativar o venv:
+
+```powershell
+cd backend
+..\venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+O `--reload` reinicia o servidor automaticamente a cada alteração no código. Para parar, use `Ctrl+C`.
 
 A API sobe em `http://localhost:8000`. Documentação automática (Swagger) em `http://localhost:8000/docs` — útil para testar os endpoints sem precisar do frontend pronto.
 
