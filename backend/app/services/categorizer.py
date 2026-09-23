@@ -28,9 +28,9 @@ def categorize(description: str, categories: list[Category]) -> int | None:
     return None
 
 
-def categorize_all(db: Session, transactions_data: list[dict]) -> list[dict]:
-    """Aplica categorize() a uma lista de transações recém-parseadas do CSV."""
-    categories = db.query(Category).all()
+def categorize_all(db: Session, transactions_data: list[dict], user_id: int) -> list[dict]:
+    """Aplica categorize() com as categorias do usuário às transações recém-parseadas do CSV."""
+    categories = db.query(Category).filter(Category.user_id == user_id).all()
     for t in transactions_data:
         t["category_id"] = categorize(t["description"], categories)
     return transactions_data

@@ -5,14 +5,21 @@ from sqlalchemy import func, extract
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models.transaction import Transaction
+from app.dependencies import get_current_user
 from app.models.category import Category
+from app.models.statement import Statement
+from app.models.transaction import Transaction
+from app.models.user import User
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("/by-category")
-def by_category(statement_id: Optional[int] = None, db: Session = Depends(get_db)):
+def by_category(
+    statement_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """Soma de gastos (valores negativos) agrupada por categoria."""
     query = (
         db.query(
@@ -20,7 +27,8 @@ def by_category(statement_id: Optional[int] = None, db: Session = Depends(get_db
             func.sum(Transaction.amount).label("total"),
         )
         .join(Category, Transaction.category_id == Category.id)
-        .filter(Transaction.amount < 0)
+        .join(Transaction.statement)
+        .filter(Statement.user_id == user.id, Transaction.amount < 0)
     )
     if statement_id:
         query = query.filter(Transaction.statement_id == statement_id)
@@ -30,7 +38,11 @@ def by_category(statement_id: Optional[int] = None, db: Session = Depends(get_db
 
 
 @router.get("/monthly")
-def monthly(statement_id: Optional[int] = None, db: Session = Depends(get_db)):
+def monthly(
+    statement_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """Evolução de gastos por mês/ano."""
     query = (
         db.query(
@@ -38,7 +50,8 @@ def monthly(statement_id: Optional[int] = None, db: Session = Depends(get_db)):
             extract("month", Transaction.date).label("month"),
             func.sum(Transaction.amount).label("total"),
         )
-        .filter(Transaction.amount < 0)
+        .join(Transaction.statement)
+        .filter(Statement.user_id == user.id, Transaction.amount < 0)
     )
     if statement_id:
         query = query.filter(Transaction.statement_id == statement_id)
