@@ -239,7 +239,7 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
               O seu extrato, <span>claro</span>.
             </h1>
             <p className={styles.intro}>
-              Importe seus extratos em CSV, categorize os gastos automaticamente e acompanhe o
+              Importe seus extratos em CSV ou OFX, categorize os gastos automaticamente e acompanhe o
               mês inteiro. Preciso, confiável e sem ruído.
             </p>
           </div>

@@ -19,8 +19,9 @@ def upload_csv(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Envie um arquivo .csv")
+    # CSV dos bancos que o app conhece, ou OFX (padrão, de qualquer banco)
+    if not (file.filename or "").lower().endswith((".csv", ".ofx")):
+        raise HTTPException(status_code=400, detail="Envie um arquivo .csv ou .ofx")
 
     file_bytes = file.file.read()
 

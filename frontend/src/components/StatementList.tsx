@@ -22,7 +22,7 @@ export default function StatementList({
     return (
       <div className="empty">
         <strong>Nenhum extrato ainda</strong>
-        <p>Importe seu primeiro arquivo CSV para ver as transações.</p>
+        <p>Importe seu primeiro extrato (CSV ou OFX) para ver as transações.</p>
         {onImport && (
           <button className="btn btn-primary" type="button" onClick={onImport}>
             Importar primeiro extrato

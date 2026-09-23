@@ -14,7 +14,7 @@ describe("UploadCSV", () => {
     render(<UploadCSV onUploaded={onUploaded} />);
 
     await userEvent.upload(
-      screen.getByLabelText("Arquivo CSV do extrato"),
+      screen.getByLabelText("Arquivo do extrato (CSV ou OFX)"),
       new File(["data,descricao,valor\n"], "maio.csv", { type: "text/csv" })
     );
 
@@ -26,14 +26,14 @@ describe("UploadCSV", () => {
     const onUploaded = vi.fn();
     render(<UploadCSV onUploaded={onUploaded} />);
 
-    // applyAccept: false deixa passar um arquivo que o accept=".csv" barraria,
+    // applyAccept: false deixa passar um arquivo que o accept=".csv,.ofx" barraria,
     // para testar a validação do backend
     await userEvent.setup({ applyAccept: false }).upload(
-      screen.getByLabelText("Arquivo CSV do extrato"),
+      screen.getByLabelText("Arquivo do extrato (CSV ou OFX)"),
       new File(["x"], "extrato.txt", { type: "text/plain" })
     );
 
-    expect(await screen.findByText("Envie um arquivo .csv")).toBeInTheDocument();
+    expect(await screen.findByText("Envie um arquivo .csv ou .ofx")).toBeInTheDocument();
     expect(onUploaded).not.toHaveBeenCalled();
   });
 
@@ -41,7 +41,7 @@ describe("UploadCSV", () => {
     const onUploaded = vi.fn();
     render(<UploadCSV onUploaded={onUploaded} />);
 
-    fireEvent.change(screen.getByLabelText("Arquivo CSV do extrato"), { target: { files: [] } });
+    fireEvent.change(screen.getByLabelText("Arquivo do extrato (CSV ou OFX)"), { target: { files: [] } });
 
     expect(onUploaded).not.toHaveBeenCalled();
     expect(db.statements).toHaveLength(0);
@@ -50,7 +50,7 @@ describe("UploadCSV", () => {
   it("arrastar e soltar o arquivo também envia", async () => {
     const onUploaded = vi.fn();
     render(<UploadCSV onUploaded={onUploaded} />);
-    const dropZone = screen.getByText("Selecionar arquivo .csv").closest("label")!;
+    const dropZone = screen.getByText("Selecionar arquivo .csv ou .ofx").closest("label")!;
     const file = new File(["data,descricao,valor\n"], "solto.csv", { type: "text/csv" });
 
     fireEvent.dragOver(dropZone);
@@ -68,7 +68,7 @@ describe("UploadCSV", () => {
     const onUploaded = vi.fn();
     render(<UploadCSV onUploaded={onUploaded} />);
 
-    fireEvent.drop(screen.getByText("Selecionar arquivo .csv").closest("label")!, {
+    fireEvent.drop(screen.getByText("Selecionar arquivo .csv ou .ofx").closest("label")!, {
       dataTransfer: { files: [] },
     });
 
@@ -82,5 +82,28 @@ describe("UploadCSV", () => {
     expect(banks).toHaveTextContent("Nubank conta");
     expect(banks).toHaveTextContent("Banco do Brasil");
     expect(banks).toHaveTextContent("PicPay");
+    expect(banks).toHaveTextContent("OFX de qualquer banco");
+  });
+
+  it("o campo aceita .csv e .ofx", () => {
+    render(<UploadCSV onUploaded={vi.fn()} />);
+
+    expect(screen.getByLabelText("Arquivo do extrato (CSV ou OFX)")).toHaveAttribute(
+      "accept",
+      ".csv,.ofx"
+    );
+  });
+
+  it("envia um extrato .ofx", async () => {
+    const onUploaded = vi.fn();
+    render(<UploadCSV onUploaded={onUploaded} />);
+
+    await userEvent.upload(
+      screen.getByLabelText("Arquivo do extrato (CSV ou OFX)"),
+      new File(["OFXHEADER:100"], "extrato.ofx", { type: "application/x-ofx" })
+    );
+
+    await vi.waitFor(() => expect(onUploaded).toHaveBeenCalledOnce());
+    expect(db.statements.map((s) => s.filename)).toEqual(["extrato.ofx"]);
   });
 });

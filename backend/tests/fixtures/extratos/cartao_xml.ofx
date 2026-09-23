@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?OFX OFXHEADER="200" VERSION="211" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>
+<OFX>
+  <CREDITCARDMSGSRSV1>
+    <CCSTMTTRNRS>
+      <TRNUID>1</TRNUID>
+      <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
+      <CCSTMTRS>
+        <CURDEF>BRL</CURDEF>
+        <CCACCTFROM><ACCTID>1234</ACCTID></CCACCTFROM>
+        <BANKTRANLIST>
+          <DTSTART>20250301</DTSTART>
+          <DTEND>20250331</DTEND>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20250303000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-89.90</TRNAMT>
+            <FITID>c-001</FITID>
+            <MEMO>SUPERMERCADO DIA</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20250306000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-42.00</TRNAMT>
+            <FITID>c-002</FITID>
+            <MEMO>M&amp;M CAFETERIA</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>DEBIT</TRNTYPE>
+            <DTPOSTED>20250310000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>-21.90</TRNAMT>
+            <FITID>c-003</FITID>
+            <MEMO>Spotify</MEMO>
+          </STMTTRN>
+          <STMTTRN>
+            <TRNTYPE>CREDIT</TRNTYPE>
+            <DTPOSTED>20250312000000[-3:BRT]</DTPOSTED>
+            <TRNAMT>1234.56</TRNAMT>
+            <FITID>c-004</FITID>
+            <MEMO>Pagamento recebido</MEMO>
+          </STMTTRN>
+        </BANKTRANLIST>
+        <LEDGERBAL><BALAMT>-153.80</BALAMT><DTASOF>20250331</DTASOF></LEDGERBAL>
+      </CCSTMTRS>
+    </CCSTMTTRNRS>
+  </CREDITCARDMSGSRSV1>
+</OFX>

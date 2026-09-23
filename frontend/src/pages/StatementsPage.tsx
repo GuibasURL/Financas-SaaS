@@ -44,7 +44,7 @@ export default function StatementsPage() {
               <h2 className="card-title" id="import-title">
                 Importar extrato
               </h2>
-              <p>Arquivo .csv exportado do seu banco</p>
+              <p>Arquivo .csv ou .ofx exportado do seu banco</p>
             </div>
           </div>
           <UploadCSV onUploaded={reload} />

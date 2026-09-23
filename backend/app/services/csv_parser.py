@@ -23,6 +23,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Optional
 
+from app.services.ofx_parser import OFXParseError, looks_like_ofx, parse_ofx
 from app.services.text import strip_accents
 
 
@@ -127,6 +128,10 @@ FORMATS: tuple[BankFormat, ...] = (
     ),
 )
 
+# OFX não tem colunas: é lido pelo ofx_parser. O "formato" existe só para
+# identificar o arquivo (ParseResult.format), por isso fica fora de FORMATS.
+OFX_FORMAT = BankFormat(key="ofx", label="OFX", date_column="", description_columns=())
+
 DELIMITERS = (",", ";", "\t")
 DATE_FORMATS = ("%d/%m/%Y", "%Y-%m-%d", "%d/%m/%y", "%d-%m-%Y", "%d.%m.%Y")
 # Quantas linhas do começo do arquivo olhar procurando o cabeçalho
@@ -151,6 +156,12 @@ def parse_csv(file_bytes: bytes) -> list[dict]:
 
 def parse_statement(file_bytes: bytes) -> ParseResult:
     text = _decode(file_bytes)
+    if looks_like_ofx(text):
+        try:
+            return ParseResult(format=OFX_FORMAT, transactions=parse_ofx(text))
+        except OFXParseError as e:
+            raise CSVParseError(str(e))
+
     rows, bank_format, header = _find_table(text)
 
     transactions = []
@@ -228,7 +239,8 @@ def _find_table(text: str):
 
     labels = ", ".join(f.label for f in FORMATS)
     raise CSVParseError(
-        f"Formato de extrato não reconhecido. Formatos suportados: {labels}."
+        f"Formato de extrato não reconhecido. Formatos suportados: {labels}. "
+        "Ou envie o extrato em OFX, que funciona para qualquer banco."
     )
 
 
