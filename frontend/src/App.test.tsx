@@ -1,8 +1,9 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import App from "./App";
-import { addStatement, addUser, db, expireAllTokens, loginAs } from "./test/fakeApi";
+import { addStatement, addUser, API, db, expireAllTokens, loginAs, server } from "./test/fakeApi";
 
 function renderApp() {
   const user = userEvent.setup();
@@ -30,6 +31,25 @@ describe("login", () => {
     await fillLogin(user, "ana@teste.com", "senha-errada");
 
     expect(await screen.findByText("E-mail ou senha incorretos")).toBeInTheDocument();
+    expect(localStorage.getItem("financas.token")).toBeNull();
+  });
+
+  it("muitas tentativas: mostra o aviso da API para esperar", async () => {
+    server.use(
+      http.post(`${API}/auth/login`, () =>
+        HttpResponse.json(
+          { detail: "Muitas tentativas de login. Tente de novo em 15 minutos." },
+          { status: 429, headers: { "Retry-After": "900" } }
+        )
+      )
+    );
+    const user = renderApp();
+
+    await fillLogin(user, "ana@teste.com", "senha-forte-123");
+
+    expect(
+      await screen.findByText("Muitas tentativas de login. Tente de novo em 15 minutos.")
+    ).toBeInTheDocument();
     expect(localStorage.getItem("financas.token")).toBeNull();
   });
 

@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import APP_TIMEZONE
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models.statement import Statement
@@ -59,7 +60,7 @@ def export_report(
         end_date=end_date,
         statement_name=statement.filename if statement else None,
     )
-    content = build_report(query.all(), filters, generated_at=datetime.now())
+    content = build_report(query.all(), filters, generated_at=datetime.now(APP_TIMEZONE))
 
     return Response(
         content=content,

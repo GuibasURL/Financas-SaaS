@@ -2,7 +2,13 @@ import logging
 
 import pytest
 
-from app.config import DEV_SECRET_KEY, MIN_SECRET_KEY_BYTES, load_secret_key, parse_cors_origins
+from app.config import (
+    DEV_SECRET_KEY,
+    MIN_SECRET_KEY_BYTES,
+    load_secret_key,
+    load_timezone,
+    parse_cors_origins,
+)
 
 
 def test_chave_de_desenvolvimento_tem_tamanho_minimo():
@@ -42,3 +48,18 @@ def test_secret_key_valida_e_usada_sem_aviso(caplog):
 )
 def test_parse_cors_origins(value, expected):
     assert parse_cors_origins(value) == expected
+
+
+@pytest.mark.parametrize("value", [None, ""])
+def test_fuso_padrao_e_brasilia(value):
+    assert load_timezone(value).key == "America/Sao_Paulo"
+
+
+def test_fuso_configurado():
+    assert load_timezone("Europe/Lisbon").key == "Europe/Lisbon"
+
+
+@pytest.mark.parametrize("value", ["Brasil/Nao_Existe", "../etc/passwd"])
+def test_fuso_invalido_impede_de_subir(value):
+    with pytest.raises(ValueError, match="não é um fuso válido"):
+        load_timezone(value)

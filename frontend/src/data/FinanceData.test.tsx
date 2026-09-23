@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FinanceDataProvider, useFinanceData } from "./FinanceData";
 import { FeedbackProvider } from "../feedback/Feedback";
 import { addCategory, addUser, loginAs } from "../test/fakeApi";
+import { silenceExpectedRenderErrors } from "../test/expectedErrors";
 
 function Colors() {
   const { categoryColor, loaded } = useFinanceData();
@@ -34,8 +35,7 @@ describe("FinanceData", () => {
   });
 
   it("usar fora do provider é erro de programação", () => {
-    // O React loga o erro que o teste provoca de propósito; não polui a saída
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    silenceExpectedRenderErrors();
     const Broken = () => {
       useFinanceData();
       return null;
