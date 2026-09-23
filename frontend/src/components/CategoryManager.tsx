@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  addDefaultCategories,
   apiErrorMessage,
   applyCategoryRules,
   createCategory,
@@ -108,6 +109,16 @@ export default function CategoryManager({ categories, onChanged }: Props) {
     if (editingId === category.id) setEditingId(null);
   }
 
+  async function handleAddDefaults() {
+    await run(async () => {
+      const count = await addDefaultCategories();
+      return count === 0
+        ? "Você já tem todas as categorias sugeridas."
+        : `${count} categoria${count === 1 ? " sugerida adicionada" : "s sugeridas adicionadas"}. ` +
+            "Use \"Aplicar regras\" para categorizar os extratos já importados.";
+    }, "Não foi possível adicionar as categorias sugeridas.");
+  }
+
   async function handleApplyRules() {
     await run(async () => {
       const count = await applyCategoryRules();
@@ -120,7 +131,7 @@ export default function CategoryManager({ categories, onChanged }: Props) {
   return (
     <div>
       {categories.length === 0 ? (
-        <p>Nenhuma categoria ainda. Crie uma abaixo.</p>
+        <p>Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.</p>
       ) : (
         <table>
           <thead>
@@ -226,9 +237,16 @@ export default function CategoryManager({ categories, onChanged }: Props) {
         Ignorar nos gráficos (ex: pagamento de fatura do cartão, transferência entre suas contas)
       </label>
 
-      <p>
+      <p style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button onClick={handleApplyRules} disabled={busy || categories.length === 0}>
           Aplicar regras às transações sem categoria
+        </button>
+        <button
+          onClick={handleAddDefaults}
+          disabled={busy}
+          title="Alimentação, Mercado, Transporte, Saúde, Moradia, Assinaturas... Só cria as que você ainda não tem."
+        >
+          Adicionar categorias sugeridas
         </button>
       </p>
 

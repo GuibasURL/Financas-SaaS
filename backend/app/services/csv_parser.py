@@ -18,11 +18,12 @@ bata, ajuste o formato e troque o arquivo de exemplo pelo real (anonimizado).
 import csv
 import io
 import re
-import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Optional
+
+from app.services.text import strip_accents
 
 
 class CSVParseError(Exception):
@@ -185,15 +186,9 @@ def _decode(file_bytes: bytes) -> str:
 
 def _normalize_header(name: str) -> str:
     """ 'Crédito (R$)' -> 'credito', 'Data Lançamento' -> 'data lancamento' """
-    name = _strip_accents(name).lower()
+    name = strip_accents(name).lower()
     name = re.sub(r"\(.*?\)", "", name)
     return " ".join(name.replace(".", " ").split())
-
-
-def _strip_accents(text: str) -> str:
-    return "".join(
-        c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c)
-    )
 
 
 def _match_format(header: list[str]) -> Optional[BankFormat]:
@@ -230,7 +225,7 @@ def _find_table(text: str):
 
 
 def _is_balance_line(description: str) -> bool:
-    compact = _strip_accents(description).upper().replace(" ", "")
+    compact = strip_accents(description).upper().replace(" ", "")
     return compact.startswith("SALDO")
 
 

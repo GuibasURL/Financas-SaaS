@@ -6,6 +6,7 @@ from app.db import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserOut, normalize_email
+from app.services.default_categories import add_default_categories
 from app.services.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -18,6 +19,10 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
 
     user = User(email=payload.email, hashed_password=hash_password(payload.password))
     db.add(user)
+    db.flush()  # gera o user.id
+    # Conta nova já nasce com as categorias sugeridas: o primeiro extrato
+    # enviado já sai categorizado, sem precisar configurar nada
+    add_default_categories(db, user.id)
     db.commit()
     db.refresh(user)
     return user

@@ -164,6 +164,12 @@ export async function deleteCategory(id: number): Promise<void> {
   await api.delete(`/categories/${id}`);
 }
 
+// Cria as categorias sugeridas que o usuário ainda não tem; devolve quantas criou
+export async function addDefaultCategories(): Promise<number> {
+  const { data } = await api.post<{ created: number }>("/categories/defaults");
+  return data.created;
+}
+
 // Reaplica as palavras-chave às transações sem categoria; devolve quantas mudaram
 export async function applyCategoryRules(): Promise<number> {
   const { data } = await api.post<{ categorized: number }>("/categories/apply-rules");

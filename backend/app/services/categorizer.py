@@ -10,20 +10,24 @@ from sqlalchemy.orm import Session
 
 from app.models.category import Category
 from app.models.transaction import Transaction
+from app.services.text import normalize_text
 
 
 def categorize(description: str, categories: list[Category]) -> int | None:
     """
     Retorna o id da primeira categoria cuja keyword aparece na descrição,
     ou None se nenhuma bater (fica para categorização manual).
+
+    A comparação ignora maiúsculas e acentos: a keyword "farmácia" pega
+    "FARMACIA SAO JOAO" (a maioria dos bancos escreve sem acento).
     """
-    description_lower = description.lower()
+    description = normalize_text(description)
 
     for category in categories:
         if not category.keywords:
             continue
-        keywords = [k.strip().lower() for k in category.keywords.split(",") if k.strip()]
-        if any(keyword in description_lower for keyword in keywords):
+        keywords = [normalize_text(k.strip()) for k in category.keywords.split(",") if k.strip()]
+        if any(keyword in description for keyword in keywords):
             return category.id
 
     return None

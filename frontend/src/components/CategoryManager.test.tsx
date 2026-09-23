@@ -35,7 +35,9 @@ describe("CategoryManager", () => {
   it("sem categorias, convida a criar uma", async () => {
     renderManager();
 
-    expect(await screen.findByText("Nenhuma categoria ainda. Crie uma abaixo.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.")
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Aplicar regras às transações sem categoria" })
     ).toBeDisabled();
@@ -121,7 +123,9 @@ describe("CategoryManager", () => {
     await user.click(within(categoryRow("Lazer")).getByRole("button", { name: "Excluir" }));
 
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("ficam sem categoria"));
-    expect(await screen.findByText("Nenhuma categoria ainda. Crie uma abaixo.")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.")
+    ).toBeInTheDocument();
   });
 
   it.each([
@@ -142,5 +146,41 @@ describe("CategoryManager", () => {
     );
 
     expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
+  it("adiciona as categorias sugeridas e avisa para aplicar as regras", async () => {
+    const user = renderManager();
+    await screen.findByText(/Nenhuma categoria ainda/);
+
+    await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
+
+    expect(
+      await screen.findByText(/3 categorias sugeridas adicionadas\. Use "Aplicar regras"/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Saúde" })).toBeInTheDocument();
+  });
+
+  it("não duplica e avisa quando já tem todas as sugeridas", async () => {
+    addCategory({ name: "Alimentação" });
+    addCategory({ name: "Transporte" });
+    addCategory({ name: "Saúde" });
+    const user = renderManager();
+    await screen.findByRole("cell", { name: "Saúde" });
+
+    await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
+
+    expect(await screen.findByText("Você já tem todas as categorias sugeridas.")).toBeInTheDocument();
+    expect(db.categories).toHaveLength(3);
+  });
+
+  it("singular quando só falta uma sugerida", async () => {
+    addCategory({ name: "Alimentação" });
+    addCategory({ name: "Transporte" });
+    const user = renderManager();
+    await screen.findByRole("cell", { name: "Transporte" });
+
+    await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
+
+    expect(await screen.findByText(/^1 categoria sugerida adicionada\./)).toBeInTheDocument();
   });
 });
