@@ -29,6 +29,6 @@ describe("localStorage bloqueado", () => {
     expect(await screen.findByText("ana@teste.com")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Sair" }));
-    expect(await screen.findByRole("heading", { name: "Entrar" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
   });
 });

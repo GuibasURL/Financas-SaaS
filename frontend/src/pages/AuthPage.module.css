@@ -1,0 +1,331 @@
+/* Tela de acesso (entrar / criar conta). Cores e fontes vêm de styles/tokens.css */
+
+.page {
+  position: relative;
+  min-height: 100svh;
+  overflow: hidden;
+  color: var(--text);
+  background: linear-gradient(135deg, #060f1e, var(--bg) 44%, #0d1b31);
+}
+
+/* Faixas de luz desfocadas no fundo */
+.page::before,
+.page::after {
+  content: "";
+  position: absolute;
+  width: 55%;
+  height: 160%;
+  filter: blur(42px);
+  transform: rotate(18deg);
+  pointer-events: none;
+}
+.page::before {
+  left: -15%;
+  top: -40%;
+  background: linear-gradient(rgba(56, 189, 248, 0.15), rgba(34, 211, 238, 0.03));
+}
+.page::after {
+  right: -15%;
+  bottom: -60%;
+  background: linear-gradient(rgba(56, 189, 248, 0.03), rgba(245, 165, 36, 0.12));
+}
+
+.layout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 430px);
+  align-items: center;
+  gap: clamp(48px, 8vw, 110px);
+  width: min(calc(100% - 48px), 1180px);
+  min-height: 100svh;
+  margin: auto;
+  padding: 48px 0;
+}
+
+/* ---------- Lado esquerdo: marca e chamada ---------- */
+
+.story {
+  display: flex;
+  min-height: 610px;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--bg);
+  background: var(--amber);
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--cyan);
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  max-width: 13ch;
+  margin: 0;
+  font: 600 clamp(48px, 6vw, 92px) / 0.96 var(--font-display);
+  letter-spacing: 0;
+}
+.title span {
+  color: var(--cyan);
+}
+
+.intro {
+  max-width: 48ch;
+  margin: 20px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* Mini "extrato" ilustrativo */
+.statement {
+  width: min(100%, 480px);
+  margin: 0;
+  border-top: 1px solid var(--line);
+  font: 12px var(--font-mono);
+}
+.statement div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(234, 243, 248, 0.08);
+  color: var(--muted);
+}
+.statement dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+}
+.statement .income {
+  color: var(--income);
+}
+.statement .expense {
+  color: var(--expense);
+}
+
+/* ---------- Lado direito: cartão com o formulário ---------- */
+
+.card {
+  padding: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--glass);
+  backdrop-filter: blur(18px) saturate(125%);
+  box-shadow: var(--shadow);
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(234, 243, 248, 0.1);
+  border-radius: 10px;
+  background: rgba(234, 243, 248, 0.035);
+}
+.tab {
+  padding: 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--muted);
+  background: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--text);
+}
+.tabActive {
+  border-color: var(--line);
+  color: var(--text);
+  background: var(--glass-strong);
+}
+
+.heading {
+  margin: 26px 0 20px;
+}
+.heading h2 {
+  margin: 0;
+  font: 600 28px var(--font-display);
+}
+.heading p:last-child {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.notice {
+  display: flex;
+  gap: 9px;
+  margin: 0 0 16px;
+  padding: 11px 12px;
+  border: 1px solid rgba(245, 165, 36, 0.35);
+  border-radius: var(--r-sm);
+  color: #f9dc9a;
+  background: rgba(245, 165, 36, 0.1);
+  font-size: 13px;
+}
+.error {
+  border-color: rgba(251, 77, 107, 0.4);
+  color: #ffb0bd;
+  background: rgba(251, 77, 107, 0.11);
+}
+
+.label {
+  display: block;
+  margin: 16px 0 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.label:first-child {
+  margin-top: 0;
+}
+
+.field {
+  width: 100%;
+  height: 46px;
+  padding: 0 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  outline: none;
+  color: var(--text);
+  caret-color: var(--cyan);
+  background: rgba(234, 243, 248, 0.045);
+}
+.field::placeholder {
+  color: rgba(157, 179, 201, 0.7);
+}
+.field:focus {
+  border-color: rgba(56, 189, 248, 0.75);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+}
+
+.hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.submit {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 21px;
+  border: 0;
+  border-radius: var(--r-sm);
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--sky), var(--cyan));
+  font-weight: 600;
+  box-shadow: 0 9px 25px -10px rgba(56, 189, 248, 0.65);
+  cursor: pointer;
+}
+.submit:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.switch {
+  margin: 20px 0 0;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
+.switch button {
+  padding: 0;
+  border: 0;
+  color: var(--cyan);
+  background: none;
+  font-weight: 500;
+  cursor: pointer;
+}
+.switch button:hover {
+  text-decoration: underline;
+}
+
+.demo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 21px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid rgba(234, 243, 248, 0.1);
+  color: var(--muted);
+  font-size: 12px;
+}
+.demo::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.14);
+}
+
+/* ---------- Responsivo ---------- */
+
+@media (max-width: 800px) {
+  .page {
+    overflow: auto;
+  }
+  .layout {
+    grid-template-columns: 1fr;
+    width: min(calc(100% - 32px), 540px);
+    gap: 36px;
+    padding: 20px 0 32px;
+  }
+  .story {
+    min-height: auto;
+    gap: 44px;
+  }
+  .storyCopy {
+    padding-top: 24px;
+  }
+  .statement {
+    display: none;
+  }
+  .card {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 390px) {
+  .layout {
+    width: calc(100% - 20px);
+  }
+  .title {
+    font-size: 43px;
+  }
+  .card {
+    padding: 16px;
+  }
+  .intro {
+    font-size: 15px;
+  }
+}

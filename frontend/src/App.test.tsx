@@ -20,7 +20,7 @@ describe("login", () => {
   it("sem token salvo, mostra a tela de entrar", async () => {
     renderApp();
 
-    expect(await screen.findByRole("heading", { name: "Entrar" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
   });
 
   it("senha errada mostra o erro e continua na tela de login", async () => {
@@ -56,7 +56,7 @@ describe("cadastro", () => {
 
     await user.type(screen.getByLabelText("E-mail"), "nova@teste.com");
     await user.type(screen.getByLabelText("Senha"), "senha-forte-123");
-    await user.type(screen.getByLabelText("Repita a senha"), "outra-senha-123");
+    await user.type(screen.getByLabelText("Repetir senha"), "outra-senha-123");
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
 
     expect(await screen.findByText("As senhas não conferem.")).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe("cadastro", () => {
 
     await user.type(screen.getByLabelText("E-mail"), "Nova@Teste.com");
     await user.type(screen.getByLabelText("Senha"), "senha-forte-123");
-    await user.type(screen.getByLabelText("Repita a senha"), "senha-forte-123");
+    await user.type(screen.getByLabelText("Repetir senha"), "senha-forte-123");
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
 
     expect(await screen.findByText("nova@teste.com")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("cadastro", () => {
 
     await user.type(screen.getByLabelText("E-mail"), "ana@teste.com");
     await user.type(screen.getByLabelText("Senha"), "senha-forte-123");
-    await user.type(screen.getByLabelText("Repita a senha"), "senha-forte-123");
+    await user.type(screen.getByLabelText("Repetir senha"), "senha-forte-123");
     await user.click(screen.getByRole("button", { name: "Criar conta" }));
 
     expect(await screen.findByText("E-mail já cadastrado")).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe("sessão", () => {
 
     renderApp();
 
-    expect(await screen.findByRole("heading", { name: "Entrar" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
     expect(localStorage.getItem("financas.token")).toBeNull();
   });
 
@@ -113,7 +113,7 @@ describe("sessão", () => {
 
     await user.click(await screen.findByRole("button", { name: "Sair" }));
 
-    expect(await screen.findByRole("heading", { name: "Entrar" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
     expect(screen.queryByText(/sessão expirou/)).not.toBeInTheDocument();
     expect(localStorage.getItem("financas.token")).toBeNull();
   });
@@ -137,7 +137,7 @@ describe("sessão", () => {
 
     await user.click(screen.getByRole("button", { name: "Entrar" }));
 
-    expect(screen.getByRole("heading", { name: "Entrar" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Repita a senha")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Repetir senha")).not.toBeInTheDocument();
   });
 });
