@@ -93,6 +93,16 @@ npm run dev
 
 O app sobe em `http://localhost:5173`.
 
+## Testes do frontend
+
+```bash
+cd frontend
+npm test            # roda uma vez
+npm run test:watch  # fica rodando e repete a cada alteração
+```
+
+Vitest + Testing Library, com os componentes renderizados no jsdom. As chamadas HTTP vão para uma API falsa em memória (`src/test/fakeApi.ts`, feita com [MSW](https://mswjs.io/)), então o `api.ts` roda de verdade, incluindo o envio do token e a volta para o login quando a sessão expira. Cada teste começa com a API falsa vazia; os helpers `addUser`, `loginAs`, `addCategory` e `addStatement` montam o cenário.
+
 ## Formatos de extrato aceitos
 
 O upload reconhece o banco sozinho pelo cabeçalho do CSV:

@@ -27,7 +27,13 @@ export default function UploadCSV({ onUploaded }: Props) {
 
   return (
     <div>
-      <input type="file" accept=".csv" onChange={handleChange} disabled={loading} />
+      <input
+        type="file"
+        accept=".csv"
+        aria-label="Arquivo CSV do extrato"
+        onChange={handleChange}
+        disabled={loading}
+      />
       {loading && <p>Enviando...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
