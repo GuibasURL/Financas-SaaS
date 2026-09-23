@@ -17,11 +17,21 @@ export function formatDate(isoDate: string): string {
   return `${day}/${month}/${year}`;
 }
 
-/** O SQLite devolve o horário em UTC sem indicar o fuso; trata como UTC. */
+/**
+ * "2026-09-23T13:30:00" -> "23/09/2026 às 10:30" (no fuso de quem vê).
+ * O SQLite devolve o horário em UTC sem indicar o fuso; trata como UTC.
+ */
 export function formatDateTime(isoDateTime: string): string {
   const hasTimezone = /Z|[+-]\d{2}:\d{2}$/.test(isoDateTime);
   const date = new Date(hasTimezone ? isoDateTime : `${isoDateTime}Z`);
-  return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const day = date.toLocaleDateString("pt-BR");
+  const time = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${day} às ${time}`;
+}
+
+/** (1, "transação", "transações") -> "1 transação"; (3, ...) -> "3 transações" */
+export function formatCount(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 /** Número de 1 a 12 da cor de categoria (--cat-N), estável pela ordem de criação. */

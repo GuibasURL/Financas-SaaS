@@ -8,9 +8,9 @@ function nav() {
   return screen.getByRole("complementary", { name: "Navegação principal" });
 }
 
-// Linha da tabela com esse texto (o nome do extrato também aparece na etiqueta de filtro)
+// Linha (da tabela ou da lista) com esse texto (o nome do extrato também aparece na etiqueta de filtro)
 function rowOf(text: string) {
-  return screen.getAllByText(text).map((e) => e.closest("tr")).find(Boolean)!;
+  return screen.getAllByText(text).map((e) => e.closest("tr, li")).find(Boolean)! as HTMLElement;
 }
 
 async function findRow(text: string) {
@@ -63,10 +63,15 @@ describe("Extratos", () => {
 
   it("filtrar um extrato vale para as outras páginas até clicar em Ver todos", async () => {
     const user = await renderLoggedIn("/extratos");
-    await user.click(within(await findRow("abril.csv")).getByRole("button", { name: "Filtrar" }));
+    expect(await screen.findByText("2 arquivos · 3 transações")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Filtrar por abril.csv" }));
 
     const chip = await screen.findByRole("status");
     expect(chip).toHaveTextContent("Filtrando por abril.csv");
+    expect(screen.getByRole("button", { name: "Filtrar por abril.csv" })).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
 
     await user.click(within(nav()).getByRole("link", { name: "Transações" }));
     await screen.findByRole("heading", { level: 1, name: "Transações" });
@@ -78,33 +83,40 @@ describe("Extratos", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("excluir pede confirmação e cancelar não apaga", async () => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+  it("excluir pede confirmação na janela e cancelar não apaga", async () => {
     const user = await renderLoggedIn("/extratos");
 
-    await user.click(within(await findRow("abril.csv")).getByRole("button", { name: "Excluir" }));
+    await user.click(await screen.findByRole("button", { name: "Excluir abril.csv" }));
 
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('"abril.csv"'));
+    const dialog = screen.getByRole("dialog", { name: "Excluir extrato?" });
+    expect(dialog).toHaveTextContent(
+      'O extrato "abril.csv" e a transação dele serão apagados. Isso não pode ser desfeito.'
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(db.statements).toHaveLength(2);
   });
 
-  it("confirmar exclui o extrato e ele some da lista", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+  it("confirmar exclui o extrato, ele some da lista e aparece o aviso", async () => {
     const user = await renderLoggedIn("/extratos");
 
-    await user.click(within(await findRow("abril.csv")).getByRole("button", { name: "Excluir" }));
+    await user.click(await screen.findByRole("button", { name: "Excluir marco.csv" }));
+    expect(screen.getByRole("dialog")).toHaveTextContent("e as 2 transações dele serão apagados");
+    await user.click(screen.getByRole("button", { name: "Excluir extrato" }));
 
-    await vi.waitFor(() => expect(screen.queryByText("abril.csv")).not.toBeInTheDocument());
-    expect(screen.getByText("marco.csv")).toBeInTheDocument();
+    await vi.waitFor(() => expect(screen.queryByText("marco.csv")).not.toBeInTheDocument());
+    expect(screen.getByText("abril.csv")).toBeInTheDocument();
+    expect(screen.getByText("Extrato excluído.")).toBeInTheDocument();
   });
 
   it("excluir o extrato filtrado volta a mostrar todos", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = await renderLoggedIn("/extratos");
-    await user.click(within(await findRow("abril.csv")).getByRole("button", { name: "Filtrar" }));
+    await user.click(await screen.findByRole("button", { name: "Filtrar por abril.csv" }));
     await screen.findByRole("status");
 
-    await user.click(within(rowOf("abril.csv")).getByRole("button", { name: "Excluir" }));
+    await user.click(screen.getByRole("button", { name: "Excluir abril.csv" }));
+    await user.click(screen.getByRole("button", { name: "Excluir extrato" }));
 
     await vi.waitFor(() => expect(screen.queryByText("abril.csv")).not.toBeInTheDocument());
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
@@ -112,14 +124,26 @@ describe("Extratos", () => {
   });
 
   it("avisa quando não consegue excluir", async () => {
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
     server.use(http.delete(`${API}/statements/:id`, () => HttpResponse.error()));
     const user = await renderLoggedIn("/extratos");
 
-    await user.click(within(await findRow("abril.csv")).getByRole("button", { name: "Excluir" }));
+    await user.click(await screen.findByRole("button", { name: "Excluir abril.csv" }));
+    await user.click(screen.getByRole("button", { name: "Excluir extrato" }));
 
-    await vi.waitFor(() => expect(alert).toHaveBeenCalledWith("Não foi possível excluir o extrato."));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível excluir o extrato.");
+    expect(db.statements).toHaveLength(2);
+  });
+});
+
+describe("Extratos vazio", () => {
+  it("o botão do estado vazio abre a escolha de arquivo", async () => {
+    const pick = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => {});
+    const user = await renderLoggedIn("/extratos");
+
+    await user.click(await screen.findByRole("button", { name: "Importar primeiro extrato" }));
+
+    expect(pick).toHaveBeenCalledOnce();
+    expect(pick.mock.contexts[0]).toBe(screen.getByLabelText("Arquivo CSV do extrato"));
   });
 });
 
@@ -145,13 +169,14 @@ describe("Transações", () => {
   it("avisa quando não consegue trocar a categoria", async () => {
     addCategory({ name: "Alimentação" });
     addStatement("marco.csv", [{ date: "2025-03-01", description: "IFOOD", amount: -30 }]);
-    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
     server.use(http.patch(`${API}/transactions/:id`, () => HttpResponse.error()));
     const user = await renderLoggedIn("/transacoes");
 
     await user.selectOptions(await screen.findByRole("combobox", { name: "Categoria de IFOOD" }), "Alimentação");
 
-    await vi.waitFor(() => expect(alert).toHaveBeenCalledWith("Não foi possível atualizar a categoria."));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Não foi possível atualizar a categoria."
+    );
   });
 });
 
@@ -161,8 +186,24 @@ describe("Categorias", () => {
     addCategory({ name: "Transporte" });
     await renderLoggedIn("/categorias");
 
-    const dot = (await screen.findByRole("cell", { name: "Transporte" })).querySelector("i");
+    const name = await screen.findByText("Transporte", { selector: "span" });
     // Cor pela ordem de criação: Transporte é a 2ª
-    expect(dot).toHaveStyle({ background: "var(--cat-2)" });
+    expect(name.closest("li")!.querySelector("i")).toHaveStyle({ background: "var(--cat-2)" });
+  });
+
+  it("conta as transações e soma os valores de cada categoria", async () => {
+    const alimentacao = addCategory({ name: "Alimentação" });
+    addCategory({ name: "Lazer" });
+    addStatement("marco.csv", [
+      { date: "2025-03-01", description: "IFOOD", amount: -30.1, category_id: alimentacao.id },
+      { date: "2025-03-02", description: "IFOOD", amount: -20.2, category_id: alimentacao.id },
+      { date: "2025-03-03", description: "UBER", amount: -15 },
+    ]);
+    await renderLoggedIn("/categorias");
+
+    const food = (await screen.findByText("Alimentação", { selector: "span" })).closest("li")!;
+    expect(within(food).getByText("2 transações")).toBeInTheDocument();
+    expect(within(food).getByText("− R$ 50,30")).toBeInTheDocument();
+    expect(screen.getByText("2 categorias · 2 transações categorizadas")).toBeInTheDocument();
   });
 });

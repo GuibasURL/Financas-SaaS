@@ -1,31 +1,46 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useEffect, useState } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import CategoryManager from "./CategoryManager";
+import { beforeEach, describe, expect, it } from "vitest";
+import CategoryManager, { type CategoryStats } from "./CategoryManager";
+import { FeedbackProvider } from "../feedback/Feedback";
 import { getCategories } from "../services/api";
 import { http, HttpResponse } from "msw";
 import { addCategory, addStatement, addUser, API, db, loginAs, server } from "../test/fakeApi";
 import type { Category } from "../types/transaction";
 
-// Faz o papel do Dashboard: carrega as categorias da API e recarrega a cada mudança
-function Harness() {
+// Faz o papel da página: carrega as categorias da API e recarrega a cada mudança
+function Harness({ stats }: { stats?: Map<number, CategoryStats> }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const load = () => getCategories().then(setCategories);
   useEffect(() => {
     load();
   }, []);
-  return <CategoryManager categories={categories} onChanged={load} />;
+  return <CategoryManager categories={categories} onChanged={load} stats={stats} />;
 }
 
-function renderManager() {
+function renderManager(stats?: Map<number, CategoryStats>) {
   const user = userEvent.setup();
-  render(<Harness />);
+  render(
+    <FeedbackProvider>
+      <Harness stats={stats} />
+    </FeedbackProvider>
+  );
   return user;
 }
 
+// Linha (item da lista) da categoria com esse nome
 function categoryRow(name: string) {
-  return screen.getByRole("cell", { name }).closest("tr")!;
+  return screen.getByText(name, { selector: "span" }).closest("li")!;
+}
+
+async function findCategoryRow(name: string) {
+  await screen.findByText(name, { selector: "span" });
+  return categoryRow(name);
+}
+
+function newForm() {
+  return screen.getByRole("region", { name: "Nova categoria" });
 }
 
 describe("CategoryManager", () => {
@@ -36,65 +51,107 @@ describe("CategoryManager", () => {
   it("sem categorias, convida a criar uma", async () => {
     renderManager();
 
-    expect(
-      await screen.findByText("Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.")
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Aplicar regras às transações sem categoria" })
-    ).toBeDisabled();
+    expect(await screen.findByText("Nenhuma categoria ainda")).toBeInTheDocument();
+    expect(screen.getByText("0 categorias")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Aplicar regras" })).toBeDisabled();
   });
 
-  it("cria categoria e limpa o formulário", async () => {
+  it("cria categoria, limpa o formulário e avisa", async () => {
     const user = renderManager();
 
-    await user.type(await screen.findByLabelText("Nome da nova categoria"), "Lazer");
-    await user.type(screen.getByLabelText("Palavras-chave da nova categoria"), "cinema,netflix");
-    await user.click(screen.getByRole("button", { name: "Adicionar" }));
+    await user.type(await within(newForm()).findByLabelText("Nome"), "Lazer");
+    await user.type(within(newForm()).getByLabelText("Palavras-chave"), "cinema,netflix");
+    await user.click(screen.getByRole("button", { name: "Criar categoria" }));
 
-    expect(await screen.findByRole("cell", { name: "Lazer" })).toBeInTheDocument();
-    expect(within(categoryRow("Lazer")).getByText("cinema, netflix")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nome da nova categoria")).toHaveValue("");
+    const row = await findCategoryRow("Lazer");
+    const keywords = within(row).getByRole("list", { name: "Palavras-chave de Lazer" });
+    expect(within(keywords).getAllByRole("listitem").map((k) => k.textContent)).toEqual([
+      "cinema",
+      "netflix",
+    ]);
+    expect(within(newForm()).getByLabelText("Nome")).toHaveValue("");
+    expect(screen.getByText("Categoria criada.")).toBeInTheDocument();
     expect(db.categories[0].ignore_in_reports).toBe(false);
   });
 
   it("cria categoria ignorada nos gráficos", async () => {
     const user = renderManager();
 
-    await user.type(await screen.findByLabelText("Nome da nova categoria"), "Pagamento de fatura");
-    await user.click(screen.getByLabelText(/Ignorar nos gráficos/));
-    await user.click(screen.getByRole("button", { name: "Adicionar" }));
+    await user.type(await within(newForm()).findByLabelText("Nome"), "Pagamento de fatura");
+    await user.click(within(newForm()).getByLabelText("Ignorar nos gráficos"));
+    await user.click(screen.getByRole("button", { name: "Criar categoria" }));
 
-    await screen.findByRole("cell", { name: "Pagamento de fatura" });
-    expect(within(categoryRow("Pagamento de fatura")).getByText("ignorada")).toBeInTheDocument();
+    const row = await findCategoryRow("Pagamento de fatura");
+    expect(within(row).getByText("ignorada nos gráficos")).toBeInTheDocument();
     expect(db.categories[0].ignore_in_reports).toBe(true);
-    expect(screen.getByLabelText(/Ignorar nos gráficos/)).not.toBeChecked();
+    expect(within(newForm()).getByLabelText("Ignorar nos gráficos")).not.toBeChecked();
   });
 
-  it("mostra o erro da API ao criar nome repetido", async () => {
+  it("palavra-chave de exclusão aparece marcada e sem palavras mostra aviso", async () => {
+    addCategory({ name: "Mercado", keywords: "mercado,-mercado pago" });
+    addCategory({ name: "Outros", keywords: "" });
+    renderManager();
+
+    const exclusion = within(await findCategoryRow("Mercado")).getByText("-mercado pago");
+    expect(exclusion).toHaveAttribute("title", 'Exclui descrições com "mercado pago"');
+    expect(within(categoryRow("Mercado")).getByText("mercado")).not.toHaveAttribute("title");
+    expect(within(categoryRow("Outros")).getByText("nenhuma palavra-chave")).toBeInTheDocument();
+  });
+
+  it("muitas palavras-chave: mostra as 6 primeiras e \"+N\" expande o resto", async () => {
+    addCategory({ name: "Alimentação", keywords: "a1,a2,a3,a4,a5,a6,a7,a8" });
+    const user = renderManager();
+    const row = await findCategoryRow("Alimentação");
+    const chips = () =>
+      within(within(row).getByRole("list", { name: "Palavras-chave de Alimentação" })).getAllByRole(
+        "listitem"
+      );
+    expect(chips()).toHaveLength(6);
+
+    const more = within(row).getByRole("button", {
+      name: "Mostrar mais 2 palavras-chave de Alimentação",
+    });
+    expect(more).toHaveTextContent("+2");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    await user.click(more);
+
+    expect(chips()).toHaveLength(8);
+    const less = within(row).getByRole("button", {
+      name: "Mostrar menos palavras-chave de Alimentação",
+    });
+    expect(less).toHaveAttribute("aria-expanded", "true");
+    await user.click(less);
+    expect(chips()).toHaveLength(6);
+  });
+
+  it("mostra o erro da API ao criar nome repetido, dentro do formulário", async () => {
     addCategory({ name: "Lazer" });
     const user = renderManager();
 
-    await user.type(await screen.findByLabelText("Nome da nova categoria"), "Lazer");
-    await user.click(screen.getByRole("button", { name: "Adicionar" }));
+    await user.type(await within(newForm()).findByLabelText("Nome"), "Lazer");
+    await user.click(screen.getByRole("button", { name: "Criar categoria" }));
 
-    expect(await screen.findByText("Categoria já existe")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nome da nova categoria")).toHaveValue("Lazer");
+    expect(await within(newForm()).findByRole("alert")).toHaveTextContent("Categoria já existe");
+    expect(within(newForm()).getByLabelText("Nome")).toHaveValue("Lazer");
   });
 
   it("edita nome, palavras-chave e a opção de ignorar", async () => {
     addCategory({ name: "Alimentação", keywords: "ifood" });
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Alimentação" });
 
-    await user.click(within(categoryRow("Alimentação")).getByRole("button", { name: "Editar" }));
-    const name = screen.getByLabelText("Nome");
+    await user.click(
+      within(await findCategoryRow("Alimentação")).getByRole("button", { name: "Editar Alimentação" })
+    );
+    const form = screen.getByRole("form", { name: "Editar Alimentação" });
+    const name = within(form).getByLabelText("Nome");
     await user.clear(name);
     await user.type(name, "Comida");
-    await user.type(screen.getByLabelText("Palavras-chave"), ", padaria");
-    await user.click(screen.getByLabelText("ignorar"));
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.type(within(form).getByLabelText("Palavras-chave"), ", padaria");
+    await user.click(within(form).getByLabelText("Ignorar nos gráficos"));
+    await user.click(within(form).getByRole("button", { name: "Salvar" }));
 
-    expect(await screen.findByRole("cell", { name: "Comida" })).toBeInTheDocument();
+    expect(await findCategoryRow("Comida")).toBeInTheDocument();
+    expect(screen.getByText("Categoria atualizada.")).toBeInTheDocument();
     expect(db.categories[0]).toMatchObject({
       name: "Comida",
       keywords: "ifood, padaria",
@@ -102,31 +159,86 @@ describe("CategoryManager", () => {
     });
   });
 
+  it("nas palavras-chave, Enter salva e quebra de linha colada vira vírgula", async () => {
+    addCategory({ name: "Alimentação", keywords: "ifood" });
+    const user = renderManager();
+
+    await user.click(
+      within(await findCategoryRow("Alimentação")).getByRole("button", { name: "Editar Alimentação" })
+    );
+    const keywords = within(screen.getByRole("form", { name: "Editar Alimentação" })).getByLabelText(
+      "Palavras-chave"
+    );
+    fireEvent.change(keywords, { target: { value: "ifood\n padaria \nlanche" } });
+    expect(keywords).toHaveValue("ifood, padaria, lanche");
+
+    await user.type(keywords, "{Enter}");
+
+    expect(await screen.findByText("Categoria atualizada.")).toBeInTheDocument();
+    expect(db.categories[0].keywords).toBe("ifood, padaria, lanche");
+  });
+
   it("cancelar a edição não salva nada", async () => {
     addCategory({ name: "Alimentação" });
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Alimentação" });
 
-    await user.click(within(categoryRow("Alimentação")).getByRole("button", { name: "Editar" }));
-    await user.type(screen.getByLabelText("Nome"), " editada");
-    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    await user.click(
+      within(await findCategoryRow("Alimentação")).getByRole("button", { name: "Editar Alimentação" })
+    );
+    const form = screen.getByRole("form", { name: "Editar Alimentação" });
+    await user.type(within(form).getByLabelText("Nome"), " editada");
+    await user.click(within(form).getByRole("button", { name: "Cancelar" }));
 
-    expect(screen.getByRole("cell", { name: "Alimentação" })).toBeInTheDocument();
+    expect(categoryRow("Alimentação")).toBeInTheDocument();
     expect(db.categories[0].name).toBe("Alimentação");
   });
 
-  it("excluir pede confirmação", async () => {
+  it("excluir pede confirmação na janela e avisa quando termina", async () => {
     addCategory({ name: "Lazer" });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Lazer" });
 
-    await user.click(within(categoryRow("Lazer")).getByRole("button", { name: "Excluir" }));
+    await user.click(
+      within(await findCategoryRow("Lazer")).getByRole("button", { name: "Excluir Lazer" })
+    );
+    const dialog = screen.getByRole("dialog", { name: "Excluir categoria?" });
+    expect(dialog).toHaveTextContent('A categoria "Lazer" será excluída.');
+    expect(dialog).toHaveTextContent("nenhuma transação é apagada");
 
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("ficam sem categoria"));
-    expect(
-      await screen.findByText("Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.")
-    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Excluir categoria" }));
+
+    expect(await screen.findByText("Nenhuma categoria ainda")).toBeInTheDocument();
+    expect(screen.getByText("Categoria excluída.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("cancelar a confirmação de exclusão não apaga", async () => {
+    addCategory({ name: "Lazer" });
+    const user = renderManager();
+
+    await user.click(
+      within(await findCategoryRow("Lazer")).getByRole("button", { name: "Excluir Lazer" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(db.categories).toHaveLength(1);
+  });
+
+  it("erro ao excluir fecha a janela e mostra aviso de erro", async () => {
+    addCategory({ name: "Lazer" });
+    server.use(http.delete(`${API}/categories/:id`, () => HttpResponse.error()));
+    const user = renderManager();
+
+    await user.click(
+      within(await findCategoryRow("Lazer")).getByRole("button", { name: "Excluir Lazer" })
+    );
+    await user.click(screen.getByRole("button", { name: "Excluir categoria" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Não foi possível excluir a categoria."
+    );
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(db.categories).toHaveLength(1);
   });
 
   it.each([
@@ -140,25 +252,35 @@ describe("CategoryManager", () => {
       descriptions.map((description) => ({ date: "2025-03-01", description, amount: -10 }))
     );
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Alimentação" });
+    await findCategoryRow("Alimentação");
 
-    await user.click(
-      screen.getByRole("button", { name: "Aplicar regras às transações sem categoria" })
-    );
+    await user.click(screen.getByRole("button", { name: "Aplicar regras" }));
 
-    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent(message);
+  });
+
+  it("erro ao aplicar regras aparece no topo", async () => {
+    addCategory({ name: "Alimentação", keywords: "ifood" });
+    server.use(http.post(`${API}/categories/apply-rules`, () => HttpResponse.error()));
+    const user = renderManager();
+    await findCategoryRow("Alimentação");
+
+    await user.click(screen.getByRole("button", { name: "Aplicar regras" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível aplicar as regras.");
+    expect(within(newForm()).queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("adiciona as categorias sugeridas e avisa para aplicar as regras", async () => {
     const user = renderManager();
-    await screen.findByText(/Nenhuma categoria ainda/);
+    await screen.findByText("Nenhuma categoria ainda");
 
     await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
 
     expect(
       await screen.findByText(/3 categorias sugeridas adicionadas\. Use "Aplicar regras"/)
     ).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "Saúde" })).toBeInTheDocument();
+    expect(await findCategoryRow("Saúde")).toBeInTheDocument();
   });
 
   it("não duplica e avisa quando já tem todas as sugeridas", async () => {
@@ -166,7 +288,7 @@ describe("CategoryManager", () => {
     addCategory({ name: "Transporte" });
     addCategory({ name: "Saúde" });
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Saúde" });
+    await findCategoryRow("Saúde");
 
     await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
 
@@ -178,48 +300,47 @@ describe("CategoryManager", () => {
     addCategory({ name: "Alimentação" });
     addCategory({ name: "Transporte" });
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Transporte" });
+    await findCategoryRow("Transporte");
 
     await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
 
     expect(await screen.findByText(/^1 categoria sugerida adicionada\./)).toBeInTheDocument();
   });
 
-  it("erro ao salvar a edição mantém o formulário aberto", async () => {
+  it("erro ao salvar a edição aparece na própria linha e mantém o formulário aberto", async () => {
     addCategory({ name: "Alimentação" });
     addCategory({ name: "Transporte" });
     const user = renderManager();
-    await screen.findByRole("cell", { name: "Alimentação" });
 
-    await user.click(within(categoryRow("Alimentação")).getByRole("button", { name: "Editar" }));
-    await user.clear(screen.getByLabelText("Nome"));
-    await user.type(screen.getByLabelText("Nome"), "Transporte");
-    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.click(
+      within(await findCategoryRow("Alimentação")).getByRole("button", { name: "Editar Alimentação" })
+    );
+    const form = screen.getByRole("form", { name: "Editar Alimentação" });
+    await user.clear(within(form).getByLabelText("Nome"));
+    await user.type(within(form).getByLabelText("Nome"), "Transporte");
+    await user.click(within(form).getByRole("button", { name: "Salvar" }));
 
-    expect(await screen.findByText("Categoria já existe")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nome")).toHaveValue("Transporte");
+    expect(await within(form).findByRole("alert")).toHaveTextContent("Categoria já existe");
+    expect(within(form).getByLabelText("Nome")).toHaveValue("Transporte");
   });
 
-  it("erro ao excluir mostra a mensagem", async () => {
+  it("com estatísticas, mostra quantidade e total de cada categoria", async () => {
+    const alimentacao = addCategory({ name: "Alimentação" });
+    const salario = addCategory({ name: "Salário" });
     addCategory({ name: "Lazer" });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    server.use(http.delete(`${API}/categories/:id`, () => HttpResponse.error()));
-    const user = renderManager();
-    await screen.findByRole("cell", { name: "Lazer" });
+    renderManager(
+      new Map([
+        [alimentacao.id, { count: 3, total: -120.5 }],
+        [salario.id, { count: 1, total: 4000 }],
+      ])
+    );
 
-    await user.click(within(categoryRow("Lazer")).getByRole("button", { name: "Excluir" }));
-
-    expect(await screen.findByText("Não foi possível excluir a categoria.")).toBeInTheDocument();
-  });
-
-  it("cancelar a confirmação de exclusão não apaga", async () => {
-    addCategory({ name: "Lazer" });
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    const user = renderManager();
-    await screen.findByRole("cell", { name: "Lazer" });
-
-    await user.click(within(categoryRow("Lazer")).getByRole("button", { name: "Excluir" }));
-
-    expect(db.categories).toHaveLength(1);
+    const food = await findCategoryRow("Alimentação");
+    expect(within(food).getByText("3 transações")).toBeInTheDocument();
+    expect(within(food).getByText("− R$ 120,50")).toBeInTheDocument();
+    expect(within(categoryRow("Salário")).getByText("+ R$ 4.000,00")).toHaveClass("in");
+    expect(within(categoryRow("Salário")).getByText("1 transação")).toBeInTheDocument();
+    expect(within(categoryRow("Lazer")).getByText("0 transações")).toBeInTheDocument();
+    expect(screen.getByText("3 categorias · 4 transações categorizadas")).toBeInTheDocument();
   });
 });

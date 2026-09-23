@@ -123,7 +123,7 @@ describe("sessão", () => {
     addStatement("marco.csv", [{ date: "2025-03-01", description: "IFOOD", amount: -30 }]);
     window.history.pushState({}, "", "/extratos");
     const user = renderApp();
-    await user.click(await screen.findByRole("button", { name: "Filtrar" }));
+    await user.click(await screen.findByRole("button", { name: "Filtrar por marco.csv" }));
     expireAllTokens();
 
     await user.click(within(await screen.findByRole("status")).getByRole("button", { name: "Ver todos" }));
