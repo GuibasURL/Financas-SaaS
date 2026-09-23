@@ -47,6 +47,18 @@ O `--reload` reinicia o servidor automaticamente a cada alteração no código. 
 
 A API sobe em `http://localhost:8000`. Documentação automática (Swagger) em `http://localhost:8000/docs` — útil para testar os endpoints sem precisar do frontend pronto.
 
+## Testes do backend
+
+Instale as dependências de desenvolvimento (uma vez) e rode o pytest de dentro de `backend/`:
+
+```bash
+pip install -r backend/requirements-dev.txt
+cd backend
+pytest
+```
+
+Cada teste usa um banco SQLite em memória, então o `financas.db` não é tocado. Há também um teste que roda as migrations do Alembic e confere se batem com os models.
+
 ## Rodando o frontend
 
 ```bash

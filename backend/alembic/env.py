@@ -8,21 +8,25 @@ from app.db import Base
 import app.models  # noqa: F401  (registra os models no Base.metadata)
 
 config = context.config
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
+
+# Usa a URL do app, a não ser que quem chamou já tenha definido outra
+# (os testes fazem isso para rodar as migrations num banco temporário).
+db_url = config.get_main_option("sqlalchemy.url") or DATABASE_URL
+config.set_main_option("sqlalchemy.url", db_url)
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
 # SQLite não suporta ALTER TABLE completo; o "batch mode" recria a tabela
 # por baixo dos panos quando uma migration precisa alterar colunas.
-render_as_batch = DATABASE_URL.startswith("sqlite")
+render_as_batch = db_url.startswith("sqlite")
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=DATABASE_URL,
+        url=db_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
