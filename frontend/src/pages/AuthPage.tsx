@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiErrorMessage, getMe, login, register } from "../services/api";
 import type { User } from "../types/user";
+import Logo from "../components/Logo";
 import styles from "./AuthPage.module.css";
 
 interface Props {
@@ -90,12 +91,7 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
     <main className={styles.page}>
       <div className={styles.layout}>
         <section className={styles.story}>
-          <div className={styles.brand}>
-            <span className={styles.mark} aria-hidden="true">
-              V
-            </span>
-            <span>Vexira</span>
-          </div>
+          <Logo className={styles.brand} markClassName={styles.mark} nameClassName={styles.brandName} />
 
           <div className={styles.storyCopy}>
             <p className={styles.eyebrow}>Clareza para as suas escolhas</p>
