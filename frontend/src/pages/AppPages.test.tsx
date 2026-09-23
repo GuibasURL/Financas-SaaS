@@ -144,7 +144,7 @@ describe("Extratos vazio", () => {
     await user.click(await screen.findByRole("button", { name: "Importar primeiro extrato" }));
 
     expect(pick).toHaveBeenCalledOnce();
-    expect(pick.mock.contexts[0]).toBe(screen.getByLabelText("Arquivo CSV do extrato"));
+    expect(pick.mock.contexts[0]).toBe(screen.getByLabelText("Arquivo do extrato (CSV ou OFX)"));
   });
 });
 

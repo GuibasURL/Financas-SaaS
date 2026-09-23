@@ -323,8 +323,8 @@ export const handlers = [
     `${API}/upload`,
     authed(async ({ request }) => {
       const file = (await request.formData()).get("file") as File;
-      if (!file.name.endsWith(".csv")) {
-        return HttpResponse.json({ detail: "Envie um arquivo .csv" }, { status: 400 });
+      if (!/\.(csv|ofx)$/i.test(file.name)) {
+        return HttpResponse.json({ detail: "Envie um arquivo .csv ou .ofx" }, { status: 400 });
       }
       const statement = addStatement(file.name, [
         { date: "2025-05-01", description: "IMPORTADO", amount: -10 },

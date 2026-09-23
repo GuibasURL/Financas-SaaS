@@ -143,7 +143,20 @@ O resultado aparece no PR (✓ ou ✗) e na aba **Actions** do repositório.
 
 ## Formatos de extrato aceitos
 
-O upload reconhece o banco sozinho pelo cabeçalho do CSV:
+O upload aceita **OFX** (de qualquer banco) e **CSV** (dos bancos abaixo), e reconhece o formato sozinho.
+
+### OFX: qualquer banco
+
+OFX é o formato padrão de extrato bancário, igual em todos os bancos. Muitos oferecem a opção de baixar o extrato (ou a fatura do cartão) em OFX, então ele funciona mesmo para bancos que não têm um CSV conhecido pelo app.
+
+- Aceita OFX 1.x (SGML, o mais comum nos bancos brasileiros, geralmente em Windows-1252) e 2.x (XML).
+- De cada lançamento usa a data (`DTPOSTED`), o valor com sinal (`TRNAMT`) e a descrição (`NAME` e `MEMO`).
+- Tolera o que costuma aparecer fora do padrão: valor com vírgula (`-55,90`), débito com valor positivo (vira saída), `</STMTTRN>` faltando e lançamento repetido no mesmo arquivo (mesmo `FITID`, entra uma vez só).
+- O código fica em `backend/app/services/ofx_parser.py`; os exemplos (dados fictícios) em `backend/tests/fixtures/extratos/*.ofx`.
+
+### CSV: bancos conhecidos
+
+O banco é reconhecido pelo cabeçalho do CSV:
 
 | Banco | Particularidades tratadas |
 |---|---|

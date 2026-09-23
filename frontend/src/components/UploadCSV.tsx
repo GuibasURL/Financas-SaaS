@@ -18,6 +18,7 @@ const BANKS = [
   "Bradesco",
   "Banco do Brasil",
   "PicPay",
+  "OFX de qualquer banco",
   "Genérico",
 ];
 
@@ -65,14 +66,15 @@ export default function UploadCSV({ onUploaded }: Props) {
         onDrop={handleDrop}
       >
         <Icon name="upload" />
-        <strong>Selecionar arquivo .csv</strong>
+        <strong>Selecionar arquivo .csv ou .ofx</strong>
         <span>ou arraste o arquivo para cá</span>
         <input
           id={CSV_INPUT_ID}
           className={styles.fileInput}
           type="file"
-          accept=".csv"
-          aria-label="Arquivo CSV do extrato"
+          // .ofx: formato padrão, serve para qualquer banco
+          accept=".csv,.ofx"
+          aria-label="Arquivo do extrato (CSV ou OFX)"
           onChange={handleChange}
           disabled={loading}
         />
