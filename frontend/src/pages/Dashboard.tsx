@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import UploadCSV from "../components/UploadCSV";
 import StatementList from "../components/StatementList";
+import CategoryManager from "../components/CategoryManager";
 import TransactionTable from "../components/TransactionTable";
 import CategoryPieChart from "../components/charts/CategoryPieChart";
 import MonthlyTrendChart from "../components/charts/MonthlyTrendChart";
@@ -131,6 +132,11 @@ export default function Dashboard({ user, onLogout }: Props) {
           onSelect={setSelectedStatementId}
           onDelete={handleDeleteStatement}
         />
+      </section>
+
+      <section>
+        <h2>Categorias</h2>
+        <CategoryManager categories={categories} onChanged={loadAll} />
       </section>
 
       <section>

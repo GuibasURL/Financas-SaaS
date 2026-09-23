@@ -69,6 +69,29 @@ def test_upload_so_categoriza_com_as_categorias_do_proprio_usuario(other_client,
     assert all(t["category_id"] is None for t in transactions)
 
 
+def test_nao_edita_nem_exclui_categoria_de_outro_usuario(client, other_client, categories):
+    category_id = categories["alimentacao"].id
+
+    assert other_client.patch(f"/categories/{category_id}", json={"name": "X"}).status_code == 404
+    assert other_client.delete(f"/categories/{category_id}").status_code == 404
+    assert [c["name"] for c in client.get("/categories").json()] == ["Alimentação", "Transporte"]
+
+
+def test_reaplicar_regras_so_usa_e_so_mexe_no_proprio_usuario(client, other_client, categories):
+    upload_csv(other_client, CSV_JANEIRO)  # Bruno, sem categorias
+    upload_csv(client, CSV_JANEIRO)
+    client.patch(  # Ana deixa um IFOOD sem categoria para as regras pegarem de novo
+        f"/transactions/{client.get('/transactions').json()[-1]['id']}",
+        json={"category_id": None},
+    )
+
+    # Regras do Bruno (nenhuma) não categorizam nada, nem as transações da Ana
+    assert other_client.post("/categories/apply-rules").json() == {"categorized": 0}
+    # As da Ana só pegam as transações dela
+    assert client.post("/categories/apply-rules").json() == {"categorized": 1}
+    assert all(t["category_id"] is None for t in other_client.get("/transactions").json())
+
+
 def test_categorias_sao_separadas_por_usuario(client, other_client, categories):
     assert other_client.get("/categories").json() == []
 
