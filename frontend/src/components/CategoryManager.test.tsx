@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import CategoryManager from "./CategoryManager";
 import { getCategories } from "../services/api";
-import { addCategory, addStatement, addUser, db, loginAs } from "../test/fakeApi";
+import { http, HttpResponse } from "msw";
+import { addCategory, addStatement, addUser, API, db, loginAs, server } from "../test/fakeApi";
 import type { Category } from "../types/transaction";
 
 // Faz o papel do Dashboard: carrega as categorias da API e recarrega a cada mudança
@@ -182,5 +183,43 @@ describe("CategoryManager", () => {
     await user.click(screen.getByRole("button", { name: "Adicionar categorias sugeridas" }));
 
     expect(await screen.findByText(/^1 categoria sugerida adicionada\./)).toBeInTheDocument();
+  });
+
+  it("erro ao salvar a edição mantém o formulário aberto", async () => {
+    addCategory({ name: "Alimentação" });
+    addCategory({ name: "Transporte" });
+    const user = renderManager();
+    await screen.findByRole("cell", { name: "Alimentação" });
+
+    await user.click(within(categoryRow("Alimentação")).getByRole("button", { name: "Editar" }));
+    await user.clear(screen.getByLabelText("Nome"));
+    await user.type(screen.getByLabelText("Nome"), "Transporte");
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(await screen.findByText("Categoria já existe")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nome")).toHaveValue("Transporte");
+  });
+
+  it("erro ao excluir mostra a mensagem", async () => {
+    addCategory({ name: "Lazer" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    server.use(http.delete(`${API}/categories/:id`, () => HttpResponse.error()));
+    const user = renderManager();
+    await screen.findByRole("cell", { name: "Lazer" });
+
+    await user.click(within(categoryRow("Lazer")).getByRole("button", { name: "Excluir" }));
+
+    expect(await screen.findByText("Não foi possível excluir a categoria.")).toBeInTheDocument();
+  });
+
+  it("cancelar a confirmação de exclusão não apaga", async () => {
+    addCategory({ name: "Lazer" });
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    const user = renderManager();
+    await screen.findByRole("cell", { name: "Lazer" });
+
+    await user.click(within(categoryRow("Lazer")).getByRole("button", { name: "Excluir" }));
+
+    expect(db.categories).toHaveLength(1);
   });
 });

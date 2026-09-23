@@ -11,6 +11,9 @@ backend/.env
 frontend/node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
+frontend/coverage/
+backend/.coverage
+backend/htmlcov/
 
 # Editor / SO
 .vscode/

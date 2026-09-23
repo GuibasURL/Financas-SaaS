@@ -101,4 +101,45 @@ describe("Dashboard", () => {
       await screen.findByText("Não foi possível carregar os dados. Verifique se a API está rodando.")
     ).toBeInTheDocument();
   });
+
+  it("excluir o extrato que está filtrado volta a mostrar todos", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = renderDashboard();
+    const abril = (await screen.findByText("abril.csv")).closest("tr")!;
+    await user.click(within(abril).getByRole("button", { name: "Filtrar" }));
+    await within(section("Transações")).findByText("MERCADO");
+    expect(transactionRows()).toHaveLength(1);
+
+    await user.click(within(abril).getByRole("button", { name: "Excluir" }));
+
+    await vi.waitFor(() => expect(transactionRows()).toHaveLength(2)); // as 2 de março
+    expect(screen.queryByText("abril.csv")).not.toBeInTheDocument();
+  });
+
+  it("avisa quando não consegue excluir o extrato", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
+    server.use(http.delete(`${API}/statements/:id`, () => HttpResponse.error()));
+    const user = renderDashboard();
+    const abril = (await screen.findByText("abril.csv")).closest("tr")!;
+
+    await user.click(within(abril).getByRole("button", { name: "Excluir" }));
+
+    await vi.waitFor(() => expect(alert).toHaveBeenCalledWith("Não foi possível excluir o extrato."));
+    expect(screen.getByText("abril.csv")).toBeInTheDocument();
+  });
+
+  it("avisa quando não consegue trocar a categoria", async () => {
+    addCategory({ name: "Alimentação" });
+    const alert = vi.spyOn(window, "alert").mockImplementation(() => {});
+    server.use(http.patch(`${API}/transactions/:id`, () => HttpResponse.error()));
+    const user = renderDashboard();
+    const ifood = (await within(section("Transações")).findByText("IFOOD")).closest("tr")!;
+
+    await user.selectOptions(within(ifood).getByRole("combobox"), "Alimentação");
+
+    await vi.waitFor(() =>
+      expect(alert).toHaveBeenCalledWith("Não foi possível atualizar a categoria.")
+    );
+  });
 });

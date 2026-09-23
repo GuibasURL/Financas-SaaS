@@ -37,8 +37,9 @@ jobs:
       - name: Instalar dependências
         run: pip install -r requirements-dev.txt
 
-      - name: Rodar testes
-        run: pytest
+      # Falha se menos de 95% do código do backend for executado pelos testes
+      - name: Rodar testes (com cobertura)
+        run: pytest --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=95
 
   frontend:
     name: Frontend (typecheck, testes e build)
@@ -58,8 +59,9 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Rodar testes
-        run: npm test
+      # Mínimos de cobertura em vite.config.ts (test.coverage.thresholds)
+      - name: Rodar testes (com cobertura)
+        run: npm run test:coverage
 
       # tsc -b (typecheck, inclusive dos testes) + vite build
       - name: Build

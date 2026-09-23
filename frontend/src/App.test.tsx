@@ -130,4 +130,14 @@ describe("sessão", () => {
     expect(await screen.findByText("Sua sessão expirou. Entre novamente.")).toBeInTheDocument();
     expect(localStorage.getItem("financas.token")).toBeNull();
   });
+
+  it("dá para voltar do cadastro para o login", async () => {
+    const user = renderApp();
+    await user.click(await screen.findByRole("button", { name: "Criar conta" }));
+
+    await user.click(screen.getByRole("button", { name: "Entrar" }));
+
+    expect(screen.getByRole("heading", { name: "Entrar" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Repita a senha")).not.toBeInTheDocument();
+  });
 });

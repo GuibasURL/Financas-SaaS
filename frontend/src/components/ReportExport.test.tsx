@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ReportExport from "./ReportExport";
-import { addUser, lastReportQuery, loginAs } from "../test/fakeApi";
+import { http, HttpResponse } from "msw";
+import { addUser, API, lastReportQuery, loginAs, server } from "../test/fakeApi";
 import type { Statement } from "../types/transaction";
 
 const statement: Statement = {
@@ -78,5 +79,17 @@ describe("ReportExport", () => {
 
     expect(await screen.findByText("A data inicial é depois da data final")).toBeInTheDocument();
     expect(downloads).toHaveLength(0);
+  });
+
+  it("erro sem JSON (ex: servidor fora do ar) mostra a mensagem padrão", async () => {
+    captureDownloads();
+    server.use(
+      http.get(`${API}/reports/export`, () => new HttpResponse("Internal Server Error", { status: 500 }))
+    );
+    render(<ReportExport statement={null} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Baixar Excel" }));
+
+    expect(await screen.findByText("Não foi possível gerar o relatório.")).toBeInTheDocument();
   });
 });
