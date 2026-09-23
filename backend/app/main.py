@@ -1,13 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.db import Base, engine
-from app.routers import upload, transactions, categories, dashboard
+from app.routers import upload, transactions, categories, dashboard, statements
 
-# Cria as tabelas no banco se ainda não existirem.
-# Para um projeto solo isso é suficiente no começo; se quiser versionar
-# mudanças de schema depois, migre para Alembic (pasta backend/alembic já criada).
-Base.metadata.create_all(bind=engine)
+# O schema do banco é gerenciado pelo Alembic: rode `alembic upgrade head`
+# (dentro de backend/) antes de subir a API e sempre que houver migration nova.
 
 app = FastAPI(title="Finanças SaaS API")
 
@@ -24,6 +21,7 @@ app.include_router(upload.router)
 app.include_router(transactions.router)
 app.include_router(categories.router)
 app.include_router(dashboard.router)
+app.include_router(statements.router)
 
 
 @app.get("/")

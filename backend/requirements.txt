@@ -4,3 +4,4 @@ sqlalchemy==2.0.35
 pandas==2.2.3
 python-multipart==0.0.9
 python-dotenv==1.0.1
+alembic==1.20.0

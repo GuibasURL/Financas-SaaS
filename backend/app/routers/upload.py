@@ -2,6 +2,7 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.models.statement import Statement
 from app.models.transaction import Transaction
 from app.services.csv_parser import parse_csv, CSVParseError
 from app.services.categorizer import categorize_all
@@ -24,6 +25,9 @@ def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
 
     parsed = categorize_all(db, parsed)
 
+    statement = Statement(filename=file.filename)
+    db.add(statement)
+
     created = []
     for item in parsed:
         transaction = Transaction(
@@ -31,7 +35,7 @@ def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
             description=item["description"],
             amount=item["amount"],
             category_id=item.get("category_id"),
-            source_file=file.filename,
+            statement=statement,
         )
         db.add(transaction)
         created.append(transaction)

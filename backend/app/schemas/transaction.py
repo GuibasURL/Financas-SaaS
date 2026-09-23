@@ -24,5 +24,5 @@ class TransactionOut(TransactionBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    source_file: Optional[str] = None
+    statement_id: int
     created_at: datetime

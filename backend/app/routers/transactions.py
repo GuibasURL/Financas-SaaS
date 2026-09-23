@@ -17,6 +17,7 @@ def list_transactions(
     month: Optional[int] = None,
     year: Optional[int] = None,
     category_id: Optional[int] = None,
+    statement_id: Optional[int] = None,
     db: Session = Depends(get_db),
 ):
     query = db.query(Transaction)
@@ -27,6 +28,8 @@ def list_transactions(
         query = query.filter(extract("year", Transaction.date) == year)
     if category_id:
         query = query.filter(Transaction.category_id == category_id)
+    if statement_id:
+        query = query.filter(Transaction.statement_id == statement_id)
 
     return query.order_by(Transaction.date.desc()).all()
 
