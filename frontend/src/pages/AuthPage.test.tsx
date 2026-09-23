@@ -111,4 +111,73 @@ describe("AuthPage", () => {
 
     expect(screen.getByText("Projeto de demonstração: não envie extratos reais.")).toBeInTheDocument();
   });
+
+  describe("mostrar senha (olhinho)", () => {
+    it("o olhinho mostra e esconde a senha digitada", async () => {
+      const { user } = renderAuth();
+      const password = screen.getByLabelText("Senha");
+      const eye = screen.getByRole("button", { name: "Mostrar senha" });
+      await user.type(password, "minha-senha");
+
+      expect(password).toHaveAttribute("type", "password");
+      expect(eye).toHaveAttribute("aria-pressed", "false");
+      expect(eye).toHaveAttribute("title", "Mostrar senha");
+
+      await user.click(eye);
+      expect(password).toHaveAttribute("type", "text");
+      expect(password).toHaveValue("minha-senha");
+      expect(eye).toHaveAttribute("aria-pressed", "true");
+      expect(eye).toHaveAttribute("title", "Ocultar senha");
+
+      await user.click(eye);
+      expect(password).toHaveAttribute("type", "password");
+    });
+
+    it("no cadastro, cada campo de senha tem o próprio olhinho", async () => {
+      const { user } = renderAuth();
+      await user.click(screen.getByRole("tab", { name: "Criar conta" }));
+
+      await user.click(screen.getByRole("button", { name: "Mostrar a senha repetida" }));
+
+      expect(screen.getByLabelText("Repetir senha")).toHaveAttribute("type", "text");
+      expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "password");
+      // Mostrar a senha não pode quebrar a dica ligada ao campo
+      expect(screen.getByLabelText("Senha")).toHaveAccessibleDescription("Mínimo 8 caracteres");
+    });
+
+    it("volta a esconder ao trocar de aba", async () => {
+      const { user } = renderAuth();
+      await user.click(screen.getByRole("button", { name: "Mostrar senha" }));
+
+      await user.click(screen.getByRole("tab", { name: "Criar conta" }));
+
+      expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "password");
+      expect(screen.getByRole("button", { name: "Mostrar senha" })).toHaveAttribute(
+        "aria-pressed",
+        "false"
+      );
+    });
+
+    it("volta a esconder ao enviar (para o gerenciador de senhas reconhecer)", async () => {
+      addUser("ana@teste.com", "senha-forte-123");
+      const { user } = renderAuth();
+      await user.type(screen.getByLabelText("E-mail"), "ana@teste.com");
+      await user.type(screen.getByLabelText("Senha"), "senha-errada");
+      await user.click(screen.getByRole("button", { name: "Mostrar senha" }));
+
+      await user.click(screen.getByRole("button", { name: "Entrar" }));
+
+      expect(await screen.findByText("E-mail ou senha incorretos")).toBeInTheDocument();
+      expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "password");
+    });
+
+    it("o olhinho não envia o formulário", async () => {
+      const { user, onAuthenticated } = renderAuth();
+
+      await user.click(screen.getByRole("button", { name: "Mostrar senha" }));
+
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(onAuthenticated).not.toHaveBeenCalled();
+    });
+  });
 });

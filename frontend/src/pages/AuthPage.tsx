@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { apiErrorMessage, getMe, login, register } from "../services/api";
 import type { User } from "../types/user";
+import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import styles from "./AuthPage.module.css";
 
@@ -30,11 +31,73 @@ const HEADINGS: Record<Mode, { eyebrow: string; title: string; subtitle: string 
   },
 };
 
+interface PasswordFieldProps {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  // Nome acessível do botão do olhinho ("Mostrar senha")
+  toggleLabel: string;
+  visible: boolean;
+  onToggle: () => void;
+  placeholder: string;
+  autoComplete: string;
+  minLength?: number;
+  describedBy?: string;
+}
+
+// Campo de senha com o botão de mostrar/ocultar (o "olhinho")
+function PasswordField({
+  id,
+  value,
+  onChange,
+  toggleLabel,
+  visible,
+  onToggle,
+  placeholder,
+  autoComplete,
+  minLength,
+  describedBy,
+}: PasswordFieldProps) {
+  return (
+    <div className={styles.passwordWrap}>
+      <input
+        id={id}
+        className={`${styles.field} ${styles.passwordField}`}
+        type={visible ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        minLength={minLength}
+        aria-describedby={describedBy}
+        // Com a senha à mostra, nada de corretor ou maiúscula automática no celular
+        autoCapitalize="off"
+        autoCorrect="off"
+        spellCheck={false}
+        required
+      />
+      <button
+        type="button"
+        className={styles.eye}
+        onClick={onToggle}
+        aria-label={toggleLabel}
+        aria-pressed={visible}
+        aria-controls={id}
+        title={visible ? "Ocultar senha" : "Mostrar senha"}
+      >
+        <Icon name={visible ? "eyeOff" : "eye"} />
+      </button>
+    </div>
+  );
+}
+
 export default function AuthPage({ onAuthenticated, notice }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,6 +110,14 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
     setError(null);
     setPassword("");
     setPasswordConfirm("");
+    hidePasswords();
+  }
+
+  // Volta a esconder: ao trocar de aba e ao enviar (o gerenciador de senhas
+  // do navegador só reconhece a senha num campo do tipo "password")
+  function hidePasswords() {
+    setShowPassword(false);
+    setShowPasswordConfirm(false);
   }
 
   // Setas esquerda/direita trocam de aba, como em qualquer lista de abas
@@ -61,6 +132,7 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    hidePasswords();
 
     if (isRegister && password !== passwordConfirm) {
       setError("As senhas não conferem.");
@@ -177,17 +249,17 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
               <label className={styles.label} htmlFor="auth-password">
                 Senha
               </label>
-              <input
+              <PasswordField
                 id="auth-password"
-                className={styles.field}
-                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
+                toggleLabel="Mostrar senha"
+                visible={showPassword}
+                onToggle={() => setShowPassword(!showPassword)}
                 placeholder={isRegister ? "Mínimo 8 caracteres" : "Digite sua senha"}
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 minLength={isRegister ? 8 : undefined}
-                aria-describedby={isRegister ? "auth-password-hint" : undefined}
-                required
+                describedBy={isRegister ? "auth-password-hint" : undefined}
               />
               {isRegister && (
                 <p id="auth-password-hint" className={styles.hint}>
@@ -200,15 +272,15 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
                   <label className={styles.label} htmlFor="auth-password-confirm">
                     Repetir senha
                   </label>
-                  <input
+                  <PasswordField
                     id="auth-password-confirm"
-                    className={styles.field}
-                    type="password"
                     value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    onChange={setPasswordConfirm}
+                    toggleLabel="Mostrar a senha repetida"
+                    visible={showPasswordConfirm}
+                    onToggle={() => setShowPasswordConfirm(!showPasswordConfirm)}
                     placeholder="Digite a senha novamente"
                     autoComplete="new-password"
-                    required
                   />
                 </>
               )}
