@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { uploadCSV } from "../services/api";
+import { apiErrorMessage, uploadCSV } from "../services/api";
 
 interface Props {
   onUploaded: () => void;
@@ -18,8 +18,8 @@ export default function UploadCSV({ onUploaded }: Props) {
     try {
       await uploadCSV(file);
       onUploaded();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Erro ao enviar arquivo");
+    } catch (err) {
+      setError(apiErrorMessage(err, "Erro ao enviar arquivo"));
     } finally {
       setLoading(false);
     }
