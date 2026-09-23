@@ -68,6 +68,11 @@ class CategoryOut(CategoryBase):
     id: int
 
 
+class DefaultsResult(BaseModel):
+    # Quantas categorias sugeridas foram criadas (as que o usuário já tinha são puladas)
+    created: int
+
+
 class ApplyRulesResult(BaseModel):
     # Quantas transações sem categoria ganharam uma categoria
     categorized: int

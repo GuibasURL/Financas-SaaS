@@ -150,16 +150,26 @@ Cada categoria tem uma lista de palavras-chave separadas por vírgula, ex:
 { "name": "Alimentação", "keywords": "ifood,restaurante,lanchonete" }
 ```
 
-Toda vez que uma transação for importada, o sistema verifica se alguma palavra-chave aparece na descrição (sem diferenciar maiúsculas) e categoriza automaticamente. Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
+Toda vez que uma transação for importada, o sistema verifica se alguma palavra-chave aparece na descrição (sem diferenciar maiúsculas nem acentos: "farmácia" pega "FARMACIA SAO JOAO") e categoriza automaticamente. Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
 
 As categorias são gerenciadas na seção **Categorias** do app (ou pela API):
 
 - `GET /categories`, `POST /categories`: listar e criar
 - `PATCH /categories/{id}`: renomear e/ou trocar as palavras-chave (só os campos enviados mudam)
 - `DELETE /categories/{id}`: excluir; as transações dela ficam sem categoria (não são apagadas)
+- `POST /categories/defaults`: cria as categorias sugeridas que você ainda não tem (botão "Adicionar categorias sugeridas")
 - `POST /categories/apply-rules`: aplica as palavras-chave atuais às transações **já importadas que estão sem categoria**. Transações que já têm categoria, inclusive as escolhidas à mão, não são alteradas.
 
 O nome e as palavras-chave são normalizados ao salvar (espaços nas pontas removidos, palavras-chave em minúsculo e sem repetição).
+
+### Categorias sugeridas
+
+Contas novas já nascem com 12 categorias prontas (Alimentação, Mercado, Transporte, Saúde, Moradia, Assinaturas, Compras, Educação, Lazer, Tarifas bancárias, Salário e Pagamento de fatura), então o primeiro extrato já sai categorizado. Contas antigas podem adicioná-las pelo botão; as que você já tem (pelo nome) não são alteradas.
+
+A lista fica em `backend/app/services/default_categories.py`. Ao mexer nela, lembre que:
+
+- **A ordem importa:** quando duas categorias batem, vence a que vem primeiro (por isso "Compras", com "mercado livre", vem antes de "Mercado").
+- **Palavras curtas pegam demais:** a busca é por "contém", então "posto" pegaria "IMPOSTO" e "curso" pegaria "RECURSOS". Os testes em `tests/test_default_categories.py` cobrem esses casos.
 
 ### Ignorar nos gráficos (pagamento de fatura, transferências)
 

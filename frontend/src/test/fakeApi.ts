@@ -210,6 +210,22 @@ export const handlers = [
   ),
 
   http.post(
+    `${API}/categories/defaults`,
+    authed(() => {
+      // A lista de verdade fica no backend; aqui bastam algumas para o teste
+      const suggested = [
+        { name: "Alimentação", keywords: "ifood,padaria" },
+        { name: "Transporte", keywords: "uber" },
+        { name: "Saúde", keywords: "farmácia,academia" },
+      ];
+      const existing = new Set(db.categories.map((c) => c.name.toLowerCase()));
+      const missing = suggested.filter((c) => !existing.has(c.name.toLowerCase()));
+      missing.forEach((c) => addCategory(c));
+      return HttpResponse.json({ created: missing.length });
+    })
+  ),
+
+  http.post(
     `${API}/categories/apply-rules`,
     authed(() => {
       let categorized = 0;

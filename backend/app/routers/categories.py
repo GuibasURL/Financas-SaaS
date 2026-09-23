@@ -7,8 +7,15 @@ from app.models.category import Category
 from app.models.transaction import Transaction
 from app.models.user import User
 from app.routers.transactions import user_transactions
-from app.schemas.category import ApplyRulesResult, CategoryCreate, CategoryOut, CategoryUpdate
+from app.schemas.category import (
+    ApplyRulesResult,
+    CategoryCreate,
+    CategoryOut,
+    CategoryUpdate,
+    DefaultsResult,
+)
 from app.services.categorizer import categorize_uncategorized
+from app.services.default_categories import add_default_categories
 
 router = APIRouter(prefix="/categories", tags=["categories"])
 
@@ -97,6 +104,19 @@ def delete_category(
     db.delete(category)
     db.commit()
     return Response(status_code=204)
+
+
+@router.post("/defaults", response_model=DefaultsResult)
+def add_defaults(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """
+    Cria as categorias sugeridas que o usuário ainda não tem (pelo nome,
+    sem diferenciar maiúsculas nem acentos). As que já existem não são
+    alteradas. Para categorizar extratos já importados, chame depois o
+    /categories/apply-rules.
+    """
+    created = add_default_categories(db, user.id)
+    db.commit()
+    return DefaultsResult(created=len(created))
 
 
 @router.post("/apply-rules", response_model=ApplyRulesResult)
