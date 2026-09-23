@@ -8,10 +8,12 @@ a criada primeiro. Por isso as mais específicas vêm antes:
 - "Compras" (mercado livre) antes de "Mercado" (mercado)
 - "Alimentação" (uber eats) antes de "Transporte" (uber)
 
-Cuidado ao acrescentar palavras-chave: a comparação é por "contém", então
-palavras curtas pegam coisas demais. Exemplos que ficaram de fora por isso:
-"posto" (está em "imPOSTO"), "curso" (em "reCURSOs"), "amil" (em "fAMILia"),
-"internet" (em "INTERNET BANKING"), "99" e "bar" (em qualquer número/"BARbearia").
+A palavra-chave precisa estar no começo de uma palavra da descrição (ver
+categorizer.py), então "posto" não pega "imPOSTO". Mesmo assim, cuidado com
+palavras curtas ou genéricas que começam outras palavras: "bar" pegaria
+"BARBEARIA", "99" pegaria "LOJA 99 CENTAVOS", "internet" pegaria
+"INTERNET BANKING", "luz" pegaria "MARIA DA LUZ". Palavras-chave com "-" na
+frente excluem: "-mercado pago" impede "Mercado" de pegar "MERCADO PAGO".
 Os testes em tests/test_default_categories.py pegam esses conflitos.
 """
 import unicodedata
@@ -37,41 +39,44 @@ DEFAULT_CATEGORIES: tuple[tuple[str, str, bool], ...] = (
     ),
     (
         "Compras",
-        "mercado livre,amazon,shopee,magazine luiza,magalu,americanas,shein,aliexpress",
+        "mercado livre,mercadolivre,amazon,shopee,magazine luiza,magalu,americanas,shein,"
+        "aliexpress",
         False,
     ),
     (
         "Alimentação",
-        "ifood,uber eats,rappi,restaurante,lanchonete,padaria,pizzaria,hamburgueria,"
+        "ifood,uber eats,ubereats,rappi,restaurante,lanchonete,padaria,pizzaria,hamburgueria,"
         "mcdonalds,mc donalds,burger king,subway,cafeteria,starbucks",
         False,
     ),
     (
         "Mercado",
-        "supermercado,mercado,atacadão,assaí,carrefour,pão de açúcar,hortifruti",
+        "supermercado,mercado,atacadão,assaí,carrefour,pão de açúcar,hortifruti,"
+        "-mercado pago,-mercadopago",
         False,
     ),
     (
         "Transporte",
-        "uber,99 pop,99pop,99app,cabify,auto posto,posto de gasolina,combustível,"
-        "shell,ipiranga,petrobras,estacionamento,pedágio,sem parar,metrô,bilhete único",
+        "uber,99 pop,99pop,99app,cabify,posto,combustível,shell,ipiranga,petrobras,"
+        "estacionamento,pedágio,sem parar,metrô,bilhete único",
         False,
     ),
     (
         "Saúde",
         "farmácia,drogaria,drogasil,droga raia,pague menos,hospital,clínica,laboratório,"
-        "consulta,dentista,odonto,unimed,hapvida,sulamerica,bradesco saude,academia,smart fit",
+        "consulta,dentista,odonto,unimed,amil,hapvida,sulamerica,bradesco saude,academia,"
+        "smart fit,smartfit",
         False,
     ),
     (
         "Moradia",
-        "aluguel,condomínio,iptu,conta de luz,energia elétrica,enel,cemig,copel,sabesp,"
-        "comgás,conta de água",
+        "aluguel,condomínio,iptu,conta de luz,boleto de luz,energia elétrica,enel,cemig,"
+        "copel,sabesp,comgás,conta de água",
         False,
     ),
     (
         "Educação",
-        "escola,colégio,faculdade,universidade,udemy,alura,coursera,livraria",
+        "escola,colégio,faculdade,universidade,curso,udemy,alura,coursera,livraria",
         False,
     ),
     (
