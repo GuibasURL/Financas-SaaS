@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Docs/marca/vexira-logo.png">
+  <img alt="Vexira — Controle financeiro inteligente" src="Docs/marca/vexira-logo-claro.png" width="420">
+</picture>
+
 # Vexira
 
 **Controle financeiro inteligente.**
@@ -255,3 +260,13 @@ Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `state
 
 - Backend: FastAPI + SQLAlchemy + Alembic + SQLite (trocar para Postgres depois é só mudar `DATABASE_URL`)
 - Frontend: React + TypeScript + Vite + Recharts
+
+## Identidade visual
+
+A marca é a letra V que vira uma seta para cima (dinheiro subindo), no degradê ciano `#22d3ee` → azul `#38bdf8`, as mesmas cores do app. Os arquivos ficam em [`Docs/marca`](Docs/marca):
+
+- `vexira-marca.svg` / `.png`: só o símbolo (também é o favicon, em `frontend/public/`)
+- `vexira-logo.svg` / `.png`: símbolo + nome, para fundo escuro
+- `vexira-logo-claro.svg` / `.png`: símbolo + nome, para fundo claro
+
+No app, a marca é desenhada pelo componente `Logo` (`frontend/src/components/Logo.tsx`), com as cores vindas do tema.

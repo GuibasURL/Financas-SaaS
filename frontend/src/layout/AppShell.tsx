@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router";
 import Icon, { type IconName } from "../components/Icon";
+import Logo from "../components/Logo";
 import type { User } from "../types/user";
 import styles from "./AppShell.module.css";
 
@@ -17,9 +18,7 @@ interface Props {
 
 function Brand() {
   return (
-    <div className={styles.brand}>
-      <b aria-hidden="true">V</b>Vexira
-    </div>
+    <Logo className={styles.brand} markClassName={styles.brandMark} nameClassName={styles.brandName} />
   );
 }
 
