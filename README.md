@@ -177,11 +177,22 @@ O mesmo vale para transferências entre suas próprias contas ou aplicações em
 
 Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e a quantidade de transações. Dá para filtrar transações e dashboard por extrato com `?statement_id=` e excluir um extrato inteiro (junto com as transações dele) via `DELETE /statements/{id}`.
 
+## Relatório em Excel
+
+A seção **Exportar relatório** do app (ou `GET /reports/export`) baixa uma planilha `.xlsx` com quatro abas:
+
+- **Resumo:** período, extrato, entradas, saídas, saldo e quantidade de transações
+- **Por mês:** entradas, saídas e saldo de cada mês
+- **Por categoria:** gastos por categoria (inclusive "Sem categoria"), com % do total
+- **Transações:** a lista completa, com filtro do Excel e cabeçalho fixo
+
+Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `statement_id`. No app, o extrato é o mesmo selecionado na seção Extratos. Categorias marcadas como "ignorar nos gráficos" ficam fora dos totais, mas aparecem na aba Transações (coluna "Nos totais"). As linhas de total usam fórmulas (`SUM`), então continuam certas se você editar a planilha.
+
 ## Roadmap sugerido
 
 - [x] Fase 1: upload CSV, categorização por regra, dashboard básico
 - [x] Fase 2: autenticação, edição manual de categoria no frontend, múltiplos extratos, gerenciamento de categorias
-- [ ] Fase 3: ~~suporte a formatos de CSV de bancos diferentes~~ (falta validar com extratos reais), exportar relatórios, deploy
+- [ ] Fase 3: ~~suporte a formatos de CSV de bancos diferentes~~ (falta validar com extratos reais), ~~exportar relatórios~~, deploy
 
 ## Stack
 

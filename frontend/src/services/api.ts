@@ -198,3 +198,42 @@ export async function getMonthlyTotals(
   );
   return data;
 }
+
+// ---------- Relatório ----------
+
+export interface ReportParams {
+  startDate?: string; // AAAA-MM-DD
+  endDate?: string;
+  statementId?: number | null;
+}
+
+/** Baixa o relatório .xlsx; devolve o arquivo e o nome sugerido pela API. */
+export async function downloadReport(
+  params: ReportParams
+): Promise<{ blob: Blob; filename: string }> {
+  try {
+    const response = await api.get<Blob>("/reports/export", {
+      params: {
+        start_date: params.startDate || undefined,
+        end_date: params.endDate || undefined,
+        statement_id: params.statementId ?? undefined,
+      },
+      responseType: "blob",
+    });
+    const disposition = String(response.headers["content-disposition"] ?? "");
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "relatorio-financas.xlsx";
+    return { blob: response.data, filename };
+  } catch (error) {
+    // Com responseType "blob" até o erro chega como Blob; converte de volta
+    // para JSON para o apiErrorMessage conseguir ler o "detail"
+    const data = (error as any)?.response?.data;
+    if (data instanceof Blob) {
+      try {
+        (error as any).response.data = JSON.parse(await data.text());
+      } catch {
+        // corpo não era JSON: fica a mensagem padrão
+      }
+    }
+    throw error;
+  }
+}
