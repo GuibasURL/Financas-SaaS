@@ -63,6 +63,7 @@ def test_edita_nome_e_keywords(client, categories):
         "name": "Comida",
         "keywords": "ifood,padaria",
         "ignore_in_reports": False,
+        "direction": "all",
     }
 
 
@@ -190,3 +191,59 @@ def test_palavra_chave_de_exclusao_pela_api(client, upload):
     by_description = {t["description"]: t["category_id"] for t in client.get("/transactions").json()}
     assert by_description["MERCADO PAGO *LOJA"] is None
     assert by_description["MERCADO EXTRA"] == created.json()["id"]
+
+
+# ---------- Vale para (entradas, saídas ou as duas) ----------
+
+CSV_PIX = """data,descricao,valor
+2025-03-01,PIX TRANSF MARIA,-80
+2025-03-02,PIX TRANSF JOAO,150
+"""
+
+
+def test_categoria_nova_vale_para_entradas_e_saidas_por_padrao(client):
+    assert client.post("/categories", json={"name": "Lazer"}).json()["direction"] == "all"
+
+
+def test_cria_e_edita_o_sentido(client, categories):
+    created = client.post("/categories", json={"name": "Salário", "direction": "in"})
+    assert created.json()["direction"] == "in"
+
+    category_id = categories["alimentacao"].id
+    changed = client.patch(f"/categories/{category_id}", json={"direction": "out"})
+    only_name = client.patch(f"/categories/{category_id}", json={"name": "Comida"})
+
+    assert changed.json()["direction"] == "out"
+    assert only_name.json()["direction"] == "out"  # não mexeu no que não foi enviado
+
+
+@pytest.mark.parametrize("direction", ["entradas", "IN", "", None])
+def test_sentido_invalido_da_422(client, direction):
+    response = client.post("/categories", json={"name": "Lazer", "direction": direction})
+
+    assert response.status_code == 422
+
+
+def test_upload_usa_o_sinal_do_valor(client, upload):
+    sent = client.post(
+        "/categories", json={"name": "Enviadas", "keywords": "pix", "direction": "out"}
+    ).json()
+    received = client.post(
+        "/categories", json={"name": "Recebidas", "keywords": "pix", "direction": "in"}
+    ).json()
+
+    upload(CSV_PIX)
+
+    by_description = {t["description"]: t["category_id"] for t in client.get("/transactions").json()}
+    assert by_description == {"PIX TRANSF MARIA": sent["id"], "PIX TRANSF JOAO": received["id"]}
+
+
+def test_aplicar_regras_usa_o_sinal_do_valor(client, upload):
+    upload(CSV_PIX)
+    received = client.post(
+        "/categories", json={"name": "Recebidas", "keywords": "pix", "direction": "in"}
+    ).json()
+
+    assert client.post("/categories/apply-rules").json() == {"categorized": 1}
+    by_description = {t["description"]: t["category_id"] for t in client.get("/transactions").json()}
+    assert by_description == {"PIX TRANSF MARIA": None, "PIX TRANSF JOAO": received["id"]}

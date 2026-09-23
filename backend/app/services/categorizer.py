@@ -36,21 +36,25 @@ def _contains(description: str, keyword: str) -> bool:
     return f" {keyword}" in f" {description}"
 
 
-def categorize(description: str, categories: list[Category]) -> int | None:
+def categorize(description: str, amount: float, categories: list[Category]) -> int | None:
     """
     Retorna o id da primeira categoria (na ordem da lista) com alguma
     palavra-chave na descrição e nenhuma de exclusão, ou None se nenhuma
     bater (fica para categorização manual).
 
+    Categorias "só entradas" (direction="in") só valem para valor positivo e
+    "só saídas" ("out") para valor negativo: "PIX TRANSF MARIA" vai para
+    "Transferências recebidas" ou "enviadas" conforme o sinal.
+
     A comparação ignora maiúsculas, acentos e pontuação ("farmácia" pega
     "FARMACIA SAO JOAO"; "uber eats" pega "UBER *EATS"), e a palavra-chave
     precisa estar no começo de uma palavra da descrição.
     """
-    return match(description, build_rules(categories))
+    return match(description, amount, build_rules(categories))
 
 
-# Regra já processada: (id da categoria, palavras-chave, exclusões)
-Rule = tuple[int, list[str], list[str]]
+# Regra já processada: (id da categoria, palavras-chave, exclusões, sentido)
+Rule = tuple[int, list[str], list[str], str]
 
 
 def build_rules(categories: list[Category]) -> list[Rule]:
@@ -59,12 +63,24 @@ def build_rules(categories: list[Category]) -> list[Rule]:
     aplicar regras), use build_rules + match em vez de categorize, que
     reprocessaria as palavras-chave a cada transação.
     """
-    return [(c.id, *parse_keywords(c.keywords or "")) for c in categories]
+    return [
+        (c.id, *parse_keywords(c.keywords or ""), c.direction or "all") for c in categories
+    ]
 
 
-def match(description: str, rules: list[Rule]) -> int | None:
+def _applies_to(direction: str, amount: float) -> bool:
+    if direction == "in":
+        return amount > 0
+    if direction == "out":
+        return amount < 0
+    return True
+
+
+def match(description: str, amount: float, rules: list[Rule]) -> int | None:
     description = normalize_for_matching(description)
-    for category_id, include, exclude in rules:
+    for category_id, include, exclude, direction in rules:
+        if not _applies_to(direction, amount):
+            continue
         if any(_contains(description, k) for k in exclude):
             continue
         if any(_contains(description, k) for k in include):
@@ -81,7 +97,7 @@ def categorize_all(db: Session, transactions_data: list[dict], user_id: int) -> 
     """Aplica categorize() com as categorias do usuário às transações recém-parseadas do CSV."""
     rules = build_rules(user_categories(db, user_id))
     for t in transactions_data:
-        t["category_id"] = match(t["description"], rules)
+        t["category_id"] = match(t["description"], t["amount"], rules)
     return transactions_data
 
 
@@ -94,7 +110,7 @@ def categorize_uncategorized(db: Session, transactions: list[Transaction], user_
     rules = build_rules(user_categories(db, user_id))
     categorized = 0
     for transaction in transactions:
-        category_id = match(transaction.description, rules)
+        category_id = match(transaction.description, transaction.amount, rules)
         if category_id is not None:
             transaction.category_id = category_id
             categorized += 1

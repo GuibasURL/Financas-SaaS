@@ -149,7 +149,7 @@ export async function getCategories(): Promise<Category[]> {
   return data;
 }
 
-type CategoryFields = Pick<Category, "name" | "keywords" | "ignore_in_reports">;
+type CategoryFields = Pick<Category, "name" | "keywords" | "ignore_in_reports" | "direction">;
 
 export async function createCategory(fields: CategoryFields): Promise<Category> {
   const { data } = await api.post<Category>("/categories", fields);

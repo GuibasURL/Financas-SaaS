@@ -8,7 +8,7 @@ import {
   deleteCategory,
   updateCategory,
 } from "../services/api";
-import type { Category } from "../types/transaction";
+import type { Category, CategoryDirection } from "../types/transaction";
 import { formatCount, formatSignedMoney } from "../utils/format";
 import styles from "./CategoryManager.module.css";
 
@@ -41,6 +41,17 @@ function splitKeywords(keywords: string) {
     .filter(Boolean);
 }
 
+const DIRECTIONS: { value: CategoryDirection; label: string; badge?: string }[] = [
+  { value: "all", label: "Entradas e saídas" },
+  { value: "out", label: "Só saídas", badge: "só saídas" },
+  { value: "in", label: "Só entradas", badge: "só entradas" },
+];
+
+const DIRECTION_HINT =
+  'O mesmo texto pode aparecer nos dois sentidos ("PIX TRANSF MARIA"): o sinal do valor ' +
+  'diz se o dinheiro entrou ou saiu. Ex: "pix" em "Transferências enviadas" (só saídas) ' +
+  'e em "Transferências recebidas" (só entradas).';
+
 // Categorias com muitas palavras-chave mostram só as primeiras, com "+N" para ver o resto
 const KEYWORD_PREVIEW = 6;
 
@@ -52,10 +63,12 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
   const [newName, setNewName] = useState("");
   const [newKeywords, setNewKeywords] = useState("");
   const [newIgnore, setNewIgnore] = useState(false);
+  const [newDirection, setNewDirection] = useState<CategoryDirection>("all");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editKeywords, setEditKeywords] = useState("");
   const [editIgnore, setEditIgnore] = useState(false);
+  const [editDirection, setEditDirection] = useState<CategoryDirection>("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ scope: ErrorScope; message: string } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -90,6 +103,7 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
           name: newName,
           keywords: newKeywords,
           ignore_in_reports: newIgnore,
+          direction: newDirection,
         }).then(() => undefined),
       "Não foi possível criar a categoria.",
       "new"
@@ -98,6 +112,7 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
       setNewName("");
       setNewKeywords("");
       setNewIgnore(false);
+      setNewDirection("all");
       toast.success("Categoria criada.");
     }
   }
@@ -107,6 +122,7 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
     setEditName(category.name);
     setEditKeywords(splitKeywords(category.keywords).join(", "));
     setEditIgnore(category.ignore_in_reports);
+    setEditDirection(category.direction);
     setError(null);
     setMessage(null);
   }
@@ -120,6 +136,7 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
           name: editName,
           keywords: editKeywords,
           ignore_in_reports: editIgnore,
+          direction: editDirection,
         }).then(() => undefined),
       "Não foi possível salvar a categoria.",
       "edit"
@@ -277,6 +294,11 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
                           placeholder="ifood, restaurante"
                         />
                       </div>
+                      <DirectionField
+                        id={`edit-direction-${c.id}`}
+                        value={editDirection}
+                        onChange={setEditDirection}
+                      />
                       <label className={`checkbox ${styles.full}`} title={IGNORE_HINT}>
                         <input
                           type="checkbox"
@@ -362,6 +384,16 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
                 <li>Se duas categorias baterem, vale a criada primeiro.</li>
               </ul>
             </div>
+            <DirectionField
+              id="new-category-direction"
+              value={newDirection}
+              onChange={setNewDirection}
+              describedBy="direction-help"
+            >
+              <p className={styles.fieldHelp} id="direction-help">
+                {DIRECTION_HINT}
+              </p>
+            </DirectionField>
             <div>
               <label className="checkbox">
                 <input
@@ -384,6 +416,39 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
         </section>
       </div>
     </>
+  );
+}
+
+interface DirectionFieldProps {
+  id: string;
+  value: CategoryDirection;
+  onChange: (value: CategoryDirection) => void;
+  describedBy?: string;
+  children?: React.ReactNode;
+}
+
+// "Vale para": entradas e saídas, só saídas ou só entradas
+function DirectionField({ id, value, onChange, describedBy, children }: DirectionFieldProps) {
+  return (
+    <div>
+      <label className="label" htmlFor={id}>
+        Vale para
+      </label>
+      <select
+        id={id}
+        className="field"
+        value={value}
+        onChange={(e) => onChange(e.target.value as CategoryDirection)}
+        aria-describedby={describedBy}
+      >
+        {DIRECTIONS.map((d) => (
+          <option key={d.value} value={d.value}>
+            {d.label}
+          </option>
+        ))}
+      </select>
+      {children}
+    </div>
   );
 }
 
@@ -436,12 +501,20 @@ function CategoryRow({ category, color, stats, busy, onEdit, onDelete }: RowProp
     <>
       <div className={styles.name}>
         {color && <i className={styles.dot} style={{ background: color }} aria-hidden="true" />}
-        <span>{category.name}</span>
-        {category.ignore_in_reports && (
-          <span className="badge badge-warning" title={IGNORE_HINT}>
-            ignorada nos gráficos
-          </span>
-        )}
+        {/* Nome e etiquetas quebram linha juntos; a bolinha fica sempre ao lado do nome */}
+        <div className={styles.nameText}>
+          <span>{category.name}</span>
+          {category.direction !== "all" && (
+            <span className="badge" title="A regra só vale para transações nesse sentido">
+              {DIRECTIONS.find((d) => d.value === category.direction)?.badge}
+            </span>
+          )}
+          {category.ignore_in_reports && (
+            <span className="badge badge-warning" title={IGNORE_HINT}>
+              ignorada nos gráficos
+            </span>
+          )}
+        </div>
       </div>
 
       {keywords.length > 0 ? (

@@ -178,6 +178,12 @@ Toda vez que uma transação for importada, o sistema verifica se alguma palavra
 
  Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
 
+### Vale para: entradas, saídas ou as duas
+
+Cada categoria diz para que transações a regra vale (`direction`): **entradas e saídas** (`all`, o padrão), **só saídas** (`out`, valor negativo) ou **só entradas** (`in`, valor positivo).
+
+Isso resolve o texto que aparece nos dois sentidos: no Itaú, por exemplo, "PIX TRANSF MARIA" tanto pode ser um Pix enviado quanto recebido; quem diz é o sinal do valor. Com "pix" em "Transferências enviadas" (só saídas) e em "Transferências recebidas" (só entradas), cada Pix cai na certa. Também evita que um "estorno" vire gasto ou que "salário" pegue um pagamento que você fez.
+
 As categorias são gerenciadas na seção **Categorias** do app (ou pela API):
 
 - `GET /categories`, `POST /categories`: listar e criar
@@ -190,7 +196,20 @@ O nome e as palavras-chave são normalizados ao salvar (espaços nas pontas remo
 
 ### Categorias sugeridas
 
-Contas novas já nascem com 12 categorias prontas (Alimentação, Mercado, Transporte, Saúde, Moradia, Assinaturas, Compras, Educação, Lazer, Tarifas bancárias, Salário e Pagamento de fatura), então o primeiro extrato já sai categorizado. Contas antigas podem adicioná-las pelo botão; as que você já tem (pelo nome) não são alteradas.
+Contas novas já nascem com 17 categorias prontas, então o primeiro extrato já sai categorizado:
+
+| Categoria | Vale para | Nos gráficos |
+|---|---|---|
+| Pagamento de fatura | entradas e saídas | ignorada |
+| Estornos e reembolsos | só entradas | conta |
+| Salário | só entradas | conta |
+| Investimentos (aplicação, resgate, CDB, tesouro, poupança) | entradas e saídas | ignorada |
+| Assinaturas, Compras, Alimentação, Mercado, Transporte, Saúde, Moradia, Educação, Lazer, Tarifas bancárias | entradas e saídas | conta |
+| Saques | só saídas | conta |
+| Transferências enviadas (pix, transf, ted) | só saídas | conta |
+| Transferências recebidas (pix, transf, ted) | só entradas | conta |
+
+As transferências ficam por último de propósito: "pix" é genérico, então uma categoria mais específica vence ("PIX ALUGUEL" vai para Moradia, "PIX RECEBIDO SALARIO" vai para Salário). Elas contam nos totais porque um Pix para outra pessoa costuma ser gasto (ou renda) de verdade; para as transferências **entre as suas próprias contas**, que não são gasto nem renda, crie uma categoria com o seu nome como palavra-chave e marque "Ignorar nos gráficos". Como vence a categoria mais antiga, ela precisa ser criada **antes** das de transferência: exclua "Transferências enviadas" e "Transferências recebidas", crie a sua e clique em "Adicionar categorias sugeridas", que recria as duas depois dela. Contas antigas podem adicioná-las pelo botão; as que você já tem (pelo nome) não são alteradas.
 
 A lista fica em `backend/app/services/default_categories.py`. Ao mexer nela, lembre que:
 

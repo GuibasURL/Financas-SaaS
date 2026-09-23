@@ -20,6 +20,10 @@ class Category(Base):
     # da fatura do cartão (as compras da fatura já são os gastos) ou
     # transferência entre contas do próprio usuário.
     ignore_in_reports = Column(Boolean, nullable=False, default=False, server_default=false())
+    # Para que transações a regra vale: "all" (entradas e saídas), "in" (só
+    # entradas) ou "out" (só saídas). O mesmo texto ("PIX TRANSF MARIA")
+    # aparece nos dois sentidos; o sinal do valor é que diz se entrou ou saiu.
+    direction = Column(String(3), nullable=False, default="all", server_default="all")
     # NULL só para categorias criadas antes da autenticação, que ainda não
     # foram atribuídas a ninguém (ver app/create_user.py).
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)

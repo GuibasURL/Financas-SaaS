@@ -64,7 +64,13 @@ export function expireAllTokens() {
 }
 
 export function addCategory(fields: Partial<Category> & { name: string }): Category {
-  const category = { id: nextId(), keywords: "", ignore_in_reports: false, ...fields };
+  const category: Category = {
+    id: nextId(),
+    keywords: "",
+    ignore_in_reports: false,
+    direction: "all",
+    ...fields,
+  };
   db.categories.push(category);
   return category;
 }
@@ -230,8 +236,11 @@ export const handlers = [
     authed(() => {
       let categorized = 0;
       for (const t of db.transactions.filter((t) => t.category_id === null)) {
-        const match = db.categories.find((c) =>
-          c.keywords.split(",").some((k) => k && t.description.toLowerCase().includes(k))
+        // Como no backend: "só entradas"/"só saídas" dependem do sinal do valor
+        const match = db.categories.find(
+          (c) =>
+            (c.direction === "all" || (c.direction === "in" ? t.amount > 0 : t.amount < 0)) &&
+            c.keywords.split(",").some((k) => k && t.description.toLowerCase().includes(k))
         );
         if (match) {
           t.category_id = match.id;
