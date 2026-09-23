@@ -145,6 +145,29 @@ export async function getCategories(): Promise<Category[]> {
   return data;
 }
 
+export async function createCategory(name: string, keywords: string): Promise<Category> {
+  const { data } = await api.post<Category>("/categories", { name, keywords });
+  return data;
+}
+
+export async function updateCategory(
+  id: number,
+  changes: { name?: string; keywords?: string }
+): Promise<Category> {
+  const { data } = await api.patch<Category>(`/categories/${id}`, changes);
+  return data;
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  await api.delete(`/categories/${id}`);
+}
+
+// Reaplica as palavras-chave às transações sem categoria; devolve quantas mudaram
+export async function applyCategoryRules(): Promise<number> {
+  const { data } = await api.post<{ categorized: number }>("/categories/apply-rules");
+  return data.categorized;
+}
+
 export async function getStatements(): Promise<Statement[]> {
   const { data } = await api.get<Statement[]>("/statements");
   return data;

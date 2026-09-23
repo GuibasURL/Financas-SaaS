@@ -107,13 +107,22 @@ data,descricao,valor
 
 ## Categorização automática
 
-Crie categorias via `POST /categories` com uma lista de `keywords` separadas por vírgula, ex:
+Cada categoria tem uma lista de palavras-chave separadas por vírgula, ex:
 
 ```json
 { "name": "Alimentação", "keywords": "ifood,restaurante,lanchonete" }
 ```
 
-Toda vez que uma transação for importada, o sistema verifica se alguma keyword aparece na descrição (case-insensitive) e categoriza automaticamente. O que não bater fica sem categoria (`category_id: null`) para você categorizar manualmente via `PATCH /transactions/{id}`.
+Toda vez que uma transação for importada, o sistema verifica se alguma palavra-chave aparece na descrição (sem diferenciar maiúsculas) e categoriza automaticamente. Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
+
+As categorias são gerenciadas na seção **Categorias** do app (ou pela API):
+
+- `GET /categories`, `POST /categories`: listar e criar
+- `PATCH /categories/{id}`: renomear e/ou trocar as palavras-chave (só os campos enviados mudam)
+- `DELETE /categories/{id}`: excluir; as transações dela ficam sem categoria (não são apagadas)
+- `POST /categories/apply-rules`: aplica as palavras-chave atuais às transações **já importadas que estão sem categoria**. Transações que já têm categoria, inclusive as escolhidas à mão, não são alteradas.
+
+O nome e as palavras-chave são normalizados ao salvar (espaços nas pontas removidos, palavras-chave em minúsculo e sem repetição).
 
 ## Extratos
 
@@ -122,7 +131,7 @@ Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e
 ## Roadmap sugerido
 
 - [x] Fase 1: upload CSV, categorização por regra, dashboard básico
-- [ ] Fase 2: autenticação, ~~edição manual de categoria no frontend~~, ~~múltiplos extratos~~
+- [x] Fase 2: autenticação, edição manual de categoria no frontend, múltiplos extratos, gerenciamento de categorias
 - [ ] Fase 3: suporte a formatos de CSV de bancos diferentes, exportar relatórios, deploy
 
 ## Stack
