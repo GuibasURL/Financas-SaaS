@@ -6,6 +6,7 @@ import Logo from "../components/Logo";
 import {
   passwordRequirements,
   passwordStrength,
+  weakPasswordMessage,
   STRENGTH_LABELS,
 } from "../utils/passwordStrength";
 import styles from "./AuthPage.module.css";
@@ -96,10 +97,30 @@ function PasswordField({
   );
 }
 
+// "As senhas conferem" enquanto a pessoa digita a repetição
+function PasswordMatch({ password, confirm }: { password: string; confirm: string }) {
+  const matches = confirm !== "" && confirm === password;
+  return (
+    // Sempre presente (vazio antes de digitar), para o leitor de tela anunciar a mudança
+    <p
+      id="password-match"
+      className={`${styles.match} ${matches ? styles.met : ""}`}
+      aria-live="polite"
+    >
+      {confirm !== "" && (
+        <>
+          <Icon name={matches ? "check" : "circle"} />
+          {matches ? "As senhas conferem" : "As senhas ainda não conferem"}
+        </>
+      )}
+    </p>
+  );
+}
+
 // Barra fraca/mediana/forte + checklist do que a senha já tem
-function PasswordStrengthMeter({ password }: { password: string }) {
-  const strength = passwordStrength(password);
-  const requirements = passwordRequirements(password);
+function PasswordStrengthMeter({ password, email }: { password: string; email: string }) {
+  const strength = passwordStrength(password, email);
+  const requirements = passwordRequirements(password, email);
   const empty = password === "";
 
   return (
@@ -175,11 +196,9 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
     hidePasswords();
 
     // Fraca não passa (o backend recusa do mesmo jeito; aqui a pessoa já vê o que falta)
-    if (isRegister && passwordStrength(password) === "weak") {
-      const missing = passwordRequirements(password)
-        .filter((r) => !r.met)
-        .map((r) => r.label.toLowerCase());
-      setError(`A senha está fraca. Falta: ${missing.join(", ")}.`);
+    const weakMessage = isRegister ? weakPasswordMessage(password, email) : null;
+    if (weakMessage) {
+      setError(weakMessage);
       return;
     }
 
@@ -310,7 +329,7 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
                 minLength={isRegister ? 8 : undefined}
                 describedBy={isRegister ? "password-strength password-requirements" : undefined}
               />
-              {isRegister && <PasswordStrengthMeter password={password} />}
+              {isRegister && <PasswordStrengthMeter password={password} email={email} />}
 
               {isRegister && (
                 <>
@@ -326,7 +345,9 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
                     onToggle={() => setShowPasswordConfirm(!showPasswordConfirm)}
                     placeholder="Digite a senha novamente"
                     autoComplete="new-password"
+                    describedBy="password-match"
                   />
+                  <PasswordMatch password={password} confirm={passwordConfirm} />
                 </>
               )}
 

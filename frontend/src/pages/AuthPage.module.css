@@ -331,6 +331,24 @@
   color: var(--income);
 }
 
+/* "As senhas conferem" embaixo de "Repetir senha" */
+.match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.match svg {
+  width: 14px;
+  height: 14px;
+}
+.match.met {
+  color: var(--income);
+}
+
 /* Texto só para leitores de tela */
 .srOnly {
   position: absolute;

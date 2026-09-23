@@ -202,8 +202,8 @@ describe("AuthPage", () => {
 
     it.each([
       ["abc", "Fraca"],
-      ["abcdefgh", "Fraca"],
-      ["abcdef1!", "Mediana"],
+      ["girassol", "Fraca"],
+      ["girassol1!", "Mediana"],
       ["Senha-forte-123", "Forte"],
     ])("\"%s\" é %s", async (password, label) => {
       const { user } = await openRegister();
@@ -217,7 +217,7 @@ describe("AuthPage", () => {
       const { user } = await openRegister();
       expect(strengthText()).toHaveTextContent("Força da senha: digite uma senha");
 
-      await user.type(screen.getByLabelText("Senha"), "abcdefg1");
+      await user.type(screen.getByLabelText("Senha"), "girassol1");
 
       expect(requirement("Pelo menos 8 caracteres")).toHaveTextContent("(ok)");
       expect(requirement("Letra minúscula")).toHaveTextContent("(ok)");
@@ -229,8 +229,8 @@ describe("AuthPage", () => {
     it("senha fraca não envia e diz o que falta", async () => {
       const { user, onAuthenticated } = await openRegister();
       await user.type(screen.getByLabelText("E-mail"), "nova@teste.com");
-      await user.type(screen.getByLabelText("Senha"), "abcdefgh");
-      await user.type(screen.getByLabelText("Repetir senha"), "abcdefgh");
+      await user.type(screen.getByLabelText("Senha"), "girassol");
+      await user.type(screen.getByLabelText("Repetir senha"), "girassol");
 
       await user.click(screen.getByRole("button", { name: "Criar conta" }));
 
@@ -243,12 +243,70 @@ describe("AuthPage", () => {
     it("senha mediana cria a conta", async () => {
       const { user, onAuthenticated } = await openRegister();
       await user.type(screen.getByLabelText("E-mail"), "nova@teste.com");
-      await user.type(screen.getByLabelText("Senha"), "abcdef1!");
-      await user.type(screen.getByLabelText("Repetir senha"), "abcdef1!");
+      await user.type(screen.getByLabelText("Senha"), "girassol1!");
+      await user.type(screen.getByLabelText("Repetir senha"), "girassol1!");
 
       await user.click(screen.getByRole("button", { name: "Criar conta" }));
 
       await vi.waitFor(() => expect(onAuthenticated).toHaveBeenCalled());
+    });
+  
+    it("senha comum aparece na checklist como fácil de adivinhar e não envia", async () => {
+      const { user, onAuthenticated } = await openRegister();
+      await user.type(screen.getByLabelText("E-mail"), "nova@teste.com");
+      await user.type(screen.getByLabelText("Senha"), "Senha123!");
+
+      expect(requirement("Fácil de adivinhar: é uma senha muito comum")).toHaveTextContent("(falta)");
+      expect(strengthText()).toHaveTextContent("Força da senha: Fraca");
+
+      await user.type(screen.getByLabelText("Repetir senha"), "Senha123!");
+      await user.click(screen.getByRole("button", { name: "Criar conta" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "A senha é fácil de adivinhar: é uma senha muito comum. Escolha outra."
+      );
+      expect(onAuthenticated).not.toHaveBeenCalled();
+    });
+
+    it("senha que contém o e-mail é fraca", async () => {
+      const { user } = await openRegister();
+      await user.type(screen.getByLabelText("E-mail"), "joao.silva@teste.com");
+
+      await user.type(screen.getByLabelText("Senha"), "Joaosilva2024!");
+
+      expect(requirement("Fácil de adivinhar: contém o seu e-mail")).toBeInTheDocument();
+      expect(strengthText()).toHaveTextContent("Força da senha: Fraca");
+    });
+
+    it("senha boa marca o item como ok", async () => {
+      const { user } = await openRegister();
+      expect(requirement("Não é fácil de adivinhar")).toHaveTextContent("(falta)");
+
+      await user.type(screen.getByLabelText("Senha"), "Girassol1!");
+
+      expect(requirement("Não é fácil de adivinhar")).toHaveTextContent("(ok)");
+    });
+  });
+
+  describe("as senhas conferem (cadastro)", () => {
+    it("avisa enquanto digita a repetição e confirma quando bate", async () => {
+      const { user } = renderAuth();
+      await user.click(screen.getByRole("tab", { name: "Criar conta" }));
+      const match = document.getElementById("password-match")!;
+      const confirm = screen.getByLabelText("Repetir senha");
+      expect(match).toHaveAttribute("aria-live", "polite");
+      expect(match).toBeEmptyDOMElement();
+
+      await user.type(screen.getByLabelText("Senha"), "Girassol1!");
+      await user.type(confirm, "Girassol");
+      expect(match).toHaveTextContent("As senhas ainda não conferem");
+      expect(confirm).toHaveAccessibleDescription("As senhas ainda não conferem");
+
+      await user.type(confirm, "1!");
+      expect(match).toHaveTextContent("As senhas conferem");
+
+      await user.clear(confirm);
+      expect(match).toBeEmptyDOMElement();
     });
   });
 });
