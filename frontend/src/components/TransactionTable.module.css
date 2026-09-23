@@ -1,0 +1,96 @@
+/* Linha sem categoria: destaque discreto (a opção "Sem categoria" no select diz o mesmo em texto) */
+.uncategorized td {
+  background: rgba(245, 182, 56, 0.05);
+}
+
+.description {
+  overflow-wrap: anywhere;
+}
+.badge {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Select com a bolinha da cor da categoria */
+.select {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.select i {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 50%;
+}
+.select select {
+  height: 2.1rem;
+  min-width: 11rem;
+}
+
+.value:global(.out) {
+  color: var(--expense);
+}
+
+/* ---------- Celular: cada linha vira um cartão ---------- */
+@media (max-width: 620px) {
+  .table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "description value"
+      "date value"
+      "category category";
+    column-gap: 0.75rem;
+    padding: 0.9rem 0.25rem;
+    border-top: 1px solid var(--line-soft);
+  }
+  .table tbody tr:first-child {
+    border-top: 0;
+  }
+  /* tbody na frente para vencer o ".table td" global, carregado depois */
+  .table tbody td {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .table tbody .uncategorized {
+    margin: 0 -0.5rem;
+    padding-inline: 0.75rem;
+    border-radius: var(--r-sm);
+    background: rgba(245, 182, 56, 0.05);
+  }
+  .description {
+    grid-area: description;
+    font-weight: 600;
+  }
+  .badge {
+    margin: 0.3rem 0 0;
+    display: table;
+  }
+  .date {
+    grid-area: date;
+    margin-top: 0.2rem;
+    font-size: 0.74rem;
+  }
+  .value {
+    grid-area: value;
+    align-self: start;
+  }
+  .category {
+    grid-area: category;
+    margin-top: 0.65rem;
+  }
+  .select select {
+    min-width: 0;
+    height: 2.5rem;
+  }
+}
