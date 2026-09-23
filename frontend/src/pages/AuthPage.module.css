@@ -131,7 +131,7 @@
 .card {
   padding: 28px;
   border: 1px solid var(--line);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   background: var(--glass);
   backdrop-filter: blur(18px) saturate(125%);
   box-shadow: var(--shadow);

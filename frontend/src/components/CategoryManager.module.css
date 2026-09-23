@@ -1,0 +1,63 @@
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+.name i {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  border-radius: 50%;
+}
+
+.actions {
+  display: inline-flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+.actions form {
+  display: inline;
+}
+
+.newForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+}
+.ignoreNew {
+  margin-top: 0.6rem;
+}
+.help {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+.help code {
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  color: var(--text);
+  background: var(--glass-strong);
+  font-family: var(--font-mono);
+}
+
+.bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.message {
+  margin: 1rem 0 0;
+}
+
+@media (max-width: 640px) {
+  .newForm {
+    grid-template-columns: 1fr;
+  }
+}

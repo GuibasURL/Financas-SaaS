@@ -8,11 +8,14 @@ import {
   updateCategory,
 } from "../services/api";
 import type { Category } from "../types/transaction";
+import styles from "./CategoryManager.module.css";
 
 interface Props {
   categories: Category[];
-  // Chamado depois de qualquer mudança, para o Dashboard recarregar os dados
+  // Chamado depois de qualquer mudança, para a página recarregar os dados
   onChanged: () => void;
+  // Cor da categoria (a mesma dos gráficos); opcional
+  categoryColor?: (id: number) => string;
 }
 
 const IGNORE_HINT =
@@ -25,7 +28,7 @@ function formatKeywords(keywords: string) {
   return keywords.split(",").filter(Boolean).join(", ");
 }
 
-export default function CategoryManager({ categories, onChanged }: Props) {
+export default function CategoryManager({ categories, onChanged, categoryColor }: Props) {
   const [newName, setNewName] = useState("");
   const [newKeywords, setNewKeywords] = useState("");
   const [newIgnore, setNewIgnore] = useState(false);
@@ -115,7 +118,7 @@ export default function CategoryManager({ categories, onChanged }: Props) {
       return count === 0
         ? "Você já tem todas as categorias sugeridas."
         : `${count} categoria${count === 1 ? " sugerida adicionada" : "s sugeridas adicionadas"}. ` +
-            "Use \"Aplicar regras\" para categorizar os extratos já importados.";
+            'Use "Aplicar regras" para categorizar os extratos já importados.';
     }, "Não foi possível adicionar as categorias sugeridas.");
   }
 
@@ -131,86 +134,113 @@ export default function CategoryManager({ categories, onChanged }: Props) {
   return (
     <div>
       {categories.length === 0 ? (
-        <p>Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.</p>
+        <p className="empty">Nenhuma categoria ainda. Crie uma abaixo ou adicione as sugeridas.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Palavras-chave</th>
-              <th title={IGNORE_HINT}>Nos gráficos</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {categories.map((c) =>
-              c.id === editingId ? (
-                <tr key={c.id}>
-                  <td>
-                    <input
-                      form="edit-category"
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      aria-label="Nome"
-                      required
-                    />
-                  </td>
-                  <td>
-                    <input
-                      form="edit-category"
-                      value={editKeywords}
-                      onChange={(e) => setEditKeywords(e.target.value)}
-                      aria-label="Palavras-chave"
-                      placeholder="ifood, restaurante"
-                      style={{ width: "100%" }}
-                    />
-                  </td>
-                  <td>
-                    <label title={IGNORE_HINT}>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Palavras-chave</th>
+                <th title={IGNORE_HINT}>Nos gráficos</th>
+                <th className="num">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((c) =>
+                c.id === editingId ? (
+                  <tr key={c.id} className="selected">
+                    <td>
                       <input
-                        type="checkbox"
+                        className="field"
                         form="edit-category"
-                        checked={editIgnore}
-                        onChange={(e) => setEditIgnore(e.target.checked)}
-                      />{" "}
-                      ignorar
-                    </label>
-                  </td>
-                  <td>
-                    <form id="edit-category" onSubmit={handleSave} style={{ display: "inline" }}>
-                      <button type="submit" disabled={busy}>
-                        Salvar
-                      </button>
-                    </form>{" "}
-                    <button onClick={() => setEditingId(null)} disabled={busy}>
-                      Cancelar
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={c.id}>
-                  <td>{c.name}</td>
-                  <td>{c.keywords ? formatKeywords(c.keywords) : <em>nenhuma</em>}</td>
-                  <td title={c.ignore_in_reports ? IGNORE_HINT : undefined}>
-                    {c.ignore_in_reports ? <em>ignorada</em> : "conta"}
-                  </td>
-                  <td>
-                    <button onClick={() => startEditing(c)} disabled={busy}>
-                      Editar
-                    </button>{" "}
-                    <button onClick={() => handleDelete(c)} disabled={busy}>
-                      Excluir
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        aria-label="Nome"
+                        required
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="field"
+                        form="edit-category"
+                        value={editKeywords}
+                        onChange={(e) => setEditKeywords(e.target.value)}
+                        aria-label="Palavras-chave"
+                        placeholder="ifood, restaurante"
+                      />
+                    </td>
+                    <td>
+                      <label className="checkbox" title={IGNORE_HINT}>
+                        <input
+                          type="checkbox"
+                          form="edit-category"
+                          checked={editIgnore}
+                          onChange={(e) => setEditIgnore(e.target.checked)}
+                        />
+                        ignorar
+                      </label>
+                    </td>
+                    <td className="num">
+                      <span className={styles.actions}>
+                        <form id="edit-category" onSubmit={handleSave}>
+                          <button className="btn btn-primary btn-sm" type="submit" disabled={busy}>
+                            Salvar
+                          </button>
+                        </form>
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => setEditingId(null)}
+                          disabled={busy}
+                        >
+                          Cancelar
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={c.id}>
+                    <td>
+                      <span className={styles.name}>
+                        {categoryColor && <i style={{ background: categoryColor(c.id) }} />}
+                        {c.name}
+                      </span>
+                    </td>
+                    <td className="muted">
+                      {c.keywords ? formatKeywords(c.keywords) : <em>nenhuma</em>}
+                    </td>
+                    <td title={c.ignore_in_reports ? IGNORE_HINT : undefined}>
+                      {c.ignore_in_reports ? (
+                        <span className="badge badge-warning">ignorada</span>
+                      ) : (
+                        <span className="muted">conta</span>
+                      )}
+                    </td>
+                    <td className="num">
+                      <span className={styles.actions}>
+                        <button className="btn btn-sm" onClick={() => startEditing(c)} disabled={busy}>
+                          Editar
+                        </button>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleDelete(c)}
+                          disabled={busy}
+                        >
+                          Excluir
+                        </button>
+                      </span>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
-      <form onSubmit={handleCreate} style={{ display: "flex", gap: 8, marginTop: 12 }}>
+      <form className={styles.newForm} onSubmit={handleCreate}>
         <input
+          className="field"
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nova categoria"
@@ -218,45 +248,58 @@ export default function CategoryManager({ categories, onChanged }: Props) {
           required
         />
         <input
+          className="field"
           value={newKeywords}
           onChange={(e) => setNewKeywords(e.target.value)}
           placeholder="Palavras-chave: ifood, restaurante, -mercado pago"
           aria-label="Palavras-chave da nova categoria"
-          style={{ flex: 1 }}
         />
-        <button type="submit" disabled={busy}>
+        <button className="btn btn-primary" type="submit" disabled={busy}>
           Adicionar
         </button>
       </form>
-      <p style={{ margin: "4px 0", color: "#555", fontSize: "0.9em" }}>
-        Separe as palavras-chave por vírgula. Elas valem no começo de uma palavra da descrição,
-        sem diferenciar maiúsculas, acentos e pontuação. Use <code>-</code> na frente para excluir:{" "}
-        <code>mercado, -mercado pago</code> pega "MERCADO EXTRA", mas não "MERCADO PAGO".
-      </p>
-      <label style={{ display: "block", marginTop: 4 }} title={IGNORE_HINT}>
+      <label className={`checkbox ${styles.ignoreNew}`} title={IGNORE_HINT}>
         <input
           type="checkbox"
           checked={newIgnore}
           onChange={(e) => setNewIgnore(e.target.checked)}
-        />{" "}
+        />
         Ignorar nos gráficos (ex: pagamento de fatura do cartão, transferência entre suas contas)
       </label>
+      <p className={styles.help}>
+        Separe as palavras-chave por vírgula. Elas valem no começo de uma palavra da descrição,
+        sem diferenciar maiúsculas, acentos e pontuação. Use <code>-</code> na frente para excluir:{" "}
+        <code>mercado, -mercado pago</code> pega "MERCADO EXTRA", mas não "MERCADO PAGO".
+      </p>
 
-      <p style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button onClick={handleApplyRules} disabled={busy || categories.length === 0}>
+      <div className={styles.bulk}>
+        <button
+          className="btn"
+          onClick={handleApplyRules}
+          disabled={busy || categories.length === 0}
+        >
           Aplicar regras às transações sem categoria
         </button>
         <button
+          className="btn"
           onClick={handleAddDefaults}
           disabled={busy}
           title="Alimentação, Mercado, Transporte, Saúde, Moradia, Assinaturas... Só cria as que você ainda não tem."
         >
           Adicionar categorias sugeridas
         </button>
-      </p>
+      </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
-      {message && <p style={{ color: "green" }}>{message}</p>}
+      {error && (
+        <p className={`notice ${styles.message}`} role="alert">
+          {error}
+        </p>
+      )}
+      {message && (
+        <p className={`notice notice-success ${styles.message}`} role="status">
+          {message}
+        </p>
+      )}
     </div>
   );
 }
