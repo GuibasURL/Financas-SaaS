@@ -93,7 +93,25 @@ npm run dev
 
 O app sobe em `http://localhost:5173`.
 
-## Formato de CSV esperado (v1)
+## Formatos de extrato aceitos
+
+O upload reconhece o banco sozinho pelo cabeçalho do CSV:
+
+| Banco | Particularidades tratadas |
+|---|---|
+| Nubank (conta) | `Data,Valor,Identificador,Descrição` |
+| Nubank (fatura do cartão) | `date,title,amount`; compra vem positiva e é convertida em saída |
+| Itaú | `;`, valores `1.234,56`, linhas de cabeçalho antes da tabela |
+| Banco Inter | `;`, descrição = Histórico + Descrição |
+| Bradesco | `;`, crédito e débito em colunas separadas |
+| Banco do Brasil | tudo entre aspas, coluna "Dependência Origem" |
+| Genérico | `data,descricao,valor` (abaixo) |
+
+Em todos: linhas de saldo (`SALDO ANTERIOR`, `SALDO DO DIA`, `S A L D O`...) e linhas em branco são ignoradas, e arquivos em UTF-8 (com ou sem BOM) ou Windows-1252 são aceitos. Datas em `dd/mm/aaaa` ou `aaaa-mm-dd`.
+
+> ⚠️ Os formatos dos bancos foram montados a partir de exemplos gerados por IA (`backend/tests/fixtures/extratos/`), não de extratos reais. Se o extrato do seu banco não for reconhecido ou vier com valores errados, ajuste o formato dele em `FORMATS` (`backend/app/services/csv_parser.py`) e troque o arquivo de exemplo por um real, com os dados anonimizados.
+
+Formato genérico, para montar um CSV à mão:
 
 ```csv
 data,descricao,valor
@@ -101,8 +119,6 @@ data,descricao,valor
 2025-01-06,SALARIO EMPRESA,5000.00
 ```
 
-- `data`: qualquer formato que o pandas reconheça (ex: `2025-01-05`, `05/01/2025`)
-- `descricao`: texto livre
 - `valor`: negativo para saída, positivo para entrada
 
 ## Categorização automática
@@ -132,9 +148,9 @@ Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e
 
 - [x] Fase 1: upload CSV, categorização por regra, dashboard básico
 - [x] Fase 2: autenticação, edição manual de categoria no frontend, múltiplos extratos, gerenciamento de categorias
-- [ ] Fase 3: suporte a formatos de CSV de bancos diferentes, exportar relatórios, deploy
+- [ ] Fase 3: ~~suporte a formatos de CSV de bancos diferentes~~ (falta validar com extratos reais), exportar relatórios, deploy
 
 ## Stack
 
-- Backend: FastAPI + SQLAlchemy + pandas + SQLite (trocar para Postgres depois é só mudar `DATABASE_URL`)
+- Backend: FastAPI + SQLAlchemy + Alembic + SQLite (trocar para Postgres depois é só mudar `DATABASE_URL`)
 - Frontend: React + TypeScript + Vite + Recharts

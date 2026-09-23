@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from tests.conftest import CSV_JANEIRO
 
 
@@ -40,8 +42,19 @@ def test_upload_rejeita_csv_sem_colunas_obrigatorias(client, upload):
     response = upload("data,descricao\n2025-01-05,IFOOD\n")
 
     assert response.status_code == 400
-    assert "valor" in response.json()["detail"]
+    assert "não reconhecido" in response.json()["detail"]
     assert client.get("/statements").json() == []
+
+
+def test_upload_de_extrato_de_banco_categoriza_pela_descricao(client, upload, categories):
+    content = (Path(__file__).parent / "fixtures" / "extratos" / "bradesco.csv").read_text("utf-8")
+
+    transactions = upload(content, filename="bradesco.csv").json()
+
+    assert len(transactions) == 11
+    by_description = {t["description"]: t["category_id"] for t in transactions}
+    assert by_description["IFOOD"] == categories["alimentacao"].id
+    assert by_description["UBER"] == categories["transporte"].id
 
 
 def test_upload_rejeita_valor_invalido(client, upload):
