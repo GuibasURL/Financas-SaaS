@@ -1,5 +1,6 @@
 import io
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from openpyxl import load_workbook
@@ -82,6 +83,18 @@ def test_resumo_com_totais_e_filtros(client, dados):
     assert summary["Saldo"] == pytest.approx(4828.50)
     assert summary["Transações"] == 6
     datetime.strptime(summary["Gerado em"], "%d/%m/%Y %H:%M")
+
+
+def test_gerado_em_usa_o_fuso_do_app_e_nao_o_do_servidor(client, dados, monkeypatch):
+    # Um fuso bem longe do servidor e de Brasília: se a hora vier certa, veio do APP_TIMEZONE
+    tokyo = ZoneInfo("Asia/Tokyo")
+    monkeypatch.setattr("app.routers.reports.APP_TIMEZONE", tokyo)
+
+    summary = _summary(_workbook(_export(client)))
+
+    generated = datetime.strptime(summary["Gerado em"], "%d/%m/%Y %H:%M")
+    now = datetime.now(tokyo).replace(tzinfo=None)
+    assert now - timedelta(minutes=2) <= generated <= now
 
 
 def test_por_mes(client, dados):

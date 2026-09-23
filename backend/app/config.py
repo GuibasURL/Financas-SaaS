@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Optional
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from dotenv import load_dotenv
 
@@ -54,3 +55,25 @@ def parse_cors_origins(value: Optional[str]) -> list[str]:
 # Endereços do frontend que podem chamar a API (separados por vírgula).
 # Padrão: o Vite local. Em produção, o endereço público do frontend.
 CORS_ORIGINS = parse_cors_origins(os.getenv("CORS_ORIGINS"))
+
+
+def load_timezone(value: Optional[str]) -> ZoneInfo:
+    """Fuso usado nos horários mostrados ao usuário. Nome inválido impede a API de subir."""
+    name = value or "America/Sao_Paulo"
+    try:
+        return ZoneInfo(name)
+    except (ZoneInfoNotFoundError, ValueError) as err:
+        raise ValueError(
+            f'APP_TIMEZONE "{name}" não é um fuso válido. Use um nome como "America/Sao_Paulo".'
+        ) from err
+
+
+# Fuso dos horários gerados pela API (ex: "Gerado em" do relatório). O
+# servidor em produção costuma rodar em UTC, 3h à frente do horário de Brasília.
+APP_TIMEZONE = load_timezone(os.getenv("APP_TIMEZONE"))
+
+# Limite de tentativas de login erradas, contra quem tenta adivinhar senhas.
+# Por e-mail + IP (quem erra a própria senha) e por IP (quem testa vários e-mails).
+LOGIN_WINDOW_MINUTES = int(os.getenv("LOGIN_WINDOW_MINUTES", 15))
+LOGIN_MAX_FAILURES_PER_ACCOUNT = int(os.getenv("LOGIN_MAX_FAILURES_PER_ACCOUNT", 5))
+LOGIN_MAX_FAILURES_PER_IP = int(os.getenv("LOGIN_MAX_FAILURES_PER_IP", 30))

@@ -73,6 +73,18 @@ Configuração (variáveis de ambiente ou `backend/.env`):
 - `SECRET_KEY`: chave que assina os tokens (mínimo 32 bytes). Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Sem ela, a API sobe com uma chave de desenvolvimento que está no código (e avisa no log): serve para rodar local, mas **nunca publique a API assim**, porque qualquer um conseguiria forjar tokens. Uma chave com menos de 32 bytes faz a API recusar subir.
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
 - `CORS_ORIGINS`: endereços do frontend que podem chamar a API, separados por vírgula (padrão: `http://localhost:5173`). Em produção, o endereço público do frontend.
+- `APP_TIMEZONE`: fuso dos horários gerados pela API, como o "Gerado em" do relatório (padrão: `America/Sao_Paulo`). Servidores costumam rodar em UTC; sem isso, o horário sairia 3h adiantado. Um nome inválido faz a API recusar subir.
+- `LOGIN_MAX_FAILURES_PER_ACCOUNT` (padrão: 5), `LOGIN_MAX_FAILURES_PER_IP` (padrão: 30) e `LOGIN_WINDOW_MINUTES` (padrão: 15): limite de tentativas de login erradas (veja abaixo).
+
+### Limite de tentativas de login
+
+Para dificultar quem tenta adivinhar senhas, o login conta as tentativas erradas nos últimos 15 minutos:
+
+- **5 erros no mesmo e-mail, a partir do mesmo IP**, ou **30 erros de um mesmo IP** (em qualquer e-mail) bloqueiam o login por um tempo: a API responde `429` com a mensagem "Muitas tentativas de login. Tente de novo em N minutos." e o header `Retry-After` (em segundos). Enquanto durar, nem a senha certa entra.
+- Um login certo zera os erros daquele e-mail naquele IP.
+- A contagem fica na memória da API: zera quando ela reinicia e vale só para uma instância (o suficiente para este projeto; com várias instâncias, ela precisaria ir para um lugar compartilhado, como o Redis).
+
+> ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API só enxerga o IP real de quem acessa se o uvicorn rodar com `--proxy-headers --forwarded-allow-ips="*"` (ou o IP do proxy). Sem isso, todo mundo parece vir do IP do proxy e 30 erros de pessoas diferentes bloqueariam o login de todos.
 
 ## Testes do backend
 

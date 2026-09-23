@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { FeedbackProvider, TOAST_DURATION_MS, useFeedback, type ConfirmOptions } from "./Feedback";
+import { silenceExpectedRenderErrors } from "../test/expectedErrors";
 
 const OPTIONS: Omit<ConfirmOptions, "action"> = {
   title: "Excluir extrato?",
@@ -227,7 +228,7 @@ describe("avisos flutuantes", () => {
 });
 
 it("usar fora do provider é erro de programação", () => {
-  vi.spyOn(console, "error").mockImplementation(() => {});
+  silenceExpectedRenderErrors();
   const Broken = () => {
     useFeedback();
     return null;
