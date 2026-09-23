@@ -2,8 +2,10 @@ from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import get_db
+from app.dependencies import get_current_user
 from app.models.statement import Statement
 from app.models.transaction import Transaction
+from app.models.user import User
 from app.services.csv_parser import parse_csv, CSVParseError
 from app.services.categorizer import categorize_all
 from app.schemas.transaction import TransactionOut
@@ -12,7 +14,11 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 
 
 @router.post("", response_model=list[TransactionOut])
-def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+def upload_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Envie um arquivo .csv")
 
@@ -23,9 +29,9 @@ def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
     except CSVParseError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    parsed = categorize_all(db, parsed)
+    parsed = categorize_all(db, parsed, user.id)
 
-    statement = Statement(filename=file.filename)
+    statement = Statement(filename=file.filename, user_id=user.id)
     db.add(statement)
 
     created = []

@@ -5,7 +5,7 @@ from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 
 import app.models  # noqa: F401  (registra os models no Base.metadata)
 from app.db import Base
@@ -30,6 +30,35 @@ def test_migrations_geram_o_mesmo_schema_dos_models(tmp_path):
     engine.dispose()
 
     assert diff == [], f"Models e migrations divergem: {diff}"
+
+
+def test_migration_de_usuarios_preserva_dados_existentes(tmp_path):
+    db_url = f"sqlite:///{tmp_path / 'test.db'}"
+    config = _alembic_config(db_url)
+    command.upgrade(config, "0002")
+
+    engine = create_engine(db_url)
+    with engine.begin() as connection:
+        connection.execute(text("INSERT INTO categories (name, keywords) VALUES ('Mercado', '')"))
+        connection.execute(text("INSERT INTO statements (filename) VALUES ('antigo.csv')"))
+        connection.execute(
+            text(
+                "INSERT INTO transactions (date, description, amount, statement_id) "
+                "VALUES ('2025-01-05', 'PADARIA', -10, 1)"
+            )
+        )
+
+    command.upgrade(config, "head")
+
+    with engine.connect() as connection:
+        assert connection.execute(text("SELECT name, user_id FROM categories")).all() == [
+            ("Mercado", None)
+        ]
+        assert connection.execute(text("SELECT filename, user_id FROM statements")).all() == [
+            ("antigo.csv", None)
+        ]
+        assert connection.execute(text("SELECT COUNT(*) FROM transactions")).scalar() == 1
+    engine.dispose()
 
 
 def test_migrations_podem_ser_desfeitas(tmp_path):

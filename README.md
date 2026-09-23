@@ -47,6 +47,30 @@ O `--reload` reinicia o servidor automaticamente a cada alteração no código. 
 
 A API sobe em `http://localhost:8000`. Documentação automática (Swagger) em `http://localhost:8000/docs` — útil para testar os endpoints sem precisar do frontend pronto.
 
+## Autenticação
+
+Todas as rotas (menos `/auth/register` e `/auth/login`) exigem login, e cada usuário só vê os próprios extratos, transações e categorias.
+
+- `POST /auth/register` com `{"email": "...", "password": "..."}` (senha com pelo menos 8 caracteres)
+- `POST /auth/login` com form-data `username` (o e-mail) e `password`: devolve um token JWT
+- Mande o token nas outras chamadas no header `Authorization: Bearer <token>`
+- `GET /auth/me` devolve o usuário logado
+
+No Swagger (`/docs`), o botão **Authorize** faz o login e passa o token automaticamente.
+
+Para criar um usuário pelo terminal (de dentro de `backend/`, com o venv ativado):
+
+```bash
+python -m app.create_user voce@email.com
+```
+
+A senha é pedida no terminal. Extratos e categorias que já existiam antes da autenticação ficam sem dono (invisíveis na API) até esse comando atribuí-los ao usuário criado.
+
+Configuração (variáveis de ambiente ou `backend/.env`):
+
+- `SECRET_KEY`: chave que assina os tokens. O padrão só serve para desenvolvimento; em produção use um valor longo e aleatório, ex: `python -c "import secrets; print(secrets.token_urlsafe(32))"`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
+
 ## Testes do backend
 
 Instale as dependências de desenvolvimento (uma vez) e rode o pytest de dentro de `backend/`:
