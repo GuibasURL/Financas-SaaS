@@ -4,8 +4,17 @@ export interface Transaction {
   description: string;
   amount: number;
   category_id: number | null;
-  source_file: string | null;
+  statement_id: number;
   created_at: string;
+}
+
+export interface Statement {
+  id: number;
+  filename: string;
+  uploaded_at: string;
+  transaction_count: number;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 export interface Category {
