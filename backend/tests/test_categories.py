@@ -58,7 +58,12 @@ def test_edita_nome_e_keywords(client, categories):
     )
 
     assert response.status_code == 200
-    assert response.json() == {"id": category_id, "name": "Comida", "keywords": "ifood,padaria"}
+    assert response.json() == {
+        "id": category_id,
+        "name": "Comida",
+        "keywords": "ifood,padaria",
+        "ignore_in_reports": False,
+    }
 
 
 def test_edita_so_o_campo_enviado(client, categories):
@@ -92,6 +97,30 @@ def test_editar_categoria_inexistente_da_404(client):
     response = client.patch("/categories/999", json={"name": "X"})
 
     assert response.status_code == 404
+
+
+def test_marca_e_desmarca_ignorar_nos_graficos(client, categories):
+    category_id = categories["alimentacao"].id
+
+    marked = client.patch(f"/categories/{category_id}", json={"ignore_in_reports": True})
+    only_name = client.patch(f"/categories/{category_id}", json={"name": "Comida"})
+
+    assert marked.json()["ignore_in_reports"] is True
+    assert only_name.json()["ignore_in_reports"] is True  # não mexeu no que não foi enviado
+    unmarked = client.patch(f"/categories/{category_id}", json={"ignore_in_reports": False})
+    assert unmarked.json()["ignore_in_reports"] is False
+
+
+def test_cria_categoria_ja_ignorada_nos_graficos(client):
+    response = client.post(
+        "/categories", json={"name": "Pagamento de fatura", "ignore_in_reports": True}
+    )
+
+    assert response.json()["ignore_in_reports"] is True
+
+
+def test_categoria_nova_conta_nos_graficos_por_padrao(client):
+    assert client.post("/categories", json={"name": "Lazer"}).json()["ignore_in_reports"] is False
 
 
 # ---------- Excluir ----------

@@ -28,6 +28,8 @@ def normalize_keywords(value: str) -> str:
 class CategoryBase(BaseModel):
     name: str
     keywords: str = ""
+    # Transações desta categoria não entram nos gráficos
+    ignore_in_reports: bool = False
 
 
 class CategoryCreate(CategoryBase):
@@ -47,6 +49,7 @@ class CategoryUpdate(BaseModel):
 
     name: Optional[str] = None
     keywords: Optional[str] = None
+    ignore_in_reports: Optional[bool] = None
 
     @field_validator("name")
     @classmethod

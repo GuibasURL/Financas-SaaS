@@ -21,6 +21,8 @@ export interface Category {
   id: number;
   name: string;
   keywords: string;
+  // Transações desta categoria não entram nos gráficos (ex: pagamento de fatura)
+  ignore_in_reports: boolean;
 }
 
 export interface CategoryTotal {

@@ -145,14 +145,16 @@ export async function getCategories(): Promise<Category[]> {
   return data;
 }
 
-export async function createCategory(name: string, keywords: string): Promise<Category> {
-  const { data } = await api.post<Category>("/categories", { name, keywords });
+type CategoryFields = Pick<Category, "name" | "keywords" | "ignore_in_reports">;
+
+export async function createCategory(fields: CategoryFields): Promise<Category> {
+  const { data } = await api.post<Category>("/categories", fields);
   return data;
 }
 
 export async function updateCategory(
   id: number,
-  changes: { name?: string; keywords?: string }
+  changes: Partial<CategoryFields>
 ): Promise<Category> {
   const { data } = await api.patch<Category>(`/categories/${id}`, changes);
   return data;
