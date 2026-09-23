@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse, delay } from "msw";
 import { describe, expect, it, vi } from "vitest";
@@ -31,8 +31,10 @@ describe("AuthPage", () => {
     expect(screen.getByRole("tab", { name: "Criar conta" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("heading", { name: "Crie sua conta" })).toBeInTheDocument();
     expect(screen.getByLabelText("Repetir senha")).toBeInTheDocument();
-    // A dica de tamanho mínimo fica ligada ao campo de senha (leitores de tela)
-    expect(screen.getByLabelText("Senha")).toHaveAccessibleDescription("Mínimo 8 caracteres");
+    // A força e os requisitos ficam ligados ao campo de senha (leitores de tela)
+    expect(screen.getByLabelText("Senha")).toHaveAccessibleDescription(
+      /Força da senha: digite uma senha.*Pelo menos 8 caracteres \(falta\)/
+    );
   });
 
   it("setas do teclado trocam de aba e levam o foco junto", async () => {
@@ -141,8 +143,8 @@ describe("AuthPage", () => {
 
       expect(screen.getByLabelText("Repetir senha")).toHaveAttribute("type", "text");
       expect(screen.getByLabelText("Senha")).toHaveAttribute("type", "password");
-      // Mostrar a senha não pode quebrar a dica ligada ao campo
-      expect(screen.getByLabelText("Senha")).toHaveAccessibleDescription("Mínimo 8 caracteres");
+      // Mostrar a senha não pode quebrar a descrição ligada ao campo
+      expect(screen.getByLabelText("Senha")).toHaveAccessibleDescription(/Força da senha/);
     });
 
     it("volta a esconder ao trocar de aba", async () => {
@@ -178,6 +180,75 @@ describe("AuthPage", () => {
 
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
       expect(onAuthenticated).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("força da senha (cadastro)", () => {
+    async function openRegister() {
+      const ctx = renderAuth();
+      await ctx.user.click(screen.getByRole("tab", { name: "Criar conta" }));
+      return ctx;
+    }
+    const strengthText = () => document.getElementById("password-strength")!;
+    const requirement = (label: string) =>
+      within(screen.getByRole("list", { name: "Requisitos da senha" })).getByText(label, {
+        exact: false,
+      });
+
+    it("só aparece no cadastro", async () => {
+      renderAuth();
+      expect(screen.queryByRole("list", { name: "Requisitos da senha" })).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ["abc", "Fraca"],
+      ["abcdefgh", "Fraca"],
+      ["abcdef1!", "Mediana"],
+      ["Senha-forte-123", "Forte"],
+    ])("\"%s\" é %s", async (password, label) => {
+      const { user } = await openRegister();
+
+      await user.type(screen.getByLabelText("Senha"), password);
+
+      expect(strengthText()).toHaveTextContent(`Força da senha: ${label}`);
+    });
+
+    it("a checklist marca o que a senha já tem e diz o que falta", async () => {
+      const { user } = await openRegister();
+      expect(strengthText()).toHaveTextContent("Força da senha: digite uma senha");
+
+      await user.type(screen.getByLabelText("Senha"), "abcdefg1");
+
+      expect(requirement("Pelo menos 8 caracteres")).toHaveTextContent("(ok)");
+      expect(requirement("Letra minúscula")).toHaveTextContent("(ok)");
+      expect(requirement("Número")).toHaveTextContent("(ok)");
+      expect(requirement("Letra maiúscula")).toHaveTextContent("(falta)");
+      expect(requirement("Caractere especial")).toHaveTextContent("(falta)");
+    });
+
+    it("senha fraca não envia e diz o que falta", async () => {
+      const { user, onAuthenticated } = await openRegister();
+      await user.type(screen.getByLabelText("E-mail"), "nova@teste.com");
+      await user.type(screen.getByLabelText("Senha"), "abcdefgh");
+      await user.type(screen.getByLabelText("Repetir senha"), "abcdefgh");
+
+      await user.click(screen.getByRole("button", { name: "Criar conta" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "A senha está fraca. Falta: letra maiúscula, número, caractere especial (!@#$...)."
+      );
+      expect(onAuthenticated).not.toHaveBeenCalled();
+    });
+
+    it("senha mediana cria a conta", async () => {
+      const { user, onAuthenticated } = await openRegister();
+      await user.type(screen.getByLabelText("E-mail"), "nova@teste.com");
+      await user.type(screen.getByLabelText("Senha"), "abcdef1!");
+      await user.type(screen.getByLabelText("Repetir senha"), "abcdef1!");
+
+      await user.click(screen.getByRole("button", { name: "Criar conta" }));
+
+      await vi.waitFor(() => expect(onAuthenticated).toHaveBeenCalled());
     });
   });
 });

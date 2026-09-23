@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.services.password_policy import weak_password_message
+
 # Validação simples de propósito: só garante o formato "algo@algo.algo".
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -26,8 +28,10 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password(cls, value: str) -> str:
-        if len(value) < 8:
-            raise ValueError("A senha precisa ter pelo menos 8 caracteres")
+        # Tamanho mínimo e ao menos 3 dos 4 tipos de caractere (senha mediana ou forte)
+        message = weak_password_message(value)
+        if message:
+            raise ValueError(message)
         # O bcrypt só aceita até 72 bytes
         if len(value.encode("utf-8")) > 72:
             raise ValueError("A senha pode ter no máximo 72 bytes")
