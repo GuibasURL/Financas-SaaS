@@ -81,5 +81,6 @@ describe("UploadCSV", () => {
     const banks = screen.getByLabelText("Bancos aceitos");
     expect(banks).toHaveTextContent("Nubank conta");
     expect(banks).toHaveTextContent("Banco do Brasil");
+    expect(banks).toHaveTextContent("PicPay");
   });
 });

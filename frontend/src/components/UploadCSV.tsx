@@ -17,6 +17,7 @@ const BANKS = [
   "Inter",
   "Bradesco",
   "Banco do Brasil",
+  "PicPay",
   "Genérico",
 ];
 
