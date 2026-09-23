@@ -40,6 +40,7 @@ const PATHS = {
     </>
   ),
   close: <path d="m7 7 10 10M17 7 7 17" />,
+  circle: <circle cx="12" cy="12" r="9" />,
   eye: (
     <>
       <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />

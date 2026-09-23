@@ -3,6 +3,11 @@ import { apiErrorMessage, getMe, login, register } from "../services/api";
 import type { User } from "../types/user";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
+import {
+  passwordRequirements,
+  passwordStrength,
+  STRENGTH_LABELS,
+} from "../utils/passwordStrength";
 import styles from "./AuthPage.module.css";
 
 interface Props {
@@ -91,6 +96,41 @@ function PasswordField({
   );
 }
 
+// Barra fraca/mediana/forte + checklist do que a senha já tem
+function PasswordStrengthMeter({ password }: { password: string }) {
+  const strength = passwordStrength(password);
+  const requirements = passwordRequirements(password);
+  const empty = password === "";
+
+  return (
+    <div className={styles.strength}>
+      <div
+        className={`${styles.meter} ${empty ? "" : styles[strength]}`}
+        aria-hidden="true"
+      >
+        <i />
+      </div>
+      {/* aria-live: o leitor de tela avisa quando a força muda, não a cada tecla */}
+      <p id="password-strength" className={styles.strengthLabel} aria-live="polite">
+        Força da senha:{" "}
+        <strong className={empty ? undefined : styles[strength]}>
+          {empty ? "digite uma senha" : STRENGTH_LABELS[strength]}
+        </strong>
+      </p>
+      <ul id="password-requirements" className={styles.requirements} aria-label="Requisitos da senha">
+        {requirements.map((r) => (
+          <li key={r.key} className={r.met ? styles.met : undefined}>
+            <Icon name={r.met ? "check" : "circle"} />
+            {r.label}
+            <span className={styles.srOnly}>{r.met ? " (ok)" : " (falta)"}</span>
+          </li>
+        ))}
+      </ul>
+      <p className={styles.hint}>Precisa ser mediana ou forte: 3 dos 4 tipos de caractere.</p>
+    </div>
+  );
+}
+
 export default function AuthPage({ onAuthenticated, notice }: Props) {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -133,6 +173,15 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
     e.preventDefault();
     setError(null);
     hidePasswords();
+
+    // Fraca não passa (o backend recusa do mesmo jeito; aqui a pessoa já vê o que falta)
+    if (isRegister && passwordStrength(password) === "weak") {
+      const missing = passwordRequirements(password)
+        .filter((r) => !r.met)
+        .map((r) => r.label.toLowerCase());
+      setError(`A senha está fraca. Falta: ${missing.join(", ")}.`);
+      return;
+    }
 
     if (isRegister && password !== passwordConfirm) {
       setError("As senhas não conferem.");
@@ -259,13 +308,9 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
                 placeholder={isRegister ? "Mínimo 8 caracteres" : "Digite sua senha"}
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 minLength={isRegister ? 8 : undefined}
-                describedBy={isRegister ? "auth-password-hint" : undefined}
+                describedBy={isRegister ? "password-strength password-requirements" : undefined}
               />
-              {isRegister && (
-                <p id="auth-password-hint" className={styles.hint}>
-                  Mínimo 8 caracteres
-                </p>
-              )}
+              {isRegister && <PasswordStrengthMeter password={password} />}
 
               {isRegister && (
                 <>
