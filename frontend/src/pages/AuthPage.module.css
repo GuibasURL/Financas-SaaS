@@ -223,6 +223,41 @@
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
 }
 
+/* Senha + olhinho dentro do campo, à direita */
+.passwordWrap {
+  position: relative;
+}
+.passwordField {
+  padding-right: 48px;
+}
+.eye {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: calc(var(--r-sm) - 2px);
+  color: var(--muted);
+  background: transparent;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+.eye:hover {
+  color: var(--text);
+  background: var(--glass);
+}
+.eye[aria-pressed="true"] {
+  color: var(--cyan);
+}
+/* O Edge põe o próprio olhinho no campo de senha; fica só o nosso */
+.passwordField::-ms-reveal {
+  display: none;
+}
+
 .hint {
   margin: 6px 0 0;
   color: var(--muted);
