@@ -24,7 +24,7 @@ export async function getTransactions(): Promise<Transaction[]> {
 
 export async function updateTransactionCategory(
   id: number,
-  categoryId: number
+  categoryId: number | null
 ): Promise<Transaction> {
   const { data } = await api.patch<Transaction>(`/transactions/${id}`, {
     category_id: categoryId,
