@@ -153,11 +153,12 @@ O upload reconhece o banco sozinho pelo cabeçalho do CSV:
 | Banco Inter | `;`, descrição = Histórico + Descrição |
 | Bradesco | `;`, crédito e débito em colunas separadas |
 | Banco do Brasil | tudo entre aspas, coluna "Dependência Origem" |
+| PicPay | descrição = Tipo + Origem/Destino ("Pix enviado - IFOOD..."); valor `−R$ 3,30` / `+R$ 4,00`, com o sinal de menos tipográfico (−) |
 | Genérico | `data,descricao,valor` (abaixo) |
 
 Em todos: linhas de saldo (`SALDO ANTERIOR`, `SALDO DO DIA`, `S A L D O`...) e linhas em branco são ignoradas, e arquivos em UTF-8 (com ou sem BOM) ou Windows-1252 são aceitos. Datas em `dd/mm/aaaa` ou `aaaa-mm-dd`.
 
-> ⚠️ Os formatos dos bancos foram montados a partir de exemplos gerados por IA (`backend/tests/fixtures/extratos/`), não de extratos reais. Se o extrato do seu banco não for reconhecido ou vier com valores errados, ajuste o formato dele em `FORMATS` (`backend/app/services/csv_parser.py`) e troque o arquivo de exemplo por um real, com os dados anonimizados.
+> ⚠️ O formato do **PicPay** foi conferido com um extrato real (o exemplo em `backend/tests/fixtures/extratos/picpay.csv` tem a mesma estrutura, com dados fictícios). Os dos outros bancos foram montados a partir de exemplos gerados por IA (`backend/tests/fixtures/extratos/`), não de extratos reais. Se o extrato do seu banco não for reconhecido ou vier com valores errados, ajuste o formato dele em `FORMATS` (`backend/app/services/csv_parser.py`) e troque o arquivo de exemplo por um real, com os dados anonimizados.
 
 Formato genérico, para montar um CSV à mão:
 
@@ -210,7 +211,7 @@ Contas novas já nascem com 17 categorias prontas, então o primeiro extrato já
 | Pagamento de fatura | entradas e saídas | ignorada |
 | Estornos e reembolsos | só entradas | conta |
 | Salário | só entradas | conta |
-| Investimentos (aplicação, resgate, CDB, tesouro, poupança) | entradas e saídas | ignorada |
+| Investimentos (aplicação, resgate, CDB, tesouro, poupança, cofrinho) | entradas e saídas | ignorada |
 | Assinaturas, Compras, Alimentação, Mercado, Transporte, Saúde, Moradia, Educação, Lazer, Tarifas bancárias | entradas e saídas | conta |
 | Saques | só saídas | conta |
 | Transferências enviadas (pix, transf, ted) | só saídas | conta |

@@ -25,6 +25,7 @@ def _parse_fixture(name: str):
         ("inter.csv", "inter", 11),
         ("bradesco.csv", "bradesco", 11),
         ("banco_do_brasil.csv", "banco_do_brasil", 11),
+        ("picpay.csv", "picpay", 13),
     ],
 )
 def test_reconhece_o_formato_de_cada_banco(filename, format_key, count):
@@ -73,6 +74,19 @@ def test_itau_pula_cabecalho_e_le_valor_com_milhar():
 
     assert transactions[0]["description"] == "SALARIO EMPRESA X"
     assert transactions[0]["amount"] == Decimal("4500.00")  # "4.500,00"
+
+
+def test_picpay_junta_tipo_e_destino_e_le_o_sinal_tipografico():
+    transactions = _parse_fixture("picpay.csv").transactions
+    by_description = {t["description"]: t["amount"] for t in transactions}
+
+    # "−R$ 48,90" usa o sinal de menos tipográfico (U+2212), não o hífen
+    assert by_description["Pix enviado - IFOOD.COM AGENCIA DE RESTAURANTES ONLINE S.A."] == Decimal("-48.90")
+    resgates = [t["amount"] for t in transactions if t["description"].startswith("Dinheiro resgatado")]
+    assert resgates == [Decimal("40.00"), Decimal("300.00")]  # "+R$" vira positivo
+    assert by_description["Pix enviado - Joao da Silva"] == Decimal("-1250.00")  # milhar
+    assert by_description["Pix recebido - EMPRESA X LTDA - SALARIO"] == Decimal("3500.00")
+    assert transactions[0]["date"] == date(2025, 4, 15)
 
 
 def test_inter_junta_historico_e_descricao():
@@ -172,6 +186,9 @@ def test_extrato_so_com_saldo_e_erro():
         ("R$ 1.234,56", True, "1234.56"),
         ("(35,50)", True, "-35.50"),
         ("35,50-", True, "-35.50"),
+        ("\u2212R$ 3,30", True, "-3.30"),  # sinal de menos tipográfico (PicPay)
+        ("+R$ 4,00", True, "4.00"),
+        ("\u201310,00", True, "-10.00"),  # travessão curto no lugar do hífen
     ],
 )
 def test_parse_amount(text, decimal_comma, expected):

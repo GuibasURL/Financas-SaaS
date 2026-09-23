@@ -99,6 +99,17 @@ FORMATS: tuple[BankFormat, ...] = (
         decimal_comma=True,
     ),
     BankFormat(
+        key="picpay",
+        label="PicPay",
+        date_column="data",
+        # "Pix enviado - IFOOD.COM AGENCIA..." / "Dinheiro resgatado - Do cofrinho Economia"
+        description_columns=("tipo", "origem / destino"),
+        # Valor com sinal e "R$": "−R$ 3,30" (com o "−" tipográfico) e "+R$ 4,00"
+        amount_column="valor",
+        extra_columns=("hora", "forma de pagamento"),
+        decimal_comma=True,
+    ),
+    BankFormat(
         key="banco_do_brasil",
         label="Banco do Brasil",
         date_column="data",
@@ -241,9 +252,12 @@ def _parse_date(value: str) -> date:
 def _parse_amount(value: str, decimal_comma: bool) -> Decimal:
     """
     Aceita '1.234,56', '1234,56', '1234.56', '-35.50', 'R$ 1.234,56',
-    '(35,50)' (negativo) e '35,50-' (negativo).
+    '(35,50)' (negativo), '35,50-' (negativo), '+R$ 4,00' e '−R$ 3,30'
+    (com o sinal de menos tipográfico, como no PicPay).
     """
     text = value.replace("R$", "").replace("\xa0", "").replace(" ", "")
+    # "−" (U+2212) e "–" (travessão curto) no lugar do hífen
+    text = text.replace("\u2212", "-").replace("\u2013", "-")
     negative = False
     if text.startswith("(") and text.endswith(")"):
         text, negative = text[1:-1], True

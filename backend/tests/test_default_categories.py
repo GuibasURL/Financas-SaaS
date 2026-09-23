@@ -102,6 +102,14 @@ def test_descricoes_tipicas(description, expected):
         ("TESOURO DIRETO", -300, "Investimentos"),
         # Saques
         ("SAQUE BANCO24HORAS", -200, "Saques"),
+        # PicPay: cofrinho é dinheiro mudando de lugar; fatura do cartão PicPay
+        ("Dinheiro resgatado - Do cofrinho Economia", 10, "Investimentos"),
+        ("Dinheiro guardado - No cofrinho Viagem", -100, "Investimentos"),
+        ("Pagamento realizado - Fatura PicPay Card", -45.7, "Pagamento de fatura"),
+        ("Pix enviado - IFOOD.COM AGENCIA DE RESTAURANTES ONLINE S.A.", -24.96, "Alimentação"),
+        ("Pix enviado - RAIA DROGASIL S/A", -27.39, "Saúde"),
+        ("Pix enviado - UNIVERSIDADE FEDERAL DO CEARA", -3.3, "Educação"),
+        ("Pix enviado - Gabriela Pinheiro", -9.5, "Transferências enviadas"),
     ],
 )
 def test_sentido_do_dinheiro(description, amount, expected):
@@ -282,3 +290,33 @@ def test_adicionar_sugeridas_nao_afeta_outro_usuario(client, other_client):
 
 def test_adicionar_sugeridas_exige_token(anon_client):
     assert anon_client.post("/categories/defaults").status_code == 401
+
+
+def test_extrato_do_picpay_numa_conta_nova(anon_client):
+    # O cofrinho e a fatura do cartão ficam fora dos gráficos: são dinheiro mudando
+    # de lugar, não gasto nem renda
+    headers = _register(anon_client)
+
+    transactions = anon_client.post(
+        "/upload",
+        headers=headers,
+        files={"file": ("picpay.csv", (FIXTURES / "picpay.csv").read_bytes(), "text/csv")},
+    ).json()
+    names = {c["id"]: c["name"] for c in anon_client.get("/categories", headers=headers).json()}
+    by_description = {t["description"]: names.get(t["category_id"]) for t in transactions}
+
+    assert by_description["Dinheiro guardado - No cofrinho Viagem"] == "Investimentos"
+    assert by_description["Pagamento realizado - Fatura PicPay Card"] == "Pagamento de fatura"
+    assert by_description["Pix recebido - EMPRESA X LTDA - SALARIO"] == "Salário"
+    assert by_description["Pix recebido - Maria Oliveira"] == "Transferências recebidas"
+    assert all(category is not None for category in by_description.values())
+
+    spending = anon_client.get("/dashboard/by-category", headers=headers).json()
+    assert {s["category"] for s in spending} == {
+        "Alimentação",
+        "Transporte",
+        "Assinaturas",
+        "Saúde",
+        "Tarifas bancárias",
+        "Transferências enviadas",
+    }

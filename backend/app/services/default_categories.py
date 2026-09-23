@@ -37,7 +37,7 @@ class DefaultCategory(NamedTuple):
 DEFAULT_CATEGORIES: tuple[DefaultCategory, ...] = (
     DefaultCategory(
         "Pagamento de fatura",
-        "pagamento de fatura,pagamento recebido,pgto fatura,pagto fatura",
+        "pagamento de fatura,pagamento recebido,pgto fatura,pagto fatura,fatura picpay",
         ignore_in_reports=True,
     ),
     # Só entradas: dinheiro de volta de uma compra não é renda nem gasto novo
@@ -47,7 +47,9 @@ DEFAULT_CATEGORIES: tuple[DefaultCategory, ...] = (
     # Antes das transferências, para "TRANSF PARA POUPANCA" cair aqui.
     DefaultCategory(
         "Investimentos",
-        "aplicação,resgate,investimento,cdb,rdb,lci,lca,tesouro direto,poupança",
+        # "resgatado"/"cofrinho": no PicPay, "Dinheiro resgatado - Do cofrinho Economia"
+        "aplicação,resgate,resgatado,investimento,cdb,rdb,lci,lca,tesouro direto,poupança,"
+        "cofrinho",
         ignore_in_reports=True,
     ),
     DefaultCategory(
