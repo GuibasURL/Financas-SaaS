@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { apiErrorMessage, downloadReport } from "../services/api";
 import type { Statement } from "../types/transaction";
+import Icon from "./Icon";
+import styles from "./ReportExport.module.css";
 
 interface Props {
-  // Extrato filtrado no Dashboard (null = todos): o relatório segue o mesmo filtro
+  // Extrato filtrado no app (null = todos): o relatório segue o mesmo filtro
   statement: Statement | null;
 }
 
@@ -43,25 +45,58 @@ export default function ReportExport({ statement }: Props) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <div style={{ display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
-        <label style={{ display: "grid", gap: 4 }}>
-          De
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </label>
-        <label style={{ display: "grid", gap: 4 }}>
-          Até
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </label>
-        <button type="submit" disabled={downloading}>
-          {downloading ? "Gerando..." : "Baixar Excel"}
-        </button>
+      <div className={styles.fields}>
+        <div>
+          <label className="label" htmlFor="report-start">
+            De
+          </label>
+          <input
+            id="report-start"
+            className="field"
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label" htmlFor="report-end">
+            Até
+          </label>
+          <input
+            id="report-end"
+            className="field"
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </div>
       </div>
-      <p style={{ margin: "8px 0 0", color: "#555" }}>
-        {startDate || endDate ? "Período escolhido" : "Todo o período"} ·{" "}
-        {statement ? `extrato ${statement.filename}` : "todos os extratos"}
-        {" "}(o filtro de extrato é o mesmo da seção Extratos)
+      <p className={styles.scope}>
+        Será exportado:{" "}
+        <b>
+          {startDate || endDate ? "Período escolhido" : "Todo o período"} ·{" "}
+          {statement ? `extrato ${statement.filename}` : "todos os extratos"}
+        </b>
       </p>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      <button className="btn btn-primary btn-block" type="submit" disabled={downloading}>
+        {downloading ? (
+          <>
+            <span className="spinner" aria-hidden="true" />
+            Gerando...
+          </>
+        ) : (
+          <>
+            <Icon name="download" />
+            Baixar Excel
+          </>
+        )}
+      </button>
+      {error && (
+        <p className={`notice ${styles.error}`} role="alert">
+          <Icon name="alert" />
+          {error}
+        </p>
+      )}
     </form>
   );
 }

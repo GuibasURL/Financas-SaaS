@@ -46,4 +46,40 @@ describe("UploadCSV", () => {
     expect(onUploaded).not.toHaveBeenCalled();
     expect(db.statements).toHaveLength(0);
   });
+
+  it("arrastar e soltar o arquivo também envia", async () => {
+    const onUploaded = vi.fn();
+    render(<UploadCSV onUploaded={onUploaded} />);
+    const dropZone = screen.getByText("Selecionar arquivo .csv").closest("label")!;
+    const file = new File(["data,descricao,valor\n"], "solto.csv", { type: "text/csv" });
+
+    fireEvent.dragOver(dropZone);
+    expect(dropZone.className).toMatch(/dragging/);
+    fireEvent.dragLeave(dropZone);
+    expect(dropZone.className).not.toMatch(/dragging/);
+
+    fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
+
+    await vi.waitFor(() => expect(onUploaded).toHaveBeenCalledOnce());
+    expect(db.statements.map((s) => s.filename)).toEqual(["solto.csv"]);
+  });
+
+  it("soltar sem arquivo não faz nada", () => {
+    const onUploaded = vi.fn();
+    render(<UploadCSV onUploaded={onUploaded} />);
+
+    fireEvent.drop(screen.getByText("Selecionar arquivo .csv").closest("label")!, {
+      dataTransfer: { files: [] },
+    });
+
+    expect(db.statements).toHaveLength(0);
+  });
+
+  it("mostra os bancos aceitos", () => {
+    render(<UploadCSV onUploaded={vi.fn()} />);
+
+    const banks = screen.getByLabelText("Bancos aceitos");
+    expect(banks).toHaveTextContent("Nubank conta");
+    expect(banks).toHaveTextContent("Banco do Brasil");
+  });
 });

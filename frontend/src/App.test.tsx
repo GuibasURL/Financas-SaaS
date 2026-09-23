@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import App from "./App";
@@ -121,11 +121,12 @@ describe("sessão", () => {
   it("token que expira durante o uso volta para o login com aviso", async () => {
     loginAs(addUser());
     addStatement("marco.csv", [{ date: "2025-03-01", description: "IFOOD", amount: -30 }]);
+    window.history.pushState({}, "", "/extratos");
     const user = renderApp();
     await user.click(await screen.findByRole("button", { name: "Filtrar" }));
     expireAllTokens();
 
-    await user.click(screen.getByRole("button", { name: "Ver todos" }));
+    await user.click(within(await screen.findByRole("status")).getByRole("button", { name: "Ver todos" }));
 
     expect(await screen.findByText("Sua sessão expirou. Entre novamente.")).toBeInTheDocument();
     expect(localStorage.getItem("financas.token")).toBeNull();

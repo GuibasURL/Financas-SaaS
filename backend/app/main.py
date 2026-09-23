@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import CORS_ORIGINS
 from app.routers import auth, upload, transactions, categories, dashboard, statements, reports
 
 # O schema do banco é gerenciado pelo Alembic: rode `alembic upgrade head`
@@ -8,10 +9,10 @@ from app.routers import auth, upload, transactions, categories, dashboard, state
 
 app = FastAPI(title="Finanças SaaS API")
 
-# Libera o frontend local (Vite roda por padrão na porta 5173) a chamar a API.
+# Libera o frontend a chamar a API (padrão: Vite local na 5173; ver CORS_ORIGINS)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

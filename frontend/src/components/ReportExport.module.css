@@ -1,0 +1,33 @@
+.fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+.fields :global(.field) {
+  min-width: 0;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+}
+
+.scope {
+  margin: 0.9rem 0;
+  padding: 0.6rem 0.75rem;
+  border-left: 2px solid var(--cyan);
+  background: rgba(34, 211, 238, 0.06);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.scope b {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.error {
+  margin: 0.9rem 0 0;
+}
+
+@media (max-width: 520px) {
+  .fields {
+    grid-template-columns: 1fr;
+  }
+}

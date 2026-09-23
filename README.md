@@ -72,6 +72,7 @@ Configuração (variáveis de ambiente ou `backend/.env`):
 
 - `SECRET_KEY`: chave que assina os tokens (mínimo 32 bytes). Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Sem ela, a API sobe com uma chave de desenvolvimento que está no código (e avisa no log): serve para rodar local, mas **nunca publique a API assim**, porque qualquer um conseguiria forjar tokens. Uma chave com menos de 32 bytes faz a API recusar subir.
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
+- `CORS_ORIGINS`: endereços do frontend que podem chamar a API, separados por vírgula (padrão: `http://localhost:5173`). Em produção, o endereço público do frontend.
 
 ## Testes do backend
 

@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from app.config import DEV_SECRET_KEY, MIN_SECRET_KEY_BYTES, load_secret_key
+from app.config import DEV_SECRET_KEY, MIN_SECRET_KEY_BYTES, load_secret_key, parse_cors_origins
 
 
 def test_chave_de_desenvolvimento_tem_tamanho_minimo():
@@ -29,3 +29,16 @@ def test_secret_key_valida_e_usada_sem_aviso(caplog):
         assert load_secret_key(key) == key
 
     assert caplog.text == ""
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (None, ["http://localhost:5173"]),
+        ("", ["http://localhost:5173"]),
+        ("https://financas.exemplo.com/", ["https://financas.exemplo.com"]),
+        (" http://localhost:5174 , https://a.com ", ["http://localhost:5174", "https://a.com"]),
+    ],
+)
+def test_parse_cors_origins(value, expected):
+    assert parse_cors_origins(value) == expected

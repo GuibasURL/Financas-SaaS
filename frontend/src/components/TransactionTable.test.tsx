@@ -20,11 +20,12 @@ const transaction: Transaction = {
 };
 
 describe("TransactionTable", () => {
-  it("mostra a categoria atual e o valor com duas casas", () => {
+  it("mostra a categoria atual, a data e o valor em reais", () => {
     render(<TransactionTable transactions={[transaction]} categories={categories} onCategoryChange={vi.fn()} />);
 
     expect(screen.getByRole("combobox")).toHaveDisplayValue("Alimentação");
-    expect(screen.getByText("-30.00")).toBeInTheDocument();
+    expect(screen.getByText("− R$ 30,00")).toBeInTheDocument();
+    expect(screen.getByText("01/03/2025")).toBeInTheDocument();
   });
 
   it("escolher outra categoria avisa com o id dela", async () => {

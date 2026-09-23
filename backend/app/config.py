@@ -43,3 +43,14 @@ SECRET_KEY = load_secret_key(os.getenv("SECRET_KEY"))
 
 # Por quanto tempo o token de login vale (padrão: 1 dia)
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 24))
+
+
+def parse_cors_origins(value: Optional[str]) -> list[str]:
+    """ "https://a.com, https://b.com" -> ["https://a.com", "https://b.com"] """
+    origins = [o.strip().rstrip("/") for o in (value or "").split(",") if o.strip()]
+    return origins or ["http://localhost:5173"]
+
+
+# Endereços do frontend que podem chamar a API (separados por vírgula).
+# Padrão: o Vite local. Em produção, o endereço público do frontend.
+CORS_ORIGINS = parse_cors_origins(os.getenv("CORS_ORIGINS"))

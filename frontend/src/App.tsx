@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import Dashboard from "./pages/Dashboard";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { FinanceDataProvider } from "./data/FinanceData";
+import AppShell from "./layout/AppShell";
+import CategoriesPage from "./pages/CategoriesPage";
+import OverviewPage from "./pages/OverviewPage";
+import StatementsPage from "./pages/StatementsPage";
+import TransactionsPage from "./pages/TransactionsPage";
 import AuthPage from "./pages/AuthPage";
 import { clearToken, getMe, getToken, setUnauthorizedHandler } from "./services/api";
 import type { User } from "./types/user";
@@ -9,7 +15,7 @@ type AuthState =
   | { status: "anonymous"; notice?: string }
   | { status: "authenticated"; user: User };
 
-export default function App() {
+function AuthenticatedApp() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
 
   useEffect(() => {
@@ -39,7 +45,11 @@ export default function App() {
   }
 
   if (auth.status === "loading") {
-    return <p style={{ padding: 24 }}>Carregando...</p>;
+    return (
+      <p className="muted" style={{ padding: 24 }} role="status">
+        Carregando...
+      </p>
+    );
   }
 
   if (auth.status === "anonymous") {
@@ -51,6 +61,26 @@ export default function App() {
     );
   }
 
-  // key: trocar de usuário recria o Dashboard do zero, sem dados do anterior
-  return <Dashboard key={auth.user.id} user={auth.user} onLogout={handleLogout} />;
+  // key: trocar de usuário recria os dados do zero, sem nada do anterior
+  return (
+    <FinanceDataProvider key={auth.user.id}>
+      <Routes>
+        <Route element={<AppShell user={auth.user} onLogout={handleLogout} />}>
+          <Route index element={<OverviewPage />} />
+          <Route path="transacoes" element={<TransactionsPage />} />
+          <Route path="categorias" element={<CategoriesPage />} />
+          <Route path="extratos" element={<StatementsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </FinanceDataProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthenticatedApp />
+    </BrowserRouter>
+  );
 }

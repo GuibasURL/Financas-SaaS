@@ -1,0 +1,39 @@
+/* Grade de 12 colunas das páginas do app */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1rem;
+}
+.grid > * {
+  min-width: 0;
+}
+.span4 {
+  grid-column: span 4;
+}
+.span5 {
+  grid-column: span 5;
+}
+.span7 {
+  grid-column: span 7;
+}
+.span8 {
+  grid-column: span 8;
+}
+.span12 {
+  grid-column: span 12;
+}
+
+@media (max-width: 1100px) {
+  .span4,
+  .span5,
+  .span7,
+  .span8 {
+    grid-column: span 12;
+  }
+}
+
+/* Páginas de uma coluna (Transações, Categorias, Extratos) */
+.stack {
+  display: grid;
+  gap: 1rem;
+}

@@ -1,0 +1,68 @@
+import { Link } from "react-router";
+import { useFinanceData } from "../data/FinanceData";
+import { formatDate, formatSignedMoney } from "../utils/format";
+import Icon from "./Icon";
+import styles from "./RecentTransactions.module.css";
+
+const LIMIT = 5;
+
+export default function RecentTransactions() {
+  const { transactions, categories, categoryColor } = useFinanceData();
+  // A API já devolve da mais recente para a mais antiga
+  const recent = transactions.slice(0, LIMIT);
+  const names = new Map(categories.map((c) => [c.id, c.name]));
+
+  return (
+    <section className="card" aria-labelledby="recent-title">
+      <div className="card-head">
+        <div>
+          <h2 className="card-title" id="recent-title">
+            Últimas transações
+          </h2>
+          <p>As {LIMIT} mais recentes</p>
+        </div>
+        <Link className="btn btn-ghost" to="/transacoes">
+          Ver todas <Icon name="arrowRight" />
+        </Link>
+      </div>
+
+      {recent.length === 0 ? (
+        <p className="empty">Nenhuma transação ainda. Importe um extrato para começar.</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Descrição</th>
+                <th className={styles.hideSm}>Categoria</th>
+                <th className="num">Valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((t) => (
+                <tr key={t.id}>
+                  <td className="mono muted">{formatDate(t.date)}</td>
+                  <td>{t.description}</td>
+                  <td className={styles.hideSm}>
+                    {t.category_id !== null && names.has(t.category_id) ? (
+                      <span className="cat">
+                        <i style={{ background: categoryColor(t.category_id) }} />
+                        {names.get(t.category_id)}
+                      </span>
+                    ) : (
+                      <span className="cat">— sem categoria —</span>
+                    )}
+                  </td>
+                  <td className={`num amount ${t.amount > 0 ? "in" : ""}`}>
+                    {formatSignedMoney(t.amount)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
