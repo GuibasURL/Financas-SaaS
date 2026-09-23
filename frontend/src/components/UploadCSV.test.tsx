@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import UploadCSV from "./UploadCSV";
@@ -35,5 +35,15 @@ describe("UploadCSV", () => {
 
     expect(await screen.findByText("Envie um arquivo .csv")).toBeInTheDocument();
     expect(onUploaded).not.toHaveBeenCalled();
+  });
+
+  it("fechar a janela sem escolher arquivo não envia nada", async () => {
+    const onUploaded = vi.fn();
+    render(<UploadCSV onUploaded={onUploaded} />);
+
+    fireEvent.change(screen.getByLabelText("Arquivo CSV do extrato"), { target: { files: [] } });
+
+    expect(onUploaded).not.toHaveBeenCalled();
+    expect(db.statements).toHaveLength(0);
   });
 });

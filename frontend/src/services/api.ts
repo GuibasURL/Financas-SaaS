@@ -15,32 +15,36 @@ const api = axios.create({
 });
 
 // ---------- Token de login ----------
-// Fica no localStorage para o login sobreviver a um F5. Os acessos ficam
-// dentro de try/catch porque o navegador pode bloquear o storage.
+// Fica no localStorage para o login sobreviver a um F5. Se o navegador
+// bloquear o storage (alguns modos privados lançam erro em qualquer acesso),
+// o token fica só em memória: o login funciona, mas acaba ao recarregar.
 
 const TOKEN_KEY = "financas.token";
+let memoryToken: string | null = null;
 
 export function getToken(): string | null {
   try {
     return localStorage.getItem(TOKEN_KEY);
   } catch {
-    return null;
+    return memoryToken;
   }
 }
 
 function setToken(token: string) {
+  memoryToken = token;
   try {
     localStorage.setItem(TOKEN_KEY, token);
   } catch {
-    // sem storage o login só dura até recarregar a página
+    // storage bloqueado: fica só o memoryToken
   }
 }
 
 export function clearToken() {
+  memoryToken = null;
   try {
     localStorage.removeItem(TOKEN_KEY);
   } catch {
-    // nada a limpar
+    // storage bloqueado: já limpou o memoryToken
   }
 }
 

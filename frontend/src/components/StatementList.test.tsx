@@ -72,4 +72,17 @@ describe("StatementList", () => {
 
     expect(onDelete).toHaveBeenCalledWith(statement);
   });
+
+  it("horário que já vem com fuso (Postgres) não é convertido duas vezes", () => {
+    render(
+      <StatementList
+        statements={[{ ...statement, uploaded_at: "2026-09-23T13:30:00+00:00" }]}
+        selectedId={null}
+        onSelect={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("23/09/2026, 10:30")).toBeInTheDocument();
+  });
 });
