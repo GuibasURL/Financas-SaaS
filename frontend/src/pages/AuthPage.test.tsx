@@ -20,6 +20,7 @@ describe("AuthPage", () => {
     expect(screen.getByRole("tab", { name: "Criar conta" })).toHaveAttribute("aria-selected", "false");
     expect(screen.getByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
     expect(screen.queryByLabelText("Repetir senha")).not.toBeInTheDocument();
+    expect(screen.getByText("Vexira")).toBeInTheDocument();
   });
 
   it("clicar na aba Criar conta mostra o formulário de cadastro", async () => {

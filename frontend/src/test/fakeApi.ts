@@ -351,7 +351,7 @@ handlers.push(
       return new HttpResponse("conteudo-xlsx", {
         headers: {
           "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-          "Content-Disposition": `attachment; filename="relatorio-financas_${start ?? "inicio"}_a_${end ?? "hoje"}.xlsx"`,
+          "Content-Disposition": `attachment; filename="vexira-relatorio_${start ?? "inicio"}_a_${end ?? "hoje"}.xlsx"`,
         },
       });
     })

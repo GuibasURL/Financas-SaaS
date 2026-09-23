@@ -52,10 +52,10 @@ def test_devolve_xlsx_com_as_quatro_abas(client, dados):
 @pytest.mark.parametrize(
     "params, filename",
     [
-        ({}, "relatorio-financas_completo.xlsx"),
-        ({"start_date": "2025-01-01", "end_date": "2025-01-31"}, "relatorio-financas_2025-01-01_a_2025-01-31.xlsx"),
-        ({"start_date": "2025-02-01"}, "relatorio-financas_2025-02-01_a_hoje.xlsx"),
-        ({"end_date": "2025-01-31"}, "relatorio-financas_inicio_a_2025-01-31.xlsx"),
+        ({}, "vexira-relatorio_completo.xlsx"),
+        ({"start_date": "2025-01-01", "end_date": "2025-01-31"}, "vexira-relatorio_2025-01-01_a_2025-01-31.xlsx"),
+        ({"start_date": "2025-02-01"}, "vexira-relatorio_2025-02-01_a_hoje.xlsx"),
+        ({"end_date": "2025-01-31"}, "vexira-relatorio_inicio_a_2025-01-31.xlsx"),
     ],
 )
 def test_nome_do_arquivo_reflete_o_periodo(client, dados, params, filename):
@@ -74,8 +74,10 @@ def test_nome_do_arquivo_fica_visivel_para_o_frontend(client):
 
 
 def test_resumo_com_totais_e_filtros(client, dados):
-    summary = _summary(_workbook(_export(client)))
+    workbook = _workbook(_export(client))
+    summary = _summary(workbook)
 
+    assert workbook["Resumo"]["A1"].value == "Vexira — Relatório financeiro"
     assert summary["Período"] == "Todo o período"
     assert summary["Extrato"] == "Todos"
     assert summary["Entradas"] == pytest.approx(5000.00)

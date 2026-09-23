@@ -18,7 +18,7 @@ interface Props {
 function Brand() {
   return (
     <div className={styles.brand}>
-      <b aria-hidden="true">F</b>Finanças SaaS
+      <b aria-hidden="true">V</b>Vexira
     </div>
   );
 }

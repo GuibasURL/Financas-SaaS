@@ -21,6 +21,7 @@ async function findRow(text: string) {
 describe("navegação", () => {
   it("o menu marca a página atual e troca de página", async () => {
     const user = await renderLoggedIn();
+    expect(within(nav()).getByText("Vexira")).toBeInTheDocument();
     expect(within(nav()).getByRole("link", { name: "Visão geral" })).toHaveAttribute("aria-current", "page");
 
     await user.click(within(nav()).getByRole("link", { name: "Categorias" }));

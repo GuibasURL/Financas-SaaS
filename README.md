@@ -1,8 +1,10 @@
-# Finanças SaaS
+# Vexira
+
+**Controle financeiro inteligente.**
 
 [![CI](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml)
 
-SaaS simples de gestão financeira: importa extrato em CSV, categoriza gastos automaticamente por regras de palavra-chave, e mostra dashboard com gráficos.
+Vexira é um app de gestão financeira pessoal: importa extrato em CSV, categoriza gastos automaticamente por regras de palavra-chave, e mostra dashboard com gráficos.
 
 ## Rodando o backend
 

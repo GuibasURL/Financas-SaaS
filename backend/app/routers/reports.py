@@ -70,8 +70,8 @@ def export_report(
 
 
 def _filename(filters: ReportFilters) -> str:
-    """relatorio-financas_2025-03-01_a_2025-03-31.xlsx (ou _completo, sem datas)"""
-    parts = ["relatorio-financas"]
+    """vexira-relatorio_2025-03-01_a_2025-03-31.xlsx (ou _completo, sem datas)"""
+    parts = ["vexira-relatorio"]
     if filters.start_date or filters.end_date:
         start = filters.start_date.isoformat() if filters.start_date else "inicio"
         end = filters.end_date.isoformat() if filters.end_date else "hoje"

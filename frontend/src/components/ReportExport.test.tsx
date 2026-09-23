@@ -43,7 +43,7 @@ describe("ReportExport", () => {
     await userEvent.click(screen.getByRole("button", { name: "Baixar Excel" }));
 
     await vi.waitFor(() => expect(downloads).toHaveLength(1));
-    expect(downloads[0].filename).toBe("relatorio-financas_inicio_a_hoje.xlsx");
+    expect(downloads[0].filename).toBe("vexira-relatorio_inicio_a_hoje.xlsx");
     expect(await downloads[0].blob.text()).toBe("conteudo-xlsx");
     expect([...lastReportQuery!.keys()]).toEqual([]);
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:relatorio");
@@ -65,7 +65,7 @@ describe("ReportExport", () => {
       end_date: "2025-03-31",
       statement_id: "7",
     });
-    expect(downloads[0].filename).toBe("relatorio-financas_2025-03-01_a_2025-03-31.xlsx");
+    expect(downloads[0].filename).toBe("vexira-relatorio_2025-03-01_a_2025-03-31.xlsx");
   });
 
   it("mostra o erro da API (mesmo com a resposta vindo como arquivo)", async () => {
