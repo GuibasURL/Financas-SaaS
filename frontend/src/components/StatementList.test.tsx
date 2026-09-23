@@ -21,10 +21,28 @@ function renderList(props: Partial<React.ComponentProps<typeof StatementList>> =
 }
 
 describe("StatementList", () => {
-  it("sem extratos mostra aviso", () => {
+  it("sem extratos mostra aviso, sem botão se não houver onde importar", () => {
     render(<StatementList statements={[]} selectedId={null} onSelect={vi.fn()} onDelete={vi.fn()} />);
 
-    expect(screen.getByText("Nenhum extrato importado ainda.")).toBeInTheDocument();
+    expect(screen.getByText("Nenhum extrato ainda")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("no estado vazio, o botão chama onImport", async () => {
+    const onImport = vi.fn();
+    render(
+      <StatementList
+        statements={[]}
+        selectedId={null}
+        onSelect={vi.fn()}
+        onDelete={vi.fn()}
+        onImport={onImport}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Importar primeiro extrato" }));
+
+    expect(onImport).toHaveBeenCalledOnce();
   });
 
   it("formata período em dd/mm/aaaa e o horário de UTC para o fuso local", () => {
@@ -32,35 +50,42 @@ describe("StatementList", () => {
 
     expect(screen.getByText("01/03/2025 a 15/04/2025")).toBeInTheDocument();
     // 13:30 UTC = 10:30 em São Paulo (fuso fixado na config de testes)
-    expect(screen.getByText("23/09/2026, 10:30")).toBeInTheDocument();
-    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("importado em 23/09/2026 às 10:30")).toBeInTheDocument();
+    expect(screen.getByText("12 transações")).toBeInTheDocument();
   });
 
-  it("extrato vazio mostra traço no período", () => {
+  it("extrato sem transações mostra que não tem período", () => {
     render(
       <StatementList
-        statements={[{ ...statement, start_date: null, end_date: null }]}
+        statements={[{ ...statement, start_date: null, end_date: null, transaction_count: 1 }]}
         selectedId={null}
         onSelect={vi.fn()}
         onDelete={vi.fn()}
       />
     );
 
-    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.getByText("Sem período")).toBeInTheDocument();
+    expect(screen.getByText("1 transação")).toBeInTheDocument();
   });
 
   it("Filtrar seleciona o extrato", async () => {
     const { onSelect } = renderList();
 
-    await userEvent.click(screen.getByRole("button", { name: "Filtrar" }));
+    const filter = screen.getByRole("button", { name: "Filtrar por marco.csv" });
+    expect(filter).toHaveTextContent("Filtrar");
+    expect(filter).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(filter);
 
     expect(onSelect).toHaveBeenCalledWith(7);
   });
 
-  it("no extrato selecionado o botão vira Ver todos e limpa o filtro", async () => {
+  it("no extrato selecionado o botão fica pressionado e clicar de novo limpa o filtro", async () => {
     const { onSelect } = renderList({ selectedId: 7 });
 
-    await userEvent.click(screen.getByRole("button", { name: "Ver todos" }));
+    const filter = screen.getByRole("button", { name: "Filtrar por marco.csv" });
+    expect(filter).toHaveTextContent("Filtrando");
+    expect(filter).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(filter);
 
     expect(onSelect).toHaveBeenCalledWith(null);
   });
@@ -68,7 +93,7 @@ describe("StatementList", () => {
   it("Excluir repassa o extrato", async () => {
     const { onDelete } = renderList();
 
-    await userEvent.click(screen.getByRole("button", { name: "Excluir" }));
+    await userEvent.click(screen.getByRole("button", { name: "Excluir marco.csv" }));
 
     expect(onDelete).toHaveBeenCalledWith(statement);
   });
@@ -83,6 +108,6 @@ describe("StatementList", () => {
       />
     );
 
-    expect(screen.getByText("23/09/2026, 10:30")).toBeInTheDocument();
+    expect(screen.getByText("importado em 23/09/2026 às 10:30")).toBeInTheDocument();
   });
 });

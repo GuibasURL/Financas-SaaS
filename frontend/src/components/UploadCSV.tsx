@@ -7,6 +7,9 @@ interface Props {
   onUploaded: () => void;
 }
 
+// id do campo de arquivo, para outros botões abrirem a escolha de arquivo
+export const CSV_INPUT_ID = "csv-upload";
+
 const BANKS = [
   "Nubank conta",
   "Nubank cartão",
@@ -64,6 +67,7 @@ export default function UploadCSV({ onUploaded }: Props) {
         <strong>Selecionar arquivo .csv</strong>
         <span>ou arraste o arquivo para cá</span>
         <input
+          id={CSV_INPUT_ID}
           className={styles.fileInput}
           type="file"
           accept=".csv"

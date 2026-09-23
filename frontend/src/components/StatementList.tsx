@@ -1,62 +1,80 @@
 import type { Statement } from "../types/transaction";
-import { formatDate, formatDateTime } from "../utils/format";
+import { formatCount, formatDate, formatDateTime } from "../utils/format";
+import styles from "./StatementList.module.css";
 
 interface Props {
   statements: Statement[];
   selectedId: number | null;
   onSelect: (statementId: number | null) => void;
   onDelete: (statement: Statement) => void;
+  // Botão do estado vazio ("Importar primeiro extrato"); sem ele, só o texto
+  onImport?: () => void;
 }
 
-export default function StatementList({ statements, selectedId, onSelect, onDelete }: Props) {
+export default function StatementList({
+  statements,
+  selectedId,
+  onSelect,
+  onDelete,
+  onImport,
+}: Props) {
   if (statements.length === 0) {
-    return <p className="empty">Nenhum extrato importado ainda.</p>;
+    return (
+      <div className="empty">
+        <strong>Nenhum extrato ainda</strong>
+        <p>Importe seu primeiro arquivo CSV para ver as transações.</p>
+        {onImport && (
+          <button className="btn btn-primary" type="button" onClick={onImport}>
+            Importar primeiro extrato
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="table-wrap">
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Arquivo</th>
-            <th>Importado em</th>
-            <th>Período</th>
-            <th className="num">Transações</th>
-            <th className="num">Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {statements.map((s) => {
-            const selected = s.id === selectedId;
-            return (
-              <tr key={s.id} className={selected ? "selected" : undefined}>
-                <td className="mono">{s.filename}</td>
-                <td className="muted">{formatDateTime(s.uploaded_at)}</td>
-                <td className="muted">
-                  {s.start_date && s.end_date
-                    ? `${formatDate(s.start_date)} a ${formatDate(s.end_date)}`
-                    : "-"}
-                </td>
-                <td className="num mono">{s.transaction_count}</td>
-                <td className="num">
-                  <span style={{ display: "inline-flex", gap: "0.4rem" }}>
-                    <button
-                      className={`btn btn-sm ${selected ? "btn-primary" : ""}`}
-                      onClick={() => onSelect(selected ? null : s.id)}
-                      aria-pressed={selected}
-                    >
-                      {selected ? "Ver todos" : "Filtrar"}
-                    </button>
-                    <button className="btn btn-sm btn-danger" onClick={() => onDelete(s)}>
-                      Excluir
-                    </button>
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <ul className={styles.list} aria-label="Extratos importados">
+      {statements.map((s) => {
+        const selected = s.id === selectedId;
+        return (
+          <li key={s.id} className={`${styles.row} ${selected ? styles.selected : ""}`}>
+            <div className={styles.file}>
+              <span className={styles.name}>{s.filename}</span>
+              <span className={styles.meta}>importado em {formatDateTime(s.uploaded_at)}</span>
+            </div>
+            <div>
+              <strong className={styles.period}>
+                {s.start_date && s.end_date
+                  ? `${formatDate(s.start_date)} a ${formatDate(s.end_date)}`
+                  : "Sem período"}
+              </strong>
+              <span className={styles.meta}>
+                {formatCount(s.transaction_count, "transação", "transações")}
+              </span>
+            </div>
+            <div className={styles.actions}>
+              {/* Clicar de novo no selecionado volta a mostrar todos */}
+              <button
+                className={`btn btn-sm ${styles.filter} ${selected ? styles.pressed : ""}`}
+                type="button"
+                onClick={() => onSelect(selected ? null : s.id)}
+                aria-pressed={selected}
+                aria-label={`Filtrar por ${s.filename}`}
+              >
+                {selected ? "Filtrando" : "Filtrar"}
+              </button>
+              <button
+                className="btn btn-sm btn-danger"
+                type="button"
+                onClick={() => onDelete(s)}
+                aria-label={`Excluir ${s.filename}`}
+              >
+                Excluir
+              </button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

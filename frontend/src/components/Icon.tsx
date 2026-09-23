@@ -33,6 +33,13 @@ const PATHS = {
   upload: <path d="M12 16V4M7 9l5-5 5 5M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />,
   download: <path d="M12 4v12M7 11l5 5 5-5M4 20h16" />,
   arrowRight: <path d="M5 12h14M13 6l6 6-6 6" />,
+  check: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12 2.5 2.5L16 9" />
+    </>
+  ),
+  close: <path d="m7 7 10 10M17 7 7 17" />,
 };
 
 export type IconName = keyof typeof PATHS;

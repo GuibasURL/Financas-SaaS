@@ -139,6 +139,10 @@
   .sideFoot {
     display: none;
   }
+  /* O <nav> em volta da lista também precisa ocupar a barra inteira */
+  .side nav {
+    flex: 1;
+  }
   .nav {
     width: 100%;
     flex-direction: row;

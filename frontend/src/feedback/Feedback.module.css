@@ -1,0 +1,134 @@
+/* ---------- Janela de confirmação ---------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(8, 19, 34, 0.72);
+  backdrop-filter: blur(8px);
+  animation: fade-in 140ms ease-out;
+}
+
+.modal {
+  width: min(100%, 440px);
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--bg-2);
+  box-shadow: var(--shadow);
+  animation: rise-in 180ms ease-out;
+}
+.modal h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.modal p {
+  margin: 0.7rem 0 1.2rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+/* ---------- Avisos flutuantes ---------- */
+
+.toasts {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 40;
+  display: flex;
+  width: min(calc(100% - 2rem), 360px);
+  flex-direction: column;
+  gap: 0.55rem;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: rise-in 180ms ease-out;
+}
+.toast p {
+  flex: 1;
+  margin: 0;
+  line-height: 1.45;
+}
+.success {
+  border-color: rgba(70, 214, 160, 0.42);
+}
+.success > svg {
+  color: var(--income);
+}
+.error {
+  border-color: rgba(240, 80, 110, 0.48);
+}
+.error > svg {
+  color: var(--error);
+}
+
+.close {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: none;
+  place-items: center;
+  margin: -0.3rem -0.3rem 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+}
+.close:hover {
+  color: var(--text);
+  background: var(--glass);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+}
+
+/* Celular: janela sobe de baixo; avisos no topo, longe da barra inferior */
+@media (max-width: 620px) {
+  .backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .modal {
+    width: 100%;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .toasts {
+    inset: 1rem 1rem auto;
+    width: auto;
+  }
+}

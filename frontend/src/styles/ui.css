@@ -306,6 +306,21 @@ select.field option {
   text-align: center;
   font-size: 0.82rem;
 }
+/* Estado vazio maior: título + texto + botão */
+.empty strong {
+  display: block;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.empty p {
+  max-width: 42ch;
+  margin: 0.4rem auto 1rem;
+}
+.empty p:last-child {
+  margin-bottom: 0;
+}
 
 .demo-note {
   margin-top: 1.5rem;

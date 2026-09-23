@@ -1,12 +1,14 @@
 import PageHeader from "../components/PageHeader";
 import StatementList from "../components/StatementList";
-import UploadCSV from "../components/UploadCSV";
+import UploadCSV, { CSV_INPUT_ID } from "../components/UploadCSV";
 import { useFinanceData } from "../data/FinanceData";
+import { formatCount } from "../utils/format";
 import styles from "./pages.module.css";
 
 export default function StatementsPage() {
   const { statements, selectedStatementId, selectStatement, deleteStatement, reload } =
     useFinanceData();
+  const total = statements.reduce((sum, s) => sum + s.transaction_count, 0);
 
   return (
     <>
@@ -21,7 +23,10 @@ export default function StatementsPage() {
               <h2 className="card-title" id="statements-title">
                 Extratos importados
               </h2>
-              <p>Cada upload de CSV vira um extrato</p>
+              <p>
+                {formatCount(statements.length, "arquivo", "arquivos")} ·{" "}
+                {formatCount(total, "transação", "transações")}
+              </p>
             </div>
           </div>
           <StatementList
@@ -29,6 +34,7 @@ export default function StatementsPage() {
             selectedId={selectedStatementId}
             onSelect={selectStatement}
             onDelete={deleteStatement}
+            onImport={() => document.getElementById(CSV_INPUT_ID)?.click()}
           />
         </section>
 

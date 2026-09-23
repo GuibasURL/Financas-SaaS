@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { FinanceDataProvider } from "./data/FinanceData";
+import { FeedbackProvider } from "./feedback/Feedback";
 import AppShell from "./layout/AppShell";
 import CategoriesPage from "./pages/CategoriesPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -61,19 +62,21 @@ function AuthenticatedApp() {
     );
   }
 
-  // key: trocar de usuário recria os dados do zero, sem nada do anterior
+  // key: trocar de usuário recria os dados (e avisos) do zero, sem nada do anterior
   return (
-    <FinanceDataProvider key={auth.user.id}>
-      <Routes>
-        <Route element={<AppShell user={auth.user} onLogout={handleLogout} />}>
-          <Route index element={<OverviewPage />} />
-          <Route path="transacoes" element={<TransactionsPage />} />
-          <Route path="categorias" element={<CategoriesPage />} />
-          <Route path="extratos" element={<StatementsPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
-    </FinanceDataProvider>
+    <FeedbackProvider key={auth.user.id}>
+      <FinanceDataProvider>
+        <Routes>
+          <Route element={<AppShell user={auth.user} onLogout={handleLogout} />}>
+            <Route index element={<OverviewPage />} />
+            <Route path="transacoes" element={<TransactionsPage />} />
+            <Route path="categorias" element={<CategoriesPage />} />
+            <Route path="extratos" element={<StatementsPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </FinanceDataProvider>
+    </FeedbackProvider>
   );
 }
 

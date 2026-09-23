@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FinanceDataProvider, useFinanceData } from "./FinanceData";
+import { FeedbackProvider } from "../feedback/Feedback";
 import { addCategory, addUser, loginAs } from "../test/fakeApi";
 
 function Colors() {
@@ -21,9 +22,11 @@ describe("FinanceData", () => {
     addCategory({ name: "Transporte" });
 
     render(
-      <FinanceDataProvider>
-        <Colors />
-      </FinanceDataProvider>
+      <FeedbackProvider>
+        <FinanceDataProvider>
+          <Colors />
+        </FinanceDataProvider>
+      </FeedbackProvider>
     );
 
     expect(await screen.findByText("var(--cat-2)")).toBeInTheDocument();

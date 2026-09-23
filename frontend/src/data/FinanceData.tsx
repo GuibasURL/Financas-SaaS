@@ -21,6 +21,7 @@ import type {
   Statement,
   Transaction,
 } from "../types/transaction";
+import { useFeedback } from "../feedback/Feedback";
 import { categoryColorVar } from "../utils/format";
 
 interface FinanceData {
@@ -42,6 +43,12 @@ interface FinanceData {
   categoryColor: (idOrName: number | string) => string;
 }
 
+function deleteStatementMessage({ filename, transaction_count: count }: Statement) {
+  if (count === 0) return `O extrato "${filename}" será apagado. Isso não pode ser desfeito.`;
+  const transactions = count === 1 ? "a transação dele" : `as ${count} transações dele`;
+  return `O extrato "${filename}" e ${transactions} serão apagados. Isso não pode ser desfeito.`;
+}
+
 const FinanceDataContext = createContext<FinanceData | null>(null);
 
 export function useFinanceData(): FinanceData {
@@ -59,6 +66,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
   const [selectedStatementId, setSelectedStatementId] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const { confirm, toast } = useFeedback();
 
   const reload = useCallback(async () => {
     try {
@@ -97,26 +105,27 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         // Recategorizar muda os totais do gráfico de categorias
         setByCategory(await getByCategoryTotals(selectedStatementId));
       } catch {
-        alert("Não foi possível atualizar a categoria.");
+        toast.error("Não foi possível atualizar a categoria.");
       }
     },
-    [selectedStatementId]
+    [selectedStatementId, toast]
   );
 
   const deleteStatement = useCallback(
     async (statement: Statement) => {
-      const confirmed = confirm(
-        `Excluir o extrato "${statement.filename}" e suas ` +
-          `${statement.transaction_count} transações? Isso não pode ser desfeito.`
-      );
-      if (!confirmed) return;
-
       try {
-        await apiDeleteStatement(statement.id);
+        const deleted = await confirm({
+          title: "Excluir extrato?",
+          message: deleteStatementMessage(statement),
+          confirmLabel: "Excluir extrato",
+          action: () => apiDeleteStatement(statement.id),
+        });
+        if (!deleted) return;
       } catch {
-        alert("Não foi possível excluir o extrato.");
+        toast.error("Não foi possível excluir o extrato.");
         return;
       }
+      toast.success("Extrato excluído.");
 
       if (statement.id === selectedStatementId) {
         // Trocar o filtro já dispara o recarregamento
@@ -125,7 +134,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
         await reload();
       }
     },
-    [selectedStatementId, reload]
+    [selectedStatementId, reload, confirm, toast]
   );
 
   // Cor estável por categoria: segue a ordem de criação (id), não a do gráfico
