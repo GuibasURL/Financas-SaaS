@@ -275,10 +275,12 @@ Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e
 
 A seção **Exportar relatório** do app (ou `GET /reports/export`) baixa uma planilha `.xlsx` com quatro abas:
 
-- **Resumo:** período, extrato, entradas, saídas, saldo e quantidade de transações
-- **Por mês:** entradas, saídas e saldo de cada mês
-- **Por categoria:** gastos por categoria (inclusive "Sem categoria"), com % do total
-- **Transações:** a lista completa, com filtro do Excel e cabeçalho fixo
+- **Resumo:** filtros usados; entradas, saídas, saldo, taxa de economia e média de saídas por mês, cada número com uma coluna "o que significa"; destaques (maior gasto, maior entrada, categoria que mais pesou, mês com mais gastos, quantas transações ficaram sem categoria); os 5 maiores gastos; e um guia "Como ler este relatório"
+- **Por mês:** entradas, saídas, saldo, saldo acumulado, economia (%) e quantidade de transações de cada mês, com gráfico de entradas x saídas
+- **Por categoria:** saídas por categoria (inclusive "Sem categoria") com % (e barrinha de proporção), quantidade e média por transação; entradas por categoria; gráfico das saídas
+- **Transações:** a lista completa, com coluna Tipo (entrada/saída), entradas em verde e saídas em vermelho, linhas alternadas, filtro do Excel e cabeçalho fixo
+
+Todas as abas têm uma faixa de título com uma frase explicando a aba, e ficam prontas para imprimir (paisagem, cabendo na largura). Nos resumos, "Saídas" aparece em valor positivo (quanto saiu); o sinal fica só na lista de transações.
 
 Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `statement_id`. No app, o extrato é o mesmo selecionado na seção Extratos. Categorias marcadas como "ignorar nos gráficos" ficam fora dos totais, mas aparecem na aba Transações (coluna "Nos totais"). As linhas de total usam fórmulas (`SUM`), então continuam certas se você editar a planilha.
 
