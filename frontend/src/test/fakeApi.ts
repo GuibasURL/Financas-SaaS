@@ -210,6 +210,23 @@ export const handlers = [
     return HttpResponse.json(userOut(user));
   }),
 
+  http.post(`${API}/auth/me/password`, async ({ request }) => {
+    const user = currentUser(request);
+    if (!user) return unauthorized();
+    const body = (await request.json()) as { current_password: string; new_password: string };
+    if (body.current_password !== user.password) {
+      return HttpResponse.json({ detail: "Senha atual incorreta" }, { status: 400 });
+    }
+    user.password = body.new_password;
+    // Como no backend: as sessões antigas caem e esta ganha um token novo
+    for (const [token, userId] of db.tokens) {
+      if (userId === user.id) db.tokens.delete(token);
+    }
+    const token = `token-${user.id}-${nextId()}`;
+    db.tokens.set(token, user.id);
+    return HttpResponse.json({ access_token: token, token_type: "bearer" });
+  }),
+
   http.put(`${API}/auth/me/avatar`, async ({ request }) => {
     const user = currentUser(request);
     if (!user) return unauthorized();

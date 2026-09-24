@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Avatar from "../components/Avatar";
+import ChangePassword from "../components/ChangePassword";
 import Icon from "../components/Icon";
 import { useFeedback } from "../feedback/Feedback";
 import { apiErrorMessage, deleteAvatar, updateProfile, uploadAvatar } from "../services/api";
@@ -289,6 +290,8 @@ export default function ProfilePage({ user, onUserChange }: Props) {
           </button>
         </footer>
       </form>
+
+      <ChangePassword email={user.email} />
     </>
   );
 }

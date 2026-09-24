@@ -75,6 +75,14 @@ A tela **Editar perfil** (cartão com a foto no rodapé do menu, ou "Perfil" na 
 
 A foto fica no próprio banco e volta em `avatar_url` como data URL, então o deploy não precisa de um disco para arquivos.
 
+### Alterar senha
+
+No cartão **Alterar senha**, logo abaixo do perfil: `POST /auth/me/password` com `{"current_password", "new_password"}`.
+
+- A nova senha segue a mesma regra do cadastro (mediana ou forte, nada óbvio, sem o e-mail) e precisa ser diferente da atual. A tela mostra a mesma barra de força, a checklist e o "as senhas conferem".
+- Senha atual errada volta `400` e conta no limite de tentativas de login.
+- **Trocar a senha encerra as outras sessões**: o token guarda quando foi emitido (`iat`), e tokens de antes da troca (`users.password_changed_at`) passam a dar `401`. A resposta traz um token novo, então quem trocou continua logado.
+
 No Swagger (`/docs`), o botão **Authorize** faz o login e passa o token automaticamente.
 
 Para criar um usuário pelo terminal (de dentro de `backend/`, com o venv ativado):
