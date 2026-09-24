@@ -556,17 +556,29 @@ def _section(sheet: Worksheet, row: int, title: str) -> int:
     return row + 1
 
 
+def _as_text(cell):
+    """
+    Texto que começa com "=" viraria fórmula no Excel. As descrições vêm do
+    extrato do banco, e uma mensagem de Pix de um estranho pode trazer
+    "=WEBSERVICE(...)": ao abrir a planilha, a fórmula mandaria dados dela
+    para fora (formula injection). Gravado como texto, só aparece escrito.
+    """
+    if isinstance(cell.value, str) and cell.data_type == "f":
+        cell.data_type = "s"
+    return cell
+
+
 def _label_rows(sheet: Worksheet, row: int, rows: list[tuple], colors: Optional[dict] = None) -> int:
     """Linhas "rótulo | valor | o que significa" do Resumo."""
     for label, value, number_format, explanation in rows:
         label_cell = sheet.cell(row=row, column=1, value=label)
         label_cell.font = _font(bold=True)
-        value_cell = sheet.cell(row=row, column=2, value=value)
+        value_cell = _as_text(sheet.cell(row=row, column=2, value=value))
         value_cell.font = _font(bold=True, color=(colors or {}).get(label, NAVY))
         value_cell.alignment = Alignment(horizontal="right", vertical="top")
         if number_format and not isinstance(value, str):
             value_cell.number_format = number_format
-        note = sheet.cell(row=row, column=3, value=explanation)
+        note = _as_text(sheet.cell(row=row, column=3, value=explanation))
         note.font = _font(color=MUTED)
         note.alignment = WRAP
         for column in range(1, 4):
@@ -596,7 +608,7 @@ def _header_row(sheet: Worksheet, row: int, titles: list[str]) -> int:
 
 def _write_row(sheet: Worksheet, row: int, values: list, formats: dict[int, str], zebra: bool):
     for column, value in enumerate(values, start=1):
-        cell = sheet.cell(row=row, column=column, value=value)
+        cell = _as_text(sheet.cell(row=row, column=column, value=value))
         cell.font = _font()
         cell.border = BOTTOM_LINE
         if zebra:

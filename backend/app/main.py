@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import CORS_ORIGINS
@@ -31,6 +31,29 @@ app.add_middleware(
     # Sem isso o navegador esconde do frontend o nome do arquivo do relatório
     expose_headers=["Content-Disposition"],
 )
+
+# Páginas de documentação (/docs, /redoc) carregam scripts de CDN: ficam
+# fora da CSP restrita, que vale para as respostas da API
+DOCS_PATHS = ("/docs", "/redoc", "/openapi.json")
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # Dados financeiros: nada de guardar resposta em cache (navegador, proxy)
+    response.headers.setdefault("Cache-Control", "no-store")
+    # Não "adivinhar" o tipo do conteúdo (ex: tratar JSON como HTML)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    # Ninguém embute a API em outro site
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    if not request.url.path.startswith(DOCS_PATHS):
+        response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    # HTTPS obrigatório nas próximas visitas (só faz sentido já estando em HTTPS)
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
 
 app.include_router(auth.router)
 app.include_router(profile.router)

@@ -17,6 +17,11 @@ from app.services.security import create_access_token, hash_password, verify_pas
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# Hash de uma senha qualquer, para conferir quando o e-mail não existe: o
+# bcrypt é lento de propósito, e responder rápido só nesse caso revelaria
+# pelo tempo de resposta quais e-mails têm conta
+_DUMMY_HASH = hash_password("senha-que-nao-e-de-ninguem")
+
 login_limiter = LoginLimiter(
     max_per_account=LOGIN_MAX_FAILURES_PER_ACCOUNT,
     max_per_ip=LOGIN_MAX_FAILURES_PER_IP,
@@ -72,9 +77,10 @@ def login(
         )
 
     user = db.query(User).filter(User.email == email).first()
-    # Mesma mensagem para e-mail inexistente e senha errada, para não
-    # revelar quais e-mails têm cadastro.
-    if not user or not verify_password(form.password, user.hashed_password):
+    # Mesma mensagem (e mesmo tempo) para e-mail inexistente e senha errada,
+    # para não revelar quais e-mails têm cadastro.
+    password_ok = verify_password(form.password, user.hashed_password if user else _DUMMY_HASH)
+    if not user or not password_ok:
         login_limiter.record_failure(email, ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

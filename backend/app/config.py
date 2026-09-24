@@ -21,11 +21,33 @@ DEV_SECRET_KEY = "dev-inseguro-nao-use-em-producao-troque-a-secret-key"
 MIN_SECRET_KEY_BYTES = 32  # mínimo recomendado para HS256 (RFC 7518)
 
 
-def load_secret_key(value: Optional[str]) -> str:
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "[::1]"}
+
+
+def is_public_origin(origin: str) -> bool:
+    """ "https://vexira.com.br" -> True; "http://localhost:5173" -> False"""
+    host = origin.split("://", 1)[-1].split("/", 1)[0]
+    # Tira a porta: "[::1]:5173" -> "[::1]" (IPv6), "localhost:5173" -> "localhost"
+    host = host[: host.find("]") + 1] if host.startswith("[") else host.split(":", 1)[0]
+    return host.lower() not in LOCAL_HOSTS
+
+
+def load_secret_key(value: Optional[str], cors_origins: Optional[list[str]] = None) -> str:
     """
     Sem SECRET_KEY definida, usa a chave de desenvolvimento (pública, no
     código) e avisa no log. Com uma chave curta demais, recusa subir.
+
+    Se o frontend liberado no CORS for público (não localhost), a API está
+    publicada: aí a chave de desenvolvimento deixaria qualquer um forjar o
+    login de qualquer usuário, então a API se recusa a subir.
     """
+    public = [o for o in cors_origins or [] if is_public_origin(o)]
+    if public and (not value or value == DEV_SECRET_KEY):
+        raise ValueError(
+            f"SECRET_KEY é obrigatória com o frontend público ({public[0]}): com a chave de "
+            "desenvolvimento, qualquer um conseguiria forjar o login de qualquer usuário. "
+            'Gere uma com: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
     if not value:
         logger.warning(
             "SECRET_KEY não definida: usando a chave de desenvolvimento. "
@@ -40,7 +62,6 @@ def load_secret_key(value: Optional[str]) -> str:
     return value
 
 
-SECRET_KEY = load_secret_key(os.getenv("SECRET_KEY"))
 
 # Por quanto tempo o token de login vale (padrão: 1 dia)
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60 * 24))
@@ -55,6 +76,9 @@ def parse_cors_origins(value: Optional[str]) -> list[str]:
 # Endereços do frontend que podem chamar a API (separados por vírgula).
 # Padrão: o Vite local. Em produção, o endereço público do frontend.
 CORS_ORIGINS = parse_cors_origins(os.getenv("CORS_ORIGINS"))
+
+# Depois do CORS: com frontend público, a chave de desenvolvimento é recusada
+SECRET_KEY = load_secret_key(os.getenv("SECRET_KEY"), CORS_ORIGINS)
 
 
 def load_timezone(value: Optional[str]) -> ZoneInfo:
