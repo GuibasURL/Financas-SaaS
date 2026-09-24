@@ -6,7 +6,7 @@ import type {
   CategoryTotal,
   MonthlyTotal,
 } from "../types/transaction";
-import type { TokenResponse, User } from "../types/user";
+import type { ProfileFields, TokenResponse, User } from "../types/user";
 
 // Endereço da API: configurável por VITE_API_URL (ex: no deploy), com o
 // backend local como padrão
@@ -107,6 +107,25 @@ export async function register(email: string, password: string): Promise<User> {
 
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>("/auth/me");
+  return data;
+}
+
+// ---------- Perfil ----------
+
+export async function updateProfile(fields: ProfileFields): Promise<User> {
+  const { data } = await api.patch<User>("/auth/me", fields);
+  return data;
+}
+
+export async function uploadAvatar(photo: Blob): Promise<User> {
+  const formData = new FormData();
+  formData.append("file", photo, "foto");
+  const { data } = await api.put<User>("/auth/me/avatar", formData);
+  return data;
+}
+
+export async function deleteAvatar(): Promise<User> {
+  const { data } = await api.delete<User>("/auth/me/avatar");
   return data;
 }
 

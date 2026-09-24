@@ -16,6 +16,9 @@ interface FakeUser {
   id: number;
   email: string;
   password: string;
+  name: string | null;
+  birth_date: string | null;
+  avatar_url: string | null;
 }
 
 interface FakeDb {
@@ -45,7 +48,7 @@ function nextId() {
 // ---------- Helpers para montar o cenário dos testes ----------
 
 export function addUser(email = "ana@teste.com", password = "senha-forte-123"): FakeUser {
-  const user = { id: nextId(), email, password };
+  const user = { id: nextId(), email, password, name: null, birth_date: null, avatar_url: null };
   db.users.push(user);
   return user;
 }
@@ -102,6 +105,11 @@ export function addStatement(
 
 // ---------- Regras ----------
 
+// O que a API devolve de um usuário (sem a senha)
+function userOut({ password: _password, ...user }: FakeUser) {
+  return { ...user, created_at: "2026-09-23T13:00:00" };
+}
+
 function unauthorized() {
   return HttpResponse.json({ detail: "Não autenticado" }, { status: 401 });
 }
@@ -150,7 +158,7 @@ export const handlers = [
       return HttpResponse.json({ detail: "E-mail já cadastrado" }, { status: 400 });
     }
     const user = addUser(normalized, password);
-    return HttpResponse.json({ id: user.id, email: user.email, created_at: "2026-09-23T13:00:00" }, { status: 201 });
+    return HttpResponse.json(userOut(user), { status: 201 });
   }),
 
   http.post(`${API}/auth/login`, async ({ request }) => {
@@ -167,9 +175,59 @@ export const handlers = [
 
   http.get(`${API}/auth/me`, ({ request }) => {
     const user = currentUser(request);
-    return user
-      ? HttpResponse.json({ id: user.id, email: user.email, created_at: "2026-09-23T13:00:00" })
-      : unauthorized();
+    return user ? HttpResponse.json(userOut(user)) : unauthorized();
+  }),
+
+  http.patch(`${API}/auth/me`, async ({ request }) => {
+    const user = currentUser(request);
+    if (!user) return unauthorized();
+    const body = (await request.json()) as {
+      name: string;
+      email: string;
+      birth_date: string | null;
+      current_password?: string;
+    };
+    const email = body.email.trim().toLowerCase();
+    if (email !== user.email) {
+      // Como no backend: 400 (não 401) para senha errada
+      if (!body.current_password) {
+        return HttpResponse.json({ detail: "Digite sua senha atual para trocar o e-mail" }, { status: 400 });
+      }
+      if (body.current_password !== user.password) {
+        return HttpResponse.json({ detail: "Senha atual incorreta" }, { status: 400 });
+      }
+      if (db.users.some((u) => u.email === email)) {
+        return HttpResponse.json({ detail: "E-mail já cadastrado" }, { status: 400 });
+      }
+      user.email = email;
+    }
+    const name = body.name.trim().replace(/\s+/g, " ");
+    if (name.length < 2) {
+      return HttpResponse.json({ detail: [{ msg: "Value error, Informe seu nome" }] }, { status: 422 });
+    }
+    user.name = name;
+    user.birth_date = body.birth_date;
+    return HttpResponse.json(userOut(user));
+  }),
+
+  http.put(`${API}/auth/me/avatar`, async ({ request }) => {
+    const user = currentUser(request);
+    if (!user) return unauthorized();
+    const file = (await request.formData()).get("file") as Blob;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    // Basta para os testes: PNG pelos primeiros bytes; o resto é recusado
+    if (bytes[0] !== 0x89 || bytes[1] !== 0x50) {
+      return HttpResponse.json({ detail: "Envie uma foto em JPG, PNG ou WebP" }, { status: 400 });
+    }
+    user.avatar_url = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+    return HttpResponse.json(userOut(user));
+  }),
+
+  http.delete(`${API}/auth/me/avatar`, ({ request }) => {
+    const user = currentUser(request);
+    if (!user) return unauthorized();
+    user.avatar_url = null;
+    return HttpResponse.json(userOut(user));
   }),
 
   http.get(

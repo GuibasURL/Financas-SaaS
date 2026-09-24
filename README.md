@@ -63,7 +63,17 @@ Todas as rotas (menos `/auth/register` e `/auth/login`) exigem login, e cada usu
 - `POST /auth/register` com `{"email": "...", "password": "..."}`. A senha precisa ser **mediana ou forte**: pelo menos 8 caracteres e 3 dos 4 tipos (letra minúscula, letra maiúscula, número, caractere especial); com os 4 é forte. Senhas óbvias também contam como fracas: palavra comum com números e símbolos em volta ("Senha123!", "P@ssword2024"), sequência ou repetição de letras ("Abcdefg1!") e senha que contém o próprio e-mail. Senha fraca volta `422` dizendo o que falta. Na tela de cadastro, uma barra (vermelha, laranja, verde) e uma checklist mostram isso enquanto a pessoa digita, e o campo "Repetir senha" avisa quando as senhas conferem. Contas antigas com senha fraca continuam entrando normalmente.
 - `POST /auth/login` com form-data `username` (o e-mail) e `password`: devolve um token JWT
 - Mande o token nas outras chamadas no header `Authorization: Bearer <token>`
-- `GET /auth/me` devolve o usuário logado
+- `GET /auth/me` devolve o usuário logado (com nome, data de nascimento e foto, se preenchidos)
+
+### Perfil
+
+A tela **Editar perfil** (cartão com a foto no rodapé do menu, ou "Perfil" na barra do celular) usa:
+
+- `PATCH /auth/me` com `{"name", "email", "birth_date"}`: nome obrigatório (2 a 100 caracteres), data de nascimento opcional (não pode ser no futuro). **Trocar o e-mail pede `current_password`**: senha errada volta `400` e conta no limite de tentativas de login.
+- `PUT /auth/me/avatar` (form-data `file`): foto em JPG, PNG ou WebP, até 1 MB. O tipo é conferido pelos bytes do arquivo, não pelo nome. O navegador já recorta o centro e reduz para 256×256 antes de enviar (uma foto de celular vira poucos KB).
+- `DELETE /auth/me/avatar` remove a foto.
+
+A foto fica no próprio banco e volta em `avatar_url` como data URL, então o deploy não precisa de um disco para arquivos.
 
 No Swagger (`/docs`), o botão **Authorize** faz o login e passa o token automaticamente.
 

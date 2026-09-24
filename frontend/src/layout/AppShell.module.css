@@ -97,11 +97,42 @@
   color: var(--muted);
   font-size: 0.76rem;
 }
+/* Cartão do perfil no rodapé do menu: foto, nome e "Meu perfil" */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  text-decoration: none;
+  transition: 160ms;
+}
+.profile:hover {
+  background: var(--glass);
+}
+.profile[aria-current="page"] {
+  border-color: var(--line);
+  background: var(--glass-strong);
+}
+.profileText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
 .user {
   overflow: hidden;
   color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mobileOnly {
+  display: none;
 }
 
 /* ---------- Conteúdo ---------- */
@@ -147,6 +178,9 @@
   }
   .nav li {
     flex: 1;
+  }
+  .nav li.mobileOnly {
+    display: block;
   }
   .nav a {
     flex-direction: column;
