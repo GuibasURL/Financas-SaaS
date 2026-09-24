@@ -102,4 +102,20 @@ describe("TransactionTable", () => {
     expect(within(rowOf("PAGAMENTO DE FATURA")).getByText("fora dos totais")).toBeInTheDocument();
     expect(within(rowOf("IFOOD")).queryByText("fora dos totais")).not.toBeInTheDocument();
   });
+
+  it("fora dos totais: valor cinza com 'não soma', nem verde nem vermelho", () => {
+    renderTable([
+      transaction,
+      { ...transaction, id: 12, description: "Pagamento recebido", amount: 385.58, category_id: 3 },
+    ]);
+
+    const payment = within(rowOf("Pagamento recebido")).getByText("não soma").parentElement!;
+    expect(payment).toHaveTextContent("+ R$ 385,58");
+    expect(payment).not.toHaveClass("in");
+    expect(payment.title).toContain("Não soma nas entradas nem nas saídas");
+
+    const ifood = within(rowOf("IFOOD")).getByText("− R$ 30,00");
+    expect(ifood).toHaveClass("out");
+    expect(within(rowOf("IFOOD")).queryByText("não soma")).not.toBeInTheDocument();
+  });
 });

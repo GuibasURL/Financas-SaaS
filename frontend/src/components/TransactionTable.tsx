@@ -1,5 +1,6 @@
 import type { Transaction, Category } from "../types/transaction";
-import { formatDate, formatSignedMoney } from "../utils/format";
+import { formatDate } from "../utils/format";
+import TransactionAmount, { IGNORED_AMOUNT_HINT } from "./TransactionAmount";
 import styles from "./TransactionTable.module.css";
 
 interface Props {
@@ -46,10 +47,7 @@ export default function TransactionTable({
                 <td className={styles.description}>
                   {t.description}
                   {ignored && (
-                    <span
-                      className={`badge badge-warning ${styles.badge}`}
-                      title="Categoria ignorada nos gráficos: não entra nos totais"
-                    >
+                    <span className={`badge ${styles.badge}`} title={IGNORED_AMOUNT_HINT}>
                       fora dos totais
                     </span>
                   )}
@@ -77,8 +75,8 @@ export default function TransactionTable({
                     </select>
                   </span>
                 </td>
-                <td className={`num amount ${t.amount > 0 ? "in" : "out"} ${styles.value}`}>
-                  {formatSignedMoney(t.amount)}
+                <td className={`num ${styles.value}`}>
+                  <TransactionAmount amount={t.amount} ignored={ignored} />
                 </td>
               </tr>
             );

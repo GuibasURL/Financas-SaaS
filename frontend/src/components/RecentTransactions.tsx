@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 import { useFinanceData } from "../data/FinanceData";
-import { formatDate, formatSignedMoney } from "../utils/format";
+import { formatDate } from "../utils/format";
 import Icon from "./Icon";
+import TransactionAmount from "./TransactionAmount";
 import styles from "./RecentTransactions.module.css";
 
 const LIMIT = 5;
@@ -11,6 +12,7 @@ export default function RecentTransactions() {
   // A API já devolve da mais recente para a mais antiga
   const recent = transactions.slice(0, LIMIT);
   const names = new Map(categories.map((c) => [c.id, c.name]));
+  const ignoredIds = new Set(categories.filter((c) => c.ignore_in_reports).map((c) => c.id));
 
   return (
     <section className="card" aria-labelledby="recent-title">
@@ -54,8 +56,11 @@ export default function RecentTransactions() {
                       <span className="cat">— sem categoria —</span>
                     )}
                   </td>
-                  <td className={`num amount ${t.amount > 0 ? "in" : ""}`}>
-                    {formatSignedMoney(t.amount)}
+                  <td className="num">
+                    <TransactionAmount
+                      amount={t.amount}
+                      ignored={t.category_id !== null && ignoredIds.has(t.category_id)}
+                    />
                   </td>
                 </tr>
               ))}

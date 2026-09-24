@@ -142,6 +142,10 @@
 .total:global(.in) {
   color: var(--income);
 }
+/* Categoria fora dos totais: cinza, como o valor das transações dela */
+.total.totalIgnored {
+  color: var(--muted);
+}
 
 .rowActions {
   display: flex;
