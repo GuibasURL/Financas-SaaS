@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router";
+import Avatar from "../components/Avatar";
 import Icon, { type IconName } from "../components/Icon";
 import Logo from "../components/Logo";
 import type { User } from "../types/user";
@@ -38,13 +39,23 @@ export default function AppShell({ user, onLogout }: Props) {
                 </NavLink>
               </li>
             ))}
+            {/* No celular o rodapé do menu some: o perfil vira mais um item da barra */}
+            <li className={styles.mobileOnly}>
+              <NavLink to="/perfil">
+                <Icon name="user" />
+                Perfil
+              </NavLink>
+            </li>
           </ul>
         </nav>
         <div className={styles.sideFoot}>
-          <span>Conectado como</span>
-          <span className={styles.user} title={user.email}>
-            {user.email}
-          </span>
+          <NavLink to="/perfil" className={styles.profile} title={user.email}>
+            <Avatar name={user.name} email={user.email} src={user.avatar_url} />
+            <span className={styles.profileText}>
+              <span className={styles.user}>{user.name ?? user.email}</span>
+              <span>Meu perfil</span>
+            </span>
+          </NavLink>
           <button className="btn" type="button" onClick={onLogout}>
             <Icon name="logout" />
             Sair

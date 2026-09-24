@@ -2,7 +2,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import CORS_ORIGINS
-from app.routers import auth, upload, transactions, categories, dashboard, statements, reports
+from app.routers import (
+    auth,
+    categories,
+    dashboard,
+    profile,
+    reports,
+    statements,
+    transactions,
+    upload,
+)
 
 # O schema do banco é gerenciado pelo Alembic: rode `alembic upgrade head`
 # (dentro de backend/) antes de subir a API e sempre que houver migration nova.
@@ -24,6 +33,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(profile.router)
 app.include_router(upload.router)
 app.include_router(transactions.router)
 app.include_router(categories.router)

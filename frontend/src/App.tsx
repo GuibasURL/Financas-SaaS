@@ -5,6 +5,7 @@ import { FeedbackProvider } from "./feedback/Feedback";
 import AppShell from "./layout/AppShell";
 import CategoriesPage from "./pages/CategoriesPage";
 import OverviewPage from "./pages/OverviewPage";
+import ProfilePage from "./pages/ProfilePage";
 import StatementsPage from "./pages/StatementsPage";
 import TransactionsPage from "./pages/TransactionsPage";
 import AuthPage from "./pages/AuthPage";
@@ -72,6 +73,15 @@ function AuthenticatedApp() {
             <Route path="transacoes" element={<TransactionsPage />} />
             <Route path="categorias" element={<CategoriesPage />} />
             <Route path="extratos" element={<StatementsPage />} />
+            <Route
+              path="perfil"
+              element={
+                <ProfilePage
+                  user={auth.user}
+                  onUserChange={(user) => setAuth({ status: "authenticated", user })}
+                />
+              }
+            />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
