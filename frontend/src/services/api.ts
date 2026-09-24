@@ -124,6 +124,18 @@ export async function uploadAvatar(photo: Blob): Promise<User> {
   return data;
 }
 
+/**
+ * Troca a senha. A API derruba as sessões antigas (outros aparelhos) e
+ * devolve um token novo, que passa a ser o desta sessão.
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const { data } = await api.post<TokenResponse>("/auth/me/password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  setToken(data.access_token);
+}
+
 export async function deleteAvatar(): Promise<User> {
   const { data } = await api.delete<User>("/auth/me/avatar");
   return data;

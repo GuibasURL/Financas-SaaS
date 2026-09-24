@@ -14,8 +14,12 @@ def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User:
     """Dependency das rotas protegidas: devolve o usuário dono do token ou 401."""
-    user_id = decode_access_token(token)
-    user = db.get(User, user_id) if user_id is not None else None
+    access = decode_access_token(token)
+    user = db.get(User, access.user_id) if access else None
+    # Token emitido antes da última troca de senha: a sessão de outro aparelho
+    # (ou de quem descobriu a senha antiga) cai junto com a senha
+    if user and not user.token_is_current(access.issued_at):
+        user = None
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -103,6 +103,20 @@ class ProfileUpdate(BaseModel):
         return value
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        # O bcrypt só aceita até 72 bytes. A força é conferida na rota,
+        # que precisa do e-mail do usuário (a senha não pode contê-lo).
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("A senha pode ter no máximo 72 bytes")
+        return value
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

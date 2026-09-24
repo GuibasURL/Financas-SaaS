@@ -17,6 +17,8 @@ const nameField = () => screen.getByLabelText("Nome completo");
 const emailField = () => screen.getByLabelText("E-mail");
 const saveButton = () => screen.getByRole("button", { name: "Salvar alterações" });
 const photoInput = () => screen.getByLabelText("Escolher foto do perfil");
+// Senha pedida ao trocar o e-mail (o cartão "Alterar senha" tem outro campo "Senha atual")
+const emailPassword = () => document.getElementById("perfil-senha");
 
 async function openProfile() {
   const user = await renderLoggedIn("/perfil");
@@ -47,7 +49,7 @@ describe("Editar perfil", () => {
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Remover" })).toBeDisabled();
     // Senha só aparece ao trocar o e-mail
-    expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();
+    expect(emailPassword()).not.toBeInTheDocument();
   });
 
   it("salva nome e data de nascimento e atualiza o menu", async () => {
@@ -110,12 +112,12 @@ describe("trocar o e-mail", () => {
 
     await user.clear(emailField());
     await user.type(emailField(), "nova@teste.com");
-    await user.type(screen.getByLabelText("Senha atual"), "errada");
+    await user.type(emailPassword()!, "errada");
     await user.click(saveButton());
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Senha atual incorreta");
     expect(db.users[0].email).toBe("ana@teste.com");
-    expect(screen.getByLabelText("Senha atual")).toHaveValue("errada"); // dá para corrigir
+    expect(emailPassword()!).toHaveValue("errada"); // dá para corrigir
   });
 
   it("com a senha certa, troca o e-mail", async () => {
@@ -124,13 +126,13 @@ describe("trocar o e-mail", () => {
     await user.clear(emailField());
     await user.type(emailField(), "Nova@Teste.com");
 
-    await user.type(screen.getByLabelText("Senha atual"), "senha-forte-123");
+    await user.type(emailPassword()!, "senha-forte-123");
     await user.click(saveButton());
 
     expect(await screen.findByText("Perfil atualizado.")).toBeInTheDocument();
     expect(db.users[0].email).toBe("nova@teste.com");
     expect(emailField()).toHaveValue("nova@teste.com");
-    expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();
+    expect(emailPassword()).not.toBeInTheDocument();
   });
 
   it("mesmo e-mail em maiúsculas não pede senha", async () => {
@@ -138,7 +140,7 @@ describe("trocar o e-mail", () => {
     await user.clear(emailField());
     await user.type(emailField(), "ANA@teste.com");
 
-    expect(screen.queryByLabelText("Senha atual")).not.toBeInTheDocument();
+    expect(emailPassword()).not.toBeInTheDocument();
   });
 });
 

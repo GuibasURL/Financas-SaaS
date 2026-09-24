@@ -1,4 +1,6 @@
-"""Tela "Editar perfil": nome, e-mail, data de nascimento e foto do usuário logado."""
+"""Tela "Editar perfil": nome, e-mail, data de nascimento, foto e senha do usuário logado."""
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -6,8 +8,9 @@ from app.db import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
 from app.routers.auth import login_limiter
-from app.schemas.user import ProfileUpdate, UserOut
-from app.services.security import verify_password
+from app.schemas.user import PasswordChange, ProfileUpdate, Token, UserOut
+from app.services.password_policy import weak_password_message
+from app.services.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth/me", tags=["perfil"])
 
@@ -24,6 +27,26 @@ AVATAR_SIGNATURES = {
 }
 
 
+def _check_current_password(request: Request, user: User, password: str | None, missing: str):
+    """
+    Confere a senha atual antes de mudar o login (e-mail ou senha), para quem
+    pegou o computador com a conta aberta não conseguir tomar a conta.
+    Conta como tentativa de login: mesmo limite contra adivinhação.
+    Erro 400, e não 401: o frontend desloga em qualquer 401.
+    """
+    ip = request.client.host if request.client else "desconhecido"
+    if login_limiter.retry_after(user.email, ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Muitas tentativas com a senha errada. Tente de novo mais tarde.",
+        )
+    if not password:
+        raise HTTPException(status_code=400, detail=missing)
+    if not verify_password(password, user.hashed_password):
+        login_limiter.record_failure(user.email, ip)
+        raise HTTPException(status_code=400, detail="Senha atual incorreta")
+
+
 @router.patch("", response_model=UserOut)
 def update_profile(
     payload: ProfileUpdate,
@@ -32,21 +55,9 @@ def update_profile(
     user: User = Depends(get_current_user),
 ):
     if payload.email != user.email:
-        # Trocar o e-mail muda o login: pede a senha, para quem pegou o
-        # computador com a conta aberta não conseguir tomar a conta.
-        # Conta como tentativa de login (mesmo limite contra adivinhação).
-        # 400, e não 401: o frontend desloga em qualquer 401.
-        ip = request.client.host if request.client else "desconhecido"
-        if login_limiter.retry_after(user.email, ip):
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Muitas tentativas com a senha errada. Tente de novo mais tarde.",
-            )
-        if not payload.current_password:
-            raise HTTPException(status_code=400, detail="Digite sua senha atual para trocar o e-mail")
-        if not verify_password(payload.current_password, user.hashed_password):
-            login_limiter.record_failure(user.email, ip)
-            raise HTTPException(status_code=400, detail="Senha atual incorreta")
+        _check_current_password(
+            request, user, payload.current_password, "Digite sua senha atual para trocar o e-mail"
+        )
         if db.query(User).filter(User.email == payload.email).first():
             raise HTTPException(status_code=400, detail="E-mail já cadastrado")
         user.email = payload.email
@@ -86,3 +97,29 @@ def delete_avatar(db: Session = Depends(get_db), user: User = Depends(get_curren
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.post("/password", response_model=Token)
+def change_password(
+    payload: PasswordChange,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Troca a senha e devolve um token novo para esta sessão continuar logada.
+    Os tokens emitidos antes (outros aparelhos) deixam de valer.
+    """
+    _check_current_password(request, user, payload.current_password, "Digite sua senha atual")
+    if payload.new_password == payload.current_password:
+        raise HTTPException(status_code=400, detail="A nova senha precisa ser diferente da atual")
+    # Mesma regra do cadastro: mediana ou forte, nada óbvio, sem o e-mail
+    message = weak_password_message(payload.new_password, user.email)
+    if message:
+        raise HTTPException(status_code=400, detail=message)
+
+    now = datetime.now(timezone.utc)
+    user.hashed_password = hash_password(payload.new_password)
+    user.password_changed_at = now
+    db.commit()
+    return Token(access_token=create_access_token(user.id, issued_at=now))

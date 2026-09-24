@@ -1,14 +1,9 @@
 import { useState } from "react";
 import { apiErrorMessage, getMe, login, register } from "../services/api";
 import type { User } from "../types/user";
-import Icon from "../components/Icon";
 import Logo from "../components/Logo";
-import {
-  passwordRequirements,
-  passwordStrength,
-  weakPasswordMessage,
-  STRENGTH_LABELS,
-} from "../utils/passwordStrength";
+import { PasswordField, PasswordMatch, PasswordStrengthMeter } from "../components/PasswordInputs";
+import { weakPasswordMessage } from "../utils/passwordStrength";
 import styles from "./AuthPage.module.css";
 
 interface Props {
@@ -36,121 +31,6 @@ const HEADINGS: Record<Mode, { eyebrow: string; title: string; subtitle: string 
     subtitle: "Use um e-mail válido e escolha uma senha segura.",
   },
 };
-
-interface PasswordFieldProps {
-  id: string;
-  value: string;
-  onChange: (value: string) => void;
-  // Nome acessível do botão do olhinho ("Mostrar senha")
-  toggleLabel: string;
-  visible: boolean;
-  onToggle: () => void;
-  placeholder: string;
-  autoComplete: string;
-  minLength?: number;
-  describedBy?: string;
-}
-
-// Campo de senha com o botão de mostrar/ocultar (o "olhinho")
-function PasswordField({
-  id,
-  value,
-  onChange,
-  toggleLabel,
-  visible,
-  onToggle,
-  placeholder,
-  autoComplete,
-  minLength,
-  describedBy,
-}: PasswordFieldProps) {
-  return (
-    <div className={styles.passwordWrap}>
-      <input
-        id={id}
-        className={`${styles.field} ${styles.passwordField}`}
-        type={visible ? "text" : "password"}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        minLength={minLength}
-        aria-describedby={describedBy}
-        // Com a senha à mostra, nada de corretor ou maiúscula automática no celular
-        autoCapitalize="off"
-        autoCorrect="off"
-        spellCheck={false}
-        required
-      />
-      <button
-        type="button"
-        className={styles.eye}
-        onClick={onToggle}
-        aria-label={toggleLabel}
-        aria-pressed={visible}
-        aria-controls={id}
-        title={visible ? "Ocultar senha" : "Mostrar senha"}
-      >
-        <Icon name={visible ? "eyeOff" : "eye"} />
-      </button>
-    </div>
-  );
-}
-
-// "As senhas conferem" enquanto a pessoa digita a repetição
-function PasswordMatch({ password, confirm }: { password: string; confirm: string }) {
-  const matches = confirm !== "" && confirm === password;
-  return (
-    // Sempre presente (vazio antes de digitar), para o leitor de tela anunciar a mudança
-    <p
-      id="password-match"
-      className={`${styles.match} ${matches ? styles.met : ""}`}
-      aria-live="polite"
-    >
-      {confirm !== "" && (
-        <>
-          <Icon name={matches ? "check" : "circle"} />
-          {matches ? "As senhas conferem" : "As senhas ainda não conferem"}
-        </>
-      )}
-    </p>
-  );
-}
-
-// Barra fraca/mediana/forte + checklist do que a senha já tem
-function PasswordStrengthMeter({ password, email }: { password: string; email: string }) {
-  const strength = passwordStrength(password, email);
-  const requirements = passwordRequirements(password, email);
-  const empty = password === "";
-
-  return (
-    <div className={styles.strength}>
-      <div
-        className={`${styles.meter} ${empty ? "" : styles[strength]}`}
-        aria-hidden="true"
-      >
-        <i />
-      </div>
-      {/* aria-live: o leitor de tela avisa quando a força muda, não a cada tecla */}
-      <p id="password-strength" className={styles.strengthLabel} aria-live="polite">
-        Força da senha:{" "}
-        <strong className={empty ? undefined : styles[strength]}>
-          {empty ? "digite uma senha" : STRENGTH_LABELS[strength]}
-        </strong>
-      </p>
-      <ul id="password-requirements" className={styles.requirements} aria-label="Requisitos da senha">
-        {requirements.map((r) => (
-          <li key={r.key} className={r.met ? styles.met : undefined}>
-            <Icon name={r.met ? "check" : "circle"} />
-            {r.label}
-            <span className={styles.srOnly}>{r.met ? " (ok)" : " (falta)"}</span>
-          </li>
-        ))}
-      </ul>
-      <p className={styles.hint}>Precisa ser mediana ou forte: 3 dos 4 tipos de caractere.</p>
-    </div>
-  );
-}
 
 export default function AuthPage({ onAuthenticated, notice }: Props) {
   const [mode, setMode] = useState<Mode>("login");
@@ -319,6 +199,7 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
               </label>
               <PasswordField
                 id="auth-password"
+                inputClassName={styles.field}
                 value={password}
                 onChange={setPassword}
                 toggleLabel="Mostrar senha"
@@ -338,6 +219,7 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
                   </label>
                   <PasswordField
                     id="auth-password-confirm"
+                    inputClassName={styles.field}
                     value={passwordConfirm}
                     onChange={setPasswordConfirm}
                     toggleLabel="Mostrar a senha repetida"
