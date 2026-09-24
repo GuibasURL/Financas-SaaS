@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import App from "../App";
@@ -29,6 +29,7 @@ describe("localStorage bloqueado", () => {
     expect(await screen.findByText("ana@teste.com")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Sair" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Sair" }));
     expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
   });
 });

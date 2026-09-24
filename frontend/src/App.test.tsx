@@ -132,10 +132,26 @@ describe("sessão", () => {
     const user = renderApp();
 
     await user.click(await screen.findByRole("button", { name: "Sair" }));
+    // Pede confirmação antes de sair
+    const dialog = await screen.findByRole("dialog", { name: "Sair da conta?" });
+    expect(dialog).toHaveTextContent("vai precisar entrar de novo");
+    await user.click(within(dialog).getByRole("button", { name: "Sair" }));
 
     expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
     expect(screen.queryByText(/sessão expirou/)).not.toBeInTheDocument();
     expect(localStorage.getItem("financas.token")).toBeNull();
+  });
+
+  it("Cancelar na confirmação continua logado", async () => {
+    loginAs(addUser());
+    const user = renderApp();
+
+    await user.click(await screen.findByRole("button", { name: "Sair" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("ana@teste.com")).toBeInTheDocument();
+    expect(localStorage.getItem("financas.token")).not.toBeNull();
   });
 
   it("token que expira durante o uso volta para o login com aviso", async () => {

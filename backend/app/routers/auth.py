@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -6,13 +8,31 @@ from app.config import (
     LOGIN_MAX_FAILURES_PER_ACCOUNT,
     LOGIN_MAX_FAILURES_PER_IP,
     LOGIN_WINDOW_MINUTES,
+    PASSWORD_RESET_MAX_PER_ACCOUNT,
+    PASSWORD_RESET_MAX_PER_IP,
 )
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models.user import User
-from app.schemas.user import Token, UserCreate, UserOut, normalize_email
+from app.schemas.user import (
+    ForgotPassword,
+    MessageOut,
+    PasswordReset,
+    Token,
+    UserCreate,
+    UserOut,
+    normalize_email,
+)
 from app.services.default_categories import add_default_categories
+from app.services.email import send_email
 from app.services.login_limiter import LoginLimiter
+from app.services.password_policy import weak_password_message
+from app.services.password_reset import (
+    create_reset_token,
+    delete_reset_tokens,
+    find_valid_token,
+    reset_email,
+)
 from app.services.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -27,6 +47,19 @@ login_limiter = LoginLimiter(
     max_per_ip=LOGIN_MAX_FAILURES_PER_IP,
     window_seconds=LOGIN_WINDOW_MINUTES * 60,
 )
+
+# Pedidos de "Esqueceu a senha?": cada pedido conta, com ou sem conta no e-mail
+reset_limiter = LoginLimiter(
+    max_per_account=PASSWORD_RESET_MAX_PER_ACCOUNT,
+    max_per_ip=PASSWORD_RESET_MAX_PER_IP,
+    window_seconds=LOGIN_WINDOW_MINUTES * 60,
+)
+
+FORGOT_PASSWORD_MESSAGE = (
+    "Se houver uma conta com esse e-mail, enviamos um link para criar uma senha nova. "
+    "Confira também a caixa de spam."
+)
+INVALID_RESET_LINK = 'Este link é inválido ou já expirou. Peça um novo em "Esqueceu a senha?".'
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -94,3 +127,62 @@ def login(
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
     return user
+
+
+@router.post("/forgot-password", response_model=MessageOut)
+def forgot_password(
+    payload: ForgotPassword,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Manda por e-mail um link para criar uma senha nova. A resposta é sempre
+    a mesma, com ou sem conta no e-mail, para não revelar quem tem cadastro;
+    o e-mail sai em segundo plano, então o tempo de resposta também não revela.
+    """
+    email = normalize_email(payload.email)
+    ip = request.client.host if request.client else "desconhecido"
+    wait = reset_limiter.retry_after(email, ip)
+    if wait:
+        minutes = max(1, round(wait / 60))
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Muitos pedidos de redefinição de senha. "
+                f"Tente de novo em {minutes} minuto{'s' if minutes > 1 else ''}."
+            ),
+            headers={"Retry-After": str(wait)},
+        )
+    reset_limiter.record_failure(email, ip)
+
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        raw_token = create_reset_token(db, user)
+        db.commit()
+        subject, text = reset_email(raw_token)
+        background_tasks.add_task(send_email, user.email, subject, text)
+    return MessageOut(message=FORGOT_PASSWORD_MESSAGE)
+
+
+@router.post("/reset-password", response_model=MessageOut)
+def reset_password(payload: PasswordReset, db: Session = Depends(get_db)):
+    """
+    Troca a senha pelo link do e-mail. O link deixa de valer, e todas as
+    sessões abertas caem (como na troca de senha pelo perfil).
+    """
+    reset = find_valid_token(db, payload.token)
+    if not reset:
+        raise HTTPException(status_code=400, detail=INVALID_RESET_LINK)
+    user = db.get(User, reset.user_id)
+
+    # Mesma regra do cadastro: mediana ou forte, nada óbvio, sem o e-mail
+    message = weak_password_message(payload.new_password, user.email)
+    if message:
+        raise HTTPException(status_code=400, detail=message)
+
+    user.hashed_password = hash_password(payload.new_password)
+    user.password_changed_at = datetime.now(timezone.utc)
+    delete_reset_tokens(db, user.id)
+    db.commit()
+    return MessageOut(message="Senha redefinida. Entre com a senha nova.")

@@ -107,6 +107,21 @@ export async function register(email: string, password: string): Promise<User> {
   return data;
 }
 
+/** "Esqueceu a senha?": pede o link por e-mail. A resposta é a mesma com ou sem conta. */
+export async function forgotPassword(email: string): Promise<string> {
+  const { data } = await api.post<{ message: string }>("/auth/forgot-password", { email });
+  return data.message;
+}
+
+/** Cria a senha nova com o código do link do e-mail. */
+export async function resetPassword(token: string, newPassword: string): Promise<string> {
+  const { data } = await api.post<{ message: string }>("/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+  return data.message;
+}
+
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>("/auth/me");
   return data;

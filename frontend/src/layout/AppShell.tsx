@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router";
 import Avatar from "../components/Avatar";
 import Icon, { type IconName } from "../components/Icon";
 import Logo from "../components/Logo";
+import { useFeedback } from "../feedback/Feedback";
 import type { User } from "../types/user";
 import styles from "./AppShell.module.css";
 
@@ -24,6 +25,20 @@ function Brand() {
 }
 
 export default function AppShell({ user, onLogout }: Props) {
+  const { confirm } = useFeedback();
+
+  async function confirmLogout() {
+    const confirmed = await confirm({
+      title: "Sair da conta?",
+      message: "Para voltar, você vai precisar entrar de novo com seu e-mail e senha.",
+      confirmLabel: "Sair",
+      busyLabel: "Saindo...",
+      // Sair não chama a API: só apaga o token depois de confirmar
+      action: async () => {},
+    });
+    if (confirmed) onLogout();
+  }
+
   return (
     <div className={styles.app}>
       <aside className={styles.side} aria-label="Navegação principal">
@@ -56,7 +71,7 @@ export default function AppShell({ user, onLogout }: Props) {
               <span>Meu perfil</span>
             </span>
           </NavLink>
-          <button className="btn" type="button" onClick={onLogout}>
+          <button className="btn" type="button" onClick={confirmLogout}>
             <Icon name="logout" />
             Sair
           </button>
@@ -69,7 +84,7 @@ export default function AppShell({ user, onLogout }: Props) {
           <button
             className="btn btn-ghost"
             type="button"
-            onClick={onLogout}
+            onClick={confirmLogout}
             aria-label={`Sair (${user.email})`}
           >
             <Icon name="logout" />
@@ -77,7 +92,6 @@ export default function AppShell({ user, onLogout }: Props) {
           </button>
         </div>
         <Outlet />
-        <p className="demo-note">Projeto de demonstração: não envie extratos reais.</p>
       </main>
     </div>
   );

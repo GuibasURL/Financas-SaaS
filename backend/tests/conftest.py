@@ -19,7 +19,7 @@ from app.db import Base, get_db
 from app.main import app
 from app.models.category import Category
 from app.models.user import User
-from app.routers.auth import login_limiter
+from app.routers.auth import login_limiter, reset_limiter
 from app.services.security import create_access_token, hash_password
 
 PASSWORD = "senha-forte-123"
@@ -51,8 +51,10 @@ def upload_csv(client: TestClient, content: str, filename: str = "extrato.csv"):
 def reset_login_limiter():
     # O limite de tentativas de login fica em memória: não passa de um teste para outro
     login_limiter.reset()
+    reset_limiter.reset()
     yield
     login_limiter.reset()
+    reset_limiter.reset()
 
 
 @pytest.fixture

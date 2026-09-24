@@ -48,6 +48,7 @@ describe("navegação", () => {
     const user = await renderLoggedIn();
 
     await user.click(screen.getByRole("button", { name: "Sair (ana@teste.com)" }));
+    await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Sair" }));
 
     expect(await screen.findByRole("heading", { name: "Bem-vindo de volta" })).toBeInTheDocument();
   });

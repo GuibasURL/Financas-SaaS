@@ -1,7 +1,7 @@
 import re
 from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.config import APP_TIMEZONE
 from app.services.password_policy import weak_password_message
@@ -120,6 +120,27 @@ class PasswordChange(BaseModel):
 class AccountDelete(BaseModel):
     # Senha atual: confirma que é o dono da conta, e não alguém com o computador aberto
     password: str
+
+
+class ForgotPassword(BaseModel):
+    email: str = Field(max_length=320)
+
+
+class PasswordReset(BaseModel):
+    token: str = Field(max_length=200)
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_new_password(cls, value: str) -> str:
+        # O bcrypt só aceita até 72 bytes; a força é conferida na rota (precisa do e-mail)
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("A senha pode ter no máximo 72 bytes")
+        return value
+
+
+class MessageOut(BaseModel):
+    message: str
 
 
 class Token(BaseModel):
