@@ -23,10 +23,20 @@ def test_upload_categoriza_por_keyword(upload, categories):
     assert by_description["FARMACIA"] is None
 
 
-def test_mesmo_arquivo_duas_vezes_vira_dois_extratos(client, upload):
-    upload(CSV_JANEIRO)
+def test_mesmo_arquivo_duas_vezes_so_com_confirmacao(client, upload):
     upload(CSV_JANEIRO)
 
+    # Sem confirmar, avisa que já foi importado e não cria nada
+    assert upload(CSV_JANEIRO).status_code == 409
+    assert len(client.get("/statements").json()) == 1
+
+    # Confirmando "importar mesmo assim", vira um segundo extrato
+    response = client.post(
+        "/upload",
+        params={"duplicates": "keep"},
+        files={"file": ("extrato.csv", CSV_JANEIRO.encode(), "text/csv")},
+    )
+    assert response.status_code == 200
     statements = client.get("/statements").json()
     assert len(statements) == 2
     assert {s["filename"] for s in statements} == {"extrato.csv"}
