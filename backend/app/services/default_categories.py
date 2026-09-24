@@ -60,7 +60,7 @@ DEFAULT_CATEGORIES: tuple[DefaultCategory, ...] = (
     DefaultCategory(
         "Compras",
         "mercado livre,mercadolivre,amazon,shopee,magazine luiza,magalu,americanas,shein,"
-        "aliexpress",
+        "aliexpress,riachuelo,renner",
     ),
     DefaultCategory(
         "Alimentação",
@@ -81,7 +81,7 @@ DEFAULT_CATEGORIES: tuple[DefaultCategory, ...] = (
         "Saúde",
         "farmácia,drogaria,drogasil,droga raia,pague menos,hospital,clínica,laboratório,"
         "consulta,dentista,odonto,unimed,amil,hapvida,sulamerica,bradesco saude,academia,"
-        "smart fit,smartfit",
+        "smart fit,smartfit,rd saude",
     ),
     DefaultCategory(
         "Moradia",
