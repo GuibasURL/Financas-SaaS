@@ -1,14 +1,17 @@
-"""Tela "Editar perfil": nome, e-mail, data de nascimento, foto e senha do usuário logado."""
+"""Tela "Editar perfil": nome, e-mail, data de nascimento, foto, senha e exclusão da conta."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dependencies import get_current_user
+from app.models.category import Category
+from app.models.statement import Statement
+from app.models.transaction import Transaction
 from app.models.user import User
 from app.routers.auth import login_limiter
-from app.schemas.user import PasswordChange, ProfileUpdate, Token, UserOut
+from app.schemas.user import AccountDelete, PasswordChange, ProfileUpdate, Token, UserOut
 from app.services.password_policy import weak_password_message
 from app.services.security import create_access_token, hash_password, verify_password
 
@@ -123,3 +126,29 @@ def change_password(
     user.password_changed_at = now
     db.commit()
     return Token(access_token=create_access_token(user.id, issued_at=now))
+
+
+@router.delete("", status_code=204, response_class=Response)
+def delete_account(
+    payload: AccountDelete,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Exclui a conta e todos os dados dela (extratos, transações, categorias e
+    foto). Não tem volta. Pede a senha atual, como a troca de e-mail e senha.
+    """
+    _check_current_password(request, user, payload.password, "Digite sua senha para excluir a conta")
+
+    # Apaga explicitamente, filhos antes dos pais: o SQLite não aplica o
+    # ON DELETE CASCADE das chaves estrangeiras sem ligar o PRAGMA foreign_keys
+    statement_ids = db.query(Statement.id).filter(Statement.user_id == user.id)
+    db.query(Transaction).filter(Transaction.statement_id.in_(statement_ids.scalar_subquery())).delete(
+        synchronize_session=False
+    )
+    db.query(Statement).filter(Statement.user_id == user.id).delete(synchronize_session=False)
+    db.query(Category).filter(Category.user_id == user.id).delete(synchronize_session=False)
+    db.delete(user)
+    db.commit()
+    return Response(status_code=204)

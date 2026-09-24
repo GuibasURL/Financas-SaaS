@@ -79,6 +79,12 @@ function AuthenticatedApp() {
                 <ProfilePage
                   user={auth.user}
                   onUserChange={(user) => setAuth({ status: "authenticated", user })}
+                  onAccountDeleted={() =>
+                    setAuth({
+                      status: "anonymous",
+                      notice: "Sua conta foi excluída, junto com todos os seus dados.",
+                    })
+                  }
                 />
               }
             />

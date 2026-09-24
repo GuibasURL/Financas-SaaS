@@ -117,6 +117,11 @@ class PasswordChange(BaseModel):
         return value
 
 
+class AccountDelete(BaseModel):
+    # Senha atual: confirma que é o dono da conta, e não alguém com o computador aberto
+    password: str
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
