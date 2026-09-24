@@ -21,7 +21,7 @@ def _parse_fixture(name: str):
     [
         ("nubank_conta.csv", "nubank_conta", 13),
         ("nubank_cartao.csv", "nubank_cartao", 12),
-        ("nubank_cartao_2026.csv", "nubank_cartao", 13),
+        ("nubank_cartao_2026.csv", "nubank_cartao", 14),
         ("itau.csv", "itau", 11),
         ("inter.csv", "inter", 11),
         ("bradesco.csv", "bradesco", 11),

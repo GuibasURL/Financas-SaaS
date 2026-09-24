@@ -35,9 +35,13 @@ class DefaultCategory(NamedTuple):
 
 
 DEFAULT_CATEGORIES: tuple[DefaultCategory, ...] = (
+    # Dinheiro que só passa do cartão para a conta (e volta): o gasto de verdade
+    # já aparece nas compras. "Limite convertido em saldo" (Nubank) leva limite
+    # do cartão para a conta, onde ele é gasto depois: contaria duas vezes.
     DefaultCategory(
         "Pagamento de fatura",
-        "pagamento de fatura,pagamento recebido,pgto fatura,pagto fatura,fatura picpay",
+        "pagamento de fatura,pagamento recebido,pgto fatura,pagto fatura,fatura picpay,"
+        "limite convertido",
         ignore_in_reports=True,
     ),
     # Só entradas: dinheiro de volta de uma compra não é renda nem gasto novo
