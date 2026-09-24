@@ -21,6 +21,7 @@ def _parse_fixture(name: str):
     [
         ("nubank_conta.csv", "nubank_conta", 13),
         ("nubank_cartao.csv", "nubank_cartao", 12),
+        ("nubank_cartao_2026.csv", "nubank_cartao", 13),
         ("itau.csv", "itau", 11),
         ("inter.csv", "inter", 11),
         ("bradesco.csv", "bradesco", 11),
@@ -67,6 +68,21 @@ def test_fatura_de_cartao_inverte_o_sinal():
     assert by_description["Celular Novo"] == Decimal("-1500.00")  # compra = saída
     assert by_description["Pagamento recebido"] == Decimal("1000.00")
     assert by_description["Estorno Padaria São João"] == Decimal("35.50")
+
+
+def test_fatura_nubank_2026_com_virgula_decimal():
+    # Formato da fatura baixada em 2026 (conferido com uma fatura real):
+    # sem a coluna category, valor entre aspas com vírgula e "- " no pagamento
+    transactions = _parse_fixture("nubank_cartao_2026.csv").transactions
+    by_description = {t["description"]: t["amount"] for t in transactions}
+
+    assert by_description["Padaria Pao Quente"] == Decimal("-18.40")
+    assert by_description["Pagamento recebido"] == Decimal("385.58")  # "- 385,58"
+    assert by_description["Estorno de Uber* Trip"] == Decimal("23.90")
+    assert by_description["Notebook Loja X - 2/10"] == Decimal("-1249.90")  # "1.249,90"
+    # A parcela fica na descrição: a de cada mês é um lançamento diferente
+    assert "Mercado*Mercadolivre - Parcela 7/8" in by_description
+    assert transactions[0]["date"] == date(2026, 2, 28)
 
 
 def test_itau_pula_cabecalho_e_le_valor_com_milhar():

@@ -65,6 +65,9 @@ def _category_of(description: str, amount: float = -10.0):
         ("CINEMARK SHOPPING", "Lazer"),
         ("STEAM PURCHASE", "Lazer"),
         ("SHOPEE BRASIL", "Compras"),
+        ("LOJAS RIACHUELO - 1/3", "Compras"),  # fatura Nubank: parcela no fim
+        ("RENNER SHOPPING", "Compras"),
+        ("RD SAUDE - 3/3", "Saúde"),  # Raia Drogasil na fatura do Nubank
         ("TARIFA MENSAL", "Tarifas bancárias"),
         ("IOF COMPRA INTERNACIONAL", "Tarifas bancárias"),
         ("PAGAMENTO DE FATURA NUBANK", "Pagamento de fatura"),

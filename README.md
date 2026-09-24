@@ -232,7 +232,7 @@ O banco é reconhecido pelo cabeçalho do CSV:
 | Banco | Particularidades tratadas |
 |---|---|
 | Nubank (conta) | `Data,Valor,Identificador,Descrição` |
-| Nubank (fatura do cartão) | `date,title,amount`; compra vem positiva e é convertida em saída |
+| Nubank (fatura do cartão) | `date,title,amount`; compra vem positiva e é convertida em saída; valor `"20,60"` ou `20.60`, pagamento `"- 385,58"`; parcela fica na descrição (`- 1/3`) |
 | Itaú | `;`, valores `1.234,56`, linhas de cabeçalho antes da tabela |
 | Banco Inter | `;`, descrição = Histórico + Descrição |
 | Bradesco | `;`, crédito e débito em colunas separadas |
@@ -242,7 +242,7 @@ O banco é reconhecido pelo cabeçalho do CSV:
 
 Em todos: linhas de saldo (`SALDO ANTERIOR`, `SALDO DO DIA`, `S A L D O`...) e linhas em branco são ignoradas, e arquivos em UTF-8 (com ou sem BOM) ou Windows-1252 são aceitos. Datas em `dd/mm/aaaa` ou `aaaa-mm-dd`.
 
-> ⚠️ O formato do **PicPay** foi conferido com um extrato real (o exemplo em `backend/tests/fixtures/extratos/picpay.csv` tem a mesma estrutura, com dados fictícios). Os dos outros bancos foram montados a partir de exemplos gerados por IA (`backend/tests/fixtures/extratos/`), não de extratos reais. Se o extrato do seu banco não for reconhecido ou vier com valores errados, ajuste o formato dele em `FORMATS` (`backend/app/services/csv_parser.py`) e troque o arquivo de exemplo por um real, com os dados anonimizados.
+> ⚠️ Os formatos do **PicPay** e da **fatura do Nubank** foram conferidos com extratos reais (os exemplos `picpay.csv` e `nubank_cartao_2026.csv`, em `backend/tests/fixtures/extratos/`, têm a mesma estrutura, com dados fictícios). Os dos outros bancos foram montados a partir de exemplos gerados por IA (`backend/tests/fixtures/extratos/`), não de extratos reais. Se o extrato do seu banco não for reconhecido ou vier com valores errados, ajuste o formato dele em `FORMATS` (`backend/app/services/csv_parser.py`) e troque o arquivo de exemplo por um real, com os dados anonimizados.
 
 Formato genérico, para montar um CSV à mão:
 
