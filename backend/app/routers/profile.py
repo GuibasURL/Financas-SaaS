@@ -13,6 +13,7 @@ from app.models.user import User
 from app.routers.auth import login_limiter
 from app.schemas.user import AccountDelete, PasswordChange, ProfileUpdate, Token, UserOut
 from app.services.password_policy import weak_password_message
+from app.services.password_reset import delete_reset_tokens
 from app.services.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth/me", tags=["perfil"])
@@ -124,6 +125,8 @@ def change_password(
     now = datetime.now(timezone.utc)
     user.hashed_password = hash_password(payload.new_password)
     user.password_changed_at = now
+    # Um link de "Esqueceu a senha?" pedido antes deixa de valer
+    delete_reset_tokens(db, user.id)
     db.commit()
     return Token(access_token=create_access_token(user.id, issued_at=now))
 
@@ -149,6 +152,7 @@ def delete_account(
     )
     db.query(Statement).filter(Statement.user_id == user.id).delete(synchronize_session=False)
     db.query(Category).filter(Category.user_id == user.id).delete(synchronize_session=False)
+    delete_reset_tokens(db, user.id)
     db.delete(user)
     db.commit()
     return Response(status_code=204)

@@ -29,6 +29,10 @@ interface FakeDb {
   nextId: number;
   // Tokens aceitos -> id do usuário (apagar um token simula expiração)
   tokens: Map<string, number>;
+  // Links de "Esqueceu a senha?" válidos -> id do usuário
+  resetTokens: Map<string, number>;
+  // E-mails que pediram o link (com ou sem conta)
+  resetRequests: string[];
 }
 
 export let db: FakeDb;
@@ -37,7 +41,16 @@ export let lastReportQuery: URLSearchParams | null = null;
 
 export function resetDb() {
   lastReportQuery = null;
-  db = { users: [], categories: [], statements: [], transactions: [], nextId: 1, tokens: new Map() };
+  db = {
+    users: [],
+    categories: [],
+    statements: [],
+    transactions: [],
+    nextId: 1,
+    tokens: new Map(),
+    resetTokens: new Map(),
+    resetRequests: [],
+  };
 }
 resetDb();
 
@@ -58,6 +71,13 @@ export function loginAs(user: FakeUser): string {
   const token = `token-${user.id}-${nextId()}`;
   db.tokens.set(token, user.id);
   localStorage.setItem("financas.token", token);
+  return token;
+}
+
+/** Cria um link de "Esqueceu a senha?" válido para o usuário (o que iria no e-mail). */
+export function issueResetToken(user: FakeUser): string {
+  const token = `reset-${user.id}-${nextId()}`;
+  db.resetTokens.set(token, user.id);
   return token;
 }
 
@@ -171,6 +191,35 @@ export const handlers = [
     const token = `token-${user.id}-${nextId()}`;
     db.tokens.set(token, user.id);
     return HttpResponse.json({ access_token: token, token_type: "bearer" });
+  }),
+
+  http.post(`${API}/auth/forgot-password`, async ({ request }) => {
+    const { email } = (await request.json()) as { email: string };
+    const normalized = email.trim().toLowerCase();
+    db.resetRequests.push(normalized);
+    const user = db.users.find((u) => u.email === normalized);
+    if (user) issueResetToken(user);
+    // Como no backend: mesma resposta com ou sem conta
+    return HttpResponse.json({
+      message: "Se houver uma conta com esse e-mail, enviamos um link para criar uma senha nova.",
+    });
+  }),
+
+  http.post(`${API}/auth/reset-password`, async ({ request }) => {
+    const { token, new_password } = (await request.json()) as { token: string; new_password: string };
+    const userId = db.resetTokens.get(token);
+    const user = db.users.find((u) => u.id === userId);
+    if (!user) {
+      return HttpResponse.json(
+        { detail: 'Este link é inválido ou já expirou. Peça um novo em "Esqueceu a senha?".' },
+        { status: 400 }
+      );
+    }
+    user.password = new_password;
+    // Link de uso único; as sessões abertas caem
+    for (const [t, id] of db.resetTokens) if (id === user.id) db.resetTokens.delete(t);
+    for (const [t, id] of db.tokens) if (id === user.id) db.tokens.delete(t);
+    return HttpResponse.json({ message: "Senha redefinida. Entre com a senha nova." });
   }),
 
   http.get(`${API}/auth/me`, ({ request }) => {

@@ -194,6 +194,29 @@
   background: rgba(251, 77, 107, 0.11);
 }
 
+/* Aviso verde (link enviado) */
+.success {
+  border-color: rgba(70, 214, 160, 0.4);
+  color: #a9f0d3;
+  background: rgba(70, 214, 160, 0.09);
+}
+
+/* "Esqueceu a senha?" à direita, embaixo do campo de senha */
+.forgotLink {
+  display: block;
+  margin: 8px 0 0 auto;
+  padding: 0;
+  border: 0;
+  color: var(--cyan);
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.forgotLink:hover {
+  text-decoration: underline;
+}
+
 .label {
   display: block;
   margin: 16px 0 6px;
@@ -259,26 +282,6 @@
 }
 .switch button:hover {
   text-decoration: underline;
-}
-
-.demo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 21px 0 0;
-  padding-top: 16px;
-  border-top: 1px solid rgba(234, 243, 248, 0.1);
-  color: var(--muted);
-  font-size: 12px;
-}
-.demo::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--amber);
-  box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.14);
 }
 
 /* ---------- Responsivo ---------- */

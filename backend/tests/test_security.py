@@ -28,6 +28,9 @@ PUBLIC_ROUTES = {
     ("GET", "/"),
     ("POST", "/auth/register"),
     ("POST", "/auth/login"),
+    # "Esqueceu a senha?": públicas de propósito (a pessoa não consegue entrar)
+    ("POST", "/auth/forgot-password"),
+    ("POST", "/auth/reset-password"),
 }
 
 # Toda rota da API, revisada quanto ao isolamento entre usuários. Criou uma

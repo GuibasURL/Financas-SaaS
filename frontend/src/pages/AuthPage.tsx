@@ -4,12 +4,19 @@ import type { User } from "../types/user";
 import Logo from "../components/Logo";
 import { PasswordField, PasswordMatch, PasswordStrengthMeter } from "../components/PasswordInputs";
 import { weakPasswordMessage } from "../utils/passwordStrength";
+import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordRecovery";
 import styles from "./AuthPage.module.css";
 
 interface Props {
   onAuthenticated: (user: User) => void;
   // Mensagem mostrada acima do formulário (ex: sessão expirada)
   notice?: string | null;
+  // Código do link "Esqueceu a senha?" (aberto em /redefinir-senha)
+  resetToken?: string | null;
+  // Senha redefinida pelo link
+  onResetDone?: () => void;
+  // Saiu da tela de senha nova sem redefinir
+  onResetClosed?: () => void;
 }
 
 type Mode = "login" | "register";
@@ -32,8 +39,16 @@ const HEADINGS: Record<Mode, { eyebrow: string; title: string; subtitle: string 
   },
 };
 
-export default function AuthPage({ onAuthenticated, notice }: Props) {
+export default function AuthPage({
+  onAuthenticated,
+  notice,
+  resetToken,
+  onResetDone,
+  onResetClosed,
+}: Props) {
   const [mode, setMode] = useState<Mode>("login");
+  // Tela de "Esqueceu a senha?" no lugar do login
+  const [forgot, setForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -141,116 +156,143 @@ export default function AuthPage({ onAuthenticated, notice }: Props) {
         </section>
 
         <section className={styles.card}>
-          <div className={styles.tabs} role="tablist" aria-label="Acesso">
-            {MODES.map(({ mode: tabMode, label }) => (
-              <button
-                key={tabMode}
-                id={`auth-tab-${tabMode}`}
-                type="button"
-                role="tab"
-                aria-selected={mode === tabMode}
-                aria-controls="auth-panel"
-                tabIndex={mode === tabMode ? 0 : -1}
-                className={`${styles.tab} ${mode === tabMode ? styles.tabActive : ""}`}
-                onClick={() => changeMode(tabMode)}
-                onKeyDown={handleTabKeyDown}
-                disabled={submitting}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {resetToken ? (
+            <ResetPasswordForm
+              token={resetToken}
+              onDone={() => onResetDone?.()}
+              onRequestNewLink={() => {
+                onResetClosed?.();
+                setForgot(true);
+              }}
+              onBack={() => onResetClosed?.()}
+            />
+          ) : forgot ? (
+            <ForgotPasswordForm initialEmail={email} onBack={() => setForgot(false)} />
+          ) : (
+            <>
+              <div className={styles.tabs} role="tablist" aria-label="Acesso">
+                {MODES.map(({ mode: tabMode, label }) => (
+                  <button
+                    key={tabMode}
+                    id={`auth-tab-${tabMode}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === tabMode}
+                    aria-controls="auth-panel"
+                    tabIndex={mode === tabMode ? 0 : -1}
+                    className={`${styles.tab} ${mode === tabMode ? styles.tabActive : ""}`}
+                    onClick={() => changeMode(tabMode)}
+                    onKeyDown={handleTabKeyDown}
+                    disabled={submitting}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-          <div id="auth-panel" role="tabpanel" aria-labelledby={`auth-tab-${mode}`}>
-            <div className={styles.heading}>
-              <p className={styles.eyebrow}>{heading.eyebrow}</p>
-              <h2>{heading.title}</h2>
-              <p>{heading.subtitle}</p>
-            </div>
+              <div id="auth-panel" role="tabpanel" aria-labelledby={`auth-tab-${mode}`}>
+                <div className={styles.heading}>
+                  <p className={styles.eyebrow}>{heading.eyebrow}</p>
+                  <h2>{heading.title}</h2>
+                  <p>{heading.subtitle}</p>
+                </div>
 
-            {notice && (
-              <p className={styles.notice} role="status">
-                {notice}
-              </p>
-            )}
-            {error && (
-              <p className={`${styles.notice} ${styles.error}`} role="alert">
-                {error}
-              </p>
-            )}
+                {notice && (
+                  <p className={styles.notice} role="status">
+                    {notice}
+                  </p>
+                )}
+                {error && (
+                  <p className={`${styles.notice} ${styles.error}`} role="alert">
+                    {error}
+                  </p>
+                )}
 
-            <form onSubmit={handleSubmit}>
-              <label className={styles.label} htmlFor="auth-email">
-                E-mail
-              </label>
-              <input
-                id="auth-email"
-                className={styles.field}
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@email.com"
-                autoComplete="email"
-                required
-              />
+                <form onSubmit={handleSubmit}>
+                  <label className={styles.label} htmlFor="auth-email">
+                    E-mail
+                  </label>
+                  <input
+                    id="auth-email"
+                    className={styles.field}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="voce@email.com"
+                    autoComplete="email"
+                    required
+                  />
 
-              <label className={styles.label} htmlFor="auth-password">
-                Senha
-              </label>
-              <PasswordField
-                id="auth-password"
-                inputClassName={styles.field}
-                value={password}
-                onChange={setPassword}
-                toggleLabel="Mostrar senha"
-                visible={showPassword}
-                onToggle={() => setShowPassword(!showPassword)}
-                placeholder={isRegister ? "Mínimo 8 caracteres" : "Digite sua senha"}
-                autoComplete={isRegister ? "new-password" : "current-password"}
-                minLength={isRegister ? 8 : undefined}
-                describedBy={isRegister ? "password-strength password-requirements" : undefined}
-              />
-              {isRegister && <PasswordStrengthMeter password={password} email={email} />}
-
-              {isRegister && (
-                <>
-                  <label className={styles.label} htmlFor="auth-password-confirm">
-                    Repetir senha
+                  <label className={styles.label} htmlFor="auth-password">
+                    Senha
                   </label>
                   <PasswordField
-                    id="auth-password-confirm"
+                    id="auth-password"
                     inputClassName={styles.field}
-                    value={passwordConfirm}
-                    onChange={setPasswordConfirm}
-                    toggleLabel="Mostrar a senha repetida"
-                    visible={showPasswordConfirm}
-                    onToggle={() => setShowPasswordConfirm(!showPasswordConfirm)}
-                    placeholder="Digite a senha novamente"
-                    autoComplete="new-password"
-                    describedBy="password-match"
+                    value={password}
+                    onChange={setPassword}
+                    toggleLabel="Mostrar senha"
+                    visible={showPassword}
+                    onToggle={() => setShowPassword(!showPassword)}
+                    placeholder={isRegister ? "Mínimo 8 caracteres" : "Digite sua senha"}
+                    autoComplete={isRegister ? "new-password" : "current-password"}
+                    minLength={isRegister ? 8 : undefined}
+                    describedBy={isRegister ? "password-strength password-requirements" : undefined}
                   />
-                  <PasswordMatch password={password} confirm={passwordConfirm} />
-                </>
-              )}
+                  {isRegister && <PasswordStrengthMeter password={password} email={email} />}
+                  {!isRegister && (
+                    <button
+                      type="button"
+                      className={styles.forgotLink}
+                      onClick={() => {
+                        setError(null);
+                        setForgot(true);
+                      }}
+                      disabled={submitting}
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  )}
 
-              <button className={styles.submit} type="submit" disabled={submitting}>
-                {submitting ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar"}
-              </button>
-            </form>
+                  {isRegister && (
+                    <>
+                      <label className={styles.label} htmlFor="auth-password-confirm">
+                        Repetir senha
+                      </label>
+                      <PasswordField
+                        id="auth-password-confirm"
+                        inputClassName={styles.field}
+                        value={passwordConfirm}
+                        onChange={setPasswordConfirm}
+                        toggleLabel="Mostrar a senha repetida"
+                        visible={showPasswordConfirm}
+                        onToggle={() => setShowPasswordConfirm(!showPasswordConfirm)}
+                        placeholder="Digite a senha novamente"
+                        autoComplete="new-password"
+                        describedBy="password-match"
+                      />
+                      <PasswordMatch password={password} confirm={passwordConfirm} />
+                    </>
+                  )}
 
-            <p className={styles.switch}>
-              {isRegister ? "Já tem uma conta?" : "Ainda não tem conta?"}{" "}
-              <button
-                type="button"
-                onClick={() => changeMode(isRegister ? "login" : "register")}
-                disabled={submitting}
-              >
-                {isRegister ? "Entrar" : "Criar conta"}
-              </button>
-            </p>
-          </div>
+                  <button className={styles.submit} type="submit" disabled={submitting}>
+                    {submitting ? "Aguarde..." : isRegister ? "Criar conta" : "Entrar"}
+                  </button>
+                </form>
 
-          <p className={styles.demo}>Projeto de demonstração: não envie extratos reais.</p>
+                <p className={styles.switch}>
+                  {isRegister ? "Já tem uma conta?" : "Ainda não tem conta?"}{" "}
+                  <button
+                    type="button"
+                    onClick={() => changeMode(isRegister ? "login" : "register")}
+                    disabled={submitting}
+                  >
+                    {isRegister ? "Entrar" : "Criar conta"}
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
         </section>
       </div>
     </main>

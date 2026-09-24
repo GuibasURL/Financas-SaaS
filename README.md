@@ -83,6 +83,17 @@ No cartão **Alterar senha**, logo abaixo do perfil: `POST /auth/me/password` co
 - Senha atual errada volta `400` e conta no limite de tentativas de login.
 - **Trocar a senha encerra as outras sessões**: o token guarda quando foi emitido (`iat`), e tokens de antes da troca (`users.password_changed_at`) passam a dar `401`. A resposta traz um token novo, então quem trocou continua logado.
 
+### Esqueceu a senha?
+
+Na tela de login, o link **Esqueceu a senha?** (embaixo do campo de senha) pede o e-mail e manda um link para criar uma senha nova.
+
+- `POST /auth/forgot-password` com `{"email"}`: a resposta é sempre a mesma, com ou sem conta no e-mail, e o e-mail sai em segundo plano. Assim, nem a mensagem nem o tempo de resposta revelam quem tem cadastro. Limite: 3 pedidos por e-mail e 10 por IP a cada 15 minutos (`429` acima disso).
+- O link (`/redefinir-senha?token=...`) vale **30 minutos** e **uma vez só**. O código é aleatório (256 bits), e o banco guarda só o SHA-256 dele, então quem lesse o banco não conseguiria usar o link. Pedir outro link cancela o anterior; trocar a senha pelo perfil e excluir a conta também.
+- `POST /auth/reset-password` com `{"token", "new_password"}`: mesma regra de senha do cadastro. Redefinir derruba todas as sessões abertas, como a troca pelo perfil.
+- O site tira o código da barra de endereço assim que abre a página, para ele não ficar na tela nem no histórico.
+
+**Envio do e-mail (SMTP):** funciona com qualquer provedor (Gmail com senha de app, Brevo, Resend, SendGrid...). Sem `SMTP_HOST`, nenhum e-mail sai: com o site local, o e-mail inteiro (com o link) aparece no log da API, para testar; com o site publicado, o log só avisa que não enviou, porque um link de redefinição num log de servidor deixaria quem lê o log trocar a senha de qualquer um.
+
 ### Excluir conta
 
 No cartão **Excluir conta**, no fim do perfil: `DELETE /auth/me` com `{"password"}` responde `204` e apaga a conta com tudo o que é dela (extratos, transações, categorias e foto). Não tem volta.
@@ -108,6 +119,9 @@ Configuração (variáveis de ambiente ou `backend/.env`):
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
 - `CORS_ORIGINS`: endereços do frontend que podem chamar a API, separados por vírgula (padrão: `http://localhost:5173`). Em produção, o endereço público do frontend.
 - `APP_TIMEZONE`: fuso dos horários gerados pela API, como o "Gerado em" do relatório (padrão: `America/Sao_Paulo`). Servidores costumam rodar em UTC; sem isso, o horário sairia 3h adiantado. Um nome inválido faz a API recusar subir.
+- `FRONTEND_URL`: endereço do site, usado no link do e-mail de "Esqueceu a senha?" (padrão: o primeiro endereço do `CORS_ORIGINS`)
+- `SMTP_HOST`, `SMTP_PORT` (padrão: 587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` (ex: `Vexira <nao-responda@seudominio.com>`) e `SMTP_SECURITY` (`starttls`, o padrão; `ssl` para a porta 465; `none` só para servidor local de teste): envio de e-mail (veja "Esqueceu a senha?")
+- `PASSWORD_RESET_MINUTES` (padrão: 30), `PASSWORD_RESET_MAX_PER_ACCOUNT` (padrão: 3) e `PASSWORD_RESET_MAX_PER_IP` (padrão: 10): validade do link e limite de pedidos
 - `LOGIN_MAX_FAILURES_PER_ACCOUNT` (padrão: 5), `LOGIN_MAX_FAILURES_PER_IP` (padrão: 30) e `LOGIN_WINDOW_MINUTES` (padrão: 15): limite de tentativas de login erradas (veja abaixo).
 
 ### Limite de tentativas de login
@@ -142,6 +156,7 @@ Nenhum usuário alcança dados de outro: toda consulta filtra pelo dono (extrato
 5. Na hospedagem do frontend, mandar também o header `Content-Security-Policy` com `frame-ancestors 'none'` (não funciona pela `<meta>`) e `X-Frame-Options: DENY`.
 6. Banco Postgres gerenciado, com criptografia em disco e backup automático; senha do banco só em variável de ambiente.
 7. uvicorn com `--proxy-headers` (veja o limite de tentativas acima).
+8. SMTP configurado (`SMTP_HOST` e companhia) e `FRONTEND_URL` com o endereço do site: sem isso, o "Esqueceu a senha?" não manda o link.
 
 ### Riscos que ficam (conhecidos)
 

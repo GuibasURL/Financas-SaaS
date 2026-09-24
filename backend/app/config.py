@@ -101,3 +101,25 @@ APP_TIMEZONE = load_timezone(os.getenv("APP_TIMEZONE"))
 LOGIN_WINDOW_MINUTES = int(os.getenv("LOGIN_WINDOW_MINUTES", 15))
 LOGIN_MAX_FAILURES_PER_ACCOUNT = int(os.getenv("LOGIN_MAX_FAILURES_PER_ACCOUNT", 5))
 LOGIN_MAX_FAILURES_PER_IP = int(os.getenv("LOGIN_MAX_FAILURES_PER_IP", 30))
+
+# ---------- "Esqueceu a senha?" ----------
+
+# Endereço do site, para montar o link do e-mail (padrão: o primeiro do CORS)
+FRONTEND_URL = (os.getenv("FRONTEND_URL") or CORS_ORIGINS[0]).rstrip("/")
+# Validade do link de redefinição
+PASSWORD_RESET_MINUTES = int(os.getenv("PASSWORD_RESET_MINUTES", 30))
+# Pedidos de link por e-mail e por IP, na janela do login (contra quem
+# tenta encher a caixa de alguém ou usar a API para mandar spam)
+PASSWORD_RESET_MAX_PER_ACCOUNT = int(os.getenv("PASSWORD_RESET_MAX_PER_ACCOUNT", 3))
+PASSWORD_RESET_MAX_PER_IP = int(os.getenv("PASSWORD_RESET_MAX_PER_IP", 10))
+
+# Envio de e-mail por SMTP (funciona com qualquer provedor: Gmail, Brevo,
+# Resend, SendGrid...). Sem SMTP_HOST, nenhum e-mail sai: em ambiente local,
+# o link aparece no log da API, para testar.
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "Vexira <nao-responda@vexira.local>")
+# "starttls" (porta 587, o comum), "ssl" (porta 465) ou "none" (servidor local de teste)
+SMTP_SECURITY = os.getenv("SMTP_SECURITY", "starttls")

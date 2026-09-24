@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router";
 import { FinanceDataProvider } from "./data/FinanceData";
 import { FeedbackProvider } from "./feedback/Feedback";
 import AppShell from "./layout/AppShell";
@@ -17,8 +17,28 @@ type AuthState =
   | { status: "anonymous"; notice?: string }
   | { status: "authenticated"; user: User };
 
+// Caminho do link do e-mail de "Esqueceu a senha?"
+export const RESET_PASSWORD_PATH = "/redefinir-senha";
+
+/** Código do link /redefinir-senha?token=... (só lê: quem limpa a URL é o efeito abaixo) */
+function readResetToken(): string | null {
+  if (window.location.pathname !== RESET_PASSWORD_PATH) return null;
+  return new URLSearchParams(window.location.search).get("token") || null;
+}
+
 function AuthenticatedApp() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading" });
+  const [resetToken, setResetToken] = useState<string | null>(readResetToken);
+  const navigate = useNavigate();
+
+  // Tira o código da barra de endereço e do histórico: quem olhar a tela ou o
+  // histórico depois não o vê. (Num efeito, e não ao ler: o StrictMode do
+  // React lê o estado inicial duas vezes, e a segunda já não acharia o código.)
+  useEffect(() => {
+    if (resetToken && window.location.search) {
+      window.history.replaceState(null, "", RESET_PASSWORD_PATH);
+    }
+  }, [resetToken]);
 
   useEffect(() => {
     // Qualquer 401 da API com o usuário logado (ex: token expirou) volta pro login
@@ -41,9 +61,34 @@ function AuthenticatedApp() {
     return () => setUnauthorizedHandler(null);
   }, []);
 
+  function authenticate(user: User) {
+    setAuth({ status: "authenticated", user });
+  }
+
   function handleLogout() {
     clearToken();
     setAuth({ status: "anonymous" });
+  }
+
+  // Link de senha nova: aparece mesmo com alguém logado neste navegador
+  if (resetToken) {
+    return (
+      <AuthPage
+        resetToken={resetToken}
+        onAuthenticated={authenticate}
+        onResetDone={() => {
+          // As sessões antigas caíram na API; esta também
+          clearToken();
+          setResetToken(null);
+          navigate("/", { replace: true });
+          setAuth({ status: "anonymous", notice: "Senha redefinida. Entre com a senha nova." });
+        }}
+        onResetClosed={() => {
+          setResetToken(null);
+          navigate("/", { replace: true });
+        }}
+      />
+    );
   }
 
   if (auth.status === "loading") {
@@ -58,7 +103,7 @@ function AuthenticatedApp() {
     return (
       <AuthPage
         notice={auth.notice}
-        onAuthenticated={(user) => setAuth({ status: "authenticated", user })}
+        onAuthenticated={authenticate}
       />
     );
   }

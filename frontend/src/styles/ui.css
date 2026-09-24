@@ -321,10 +321,3 @@ select.field option {
 .empty p:last-child {
   margin-bottom: 0;
 }
-
-.demo-note {
-  margin-top: 1.5rem;
-  color: var(--muted);
-  font-size: 0.72rem;
-  text-align: center;
-}

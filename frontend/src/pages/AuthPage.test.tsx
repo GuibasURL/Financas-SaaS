@@ -108,10 +108,10 @@ describe("AuthPage", () => {
     );
   });
 
-  it("mostra o aviso de projeto de demonstração", () => {
+  it("não mostra mais o aviso de projeto de demonstração", () => {
     renderAuth();
 
-    expect(screen.getByText("Projeto de demonstração: não envie extratos reais.")).toBeInTheDocument();
+    expect(screen.queryByText(/Projeto de demonstração/)).not.toBeInTheDocument();
   });
 
   describe("mostrar senha (olhinho)", () => {
