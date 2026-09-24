@@ -72,6 +72,8 @@ def _category_of(description: str, amount: float = -10.0):
         ("IOF COMPRA INTERNACIONAL", "Tarifas bancárias"),
         ("PAGAMENTO DE FATURA NUBANK", "Pagamento de fatura"),
         ("Pagamento recebido", "Pagamento de fatura"),
+        # Nubank: limite do cartão que vira saldo na conta (fora dos totais)
+        ("Limite convertido em saldo na sua conta do Nubank - 2/2", "Pagamento de fatura"),
     ],
 )
 def test_descricoes_tipicas(description, expected):

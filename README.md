@@ -292,7 +292,7 @@ Contas novas já nascem com 17 categorias prontas, então o primeiro extrato já
 
 | Categoria | Vale para | Nos gráficos |
 |---|---|---|
-| Pagamento de fatura | entradas e saídas | ignorada |
+| Pagamento de fatura (também o "Limite convertido em saldo" do Nubank, que só leva limite do cartão para a conta) | entradas e saídas | ignorada |
 | Estornos e reembolsos | só entradas | conta |
 | Salário | só entradas | conta |
 | Investimentos (aplicação, resgate, CDB, tesouro, poupança, cofrinho) | entradas e saídas | ignorada |
