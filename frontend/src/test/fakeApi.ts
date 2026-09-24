@@ -210,6 +210,25 @@ export const handlers = [
     return HttpResponse.json(userOut(user));
   }),
 
+  http.delete(`${API}/auth/me`, async ({ request }) => {
+    const user = currentUser(request);
+    if (!user) return unauthorized();
+    const { password } = (await request.json()) as { password: string };
+    if (password !== user.password) {
+      return HttpResponse.json({ detail: "Senha atual incorreta" }, { status: 400 });
+    }
+    const statementIds = new Set(db.statements.map((s) => s.id));
+    // Na API falsa extratos e categorias não têm dono: a conta excluída leva tudo
+    db.transactions = db.transactions.filter((t) => !statementIds.has(t.statement_id));
+    db.statements = [];
+    db.categories = [];
+    db.users = db.users.filter((u) => u.id !== user.id);
+    for (const [token, userId] of db.tokens) {
+      if (userId === user.id) db.tokens.delete(token);
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   http.post(`${API}/auth/me/password`, async ({ request }) => {
     const user = currentUser(request);
     if (!user) return unauthorized();

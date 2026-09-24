@@ -83,6 +83,15 @@ No cartão **Alterar senha**, logo abaixo do perfil: `POST /auth/me/password` co
 - Senha atual errada volta `400` e conta no limite de tentativas de login.
 - **Trocar a senha encerra as outras sessões**: o token guarda quando foi emitido (`iat`), e tokens de antes da troca (`users.password_changed_at`) passam a dar `401`. A resposta traz um token novo, então quem trocou continua logado.
 
+### Excluir conta
+
+No cartão **Excluir conta**, no fim do perfil: `DELETE /auth/me` com `{"password"}` responde `204` e apaga a conta com tudo o que é dela (extratos, transações, categorias e foto). Não tem volta.
+
+- A tela pede duas etapas: o botão "Excluir minha conta" e, depois, a senha e a caixa "Entendo que... serão apagados para sempre". O botão final só libera com as duas.
+- Senha errada volta `400` e conta no limite de tentativas de login.
+- Depois de excluir, o token deixa de valer, o app volta para a tela de entrada com o aviso, e o e-mail fica livre para um cadastro novo, que começa do zero.
+- A exclusão apaga as tabelas explicitamente (transações, extratos, categorias, usuário), sem depender do `ON DELETE CASCADE`, que o SQLite só aplica com `PRAGMA foreign_keys` ligado.
+
 No Swagger (`/docs`), o botão **Authorize** faz o login e passa o token automaticamente.
 
 Para criar um usuário pelo terminal (de dentro de `backend/`, com o venv ativado):

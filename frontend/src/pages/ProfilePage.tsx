@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Avatar from "../components/Avatar";
 import ChangePassword from "../components/ChangePassword";
+import DeleteAccount from "../components/DeleteAccount";
 import Icon from "../components/Icon";
 import { useFeedback } from "../feedback/Feedback";
 import { apiErrorMessage, deleteAvatar, updateProfile, uploadAvatar } from "../services/api";
@@ -17,6 +18,8 @@ interface Props {
   user: User;
   // Avisa o App do usuário atualizado (menu lateral, próximas telas)
   onUserChange: (user: User) => void;
+  // Conta excluída: o App volta para a tela de entrada
+  onAccountDeleted: () => void;
 }
 
 // A foto só vai para a API ao salvar: até lá é uma prévia
@@ -43,7 +46,7 @@ function todayISO(): string {
   return `${now.getFullYear()}-${month}-${day}`;
 }
 
-export default function ProfilePage({ user, onUserChange }: Props) {
+export default function ProfilePage({ user, onUserChange, onAccountDeleted }: Props) {
   const { toast } = useFeedback();
   const [form, setForm] = useState<FormState>(() => formFromUser(user));
   const [photo, setPhoto] = useState<PhotoChange>({ kind: "keep" });
@@ -292,6 +295,7 @@ export default function ProfilePage({ user, onUserChange }: Props) {
       </form>
 
       <ChangePassword email={user.email} />
+      <DeleteAccount onDeleted={onAccountDeleted} />
     </>
   );
 }

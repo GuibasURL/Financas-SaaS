@@ -138,6 +138,12 @@ export async function changePassword(currentPassword: string, newPassword: strin
   setToken(data.access_token);
 }
 
+/** Exclui a conta e todos os dados dela. Sem volta: o token também deixa de valer. */
+export async function deleteAccount(password: string): Promise<void> {
+  await api.delete("/auth/me", { data: { password } });
+  clearToken();
+}
+
 export async function deleteAvatar(): Promise<User> {
   const { data } = await api.delete<User>("/auth/me/avatar");
   return data;
