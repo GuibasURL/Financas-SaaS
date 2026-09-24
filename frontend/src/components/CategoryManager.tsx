@@ -556,7 +556,11 @@ function CategoryRow({ category, color, stats, busy, onEdit, onDelete }: RowProp
         <div className={styles.meta}>
           {formatCount(stats.count, "transação", "transações")}
           {stats.count > 0 && (
-            <span className={`amount ${styles.total} ${stats.total > 0 ? "in" : ""}`}>
+            <span
+              className={`amount ${styles.total} ${
+                category.ignore_in_reports ? styles.totalIgnored : stats.total > 0 ? "in" : ""
+              }`}
+            >
               {formatSignedMoney(stats.total)}
             </span>
           )}

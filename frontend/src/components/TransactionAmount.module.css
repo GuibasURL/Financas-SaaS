@@ -1,0 +1,14 @@
+/* Fora dos totais: cinza (nem verde de entrada, nem vermelho de saída) */
+.ignored {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  color: var(--muted);
+  opacity: 0.8;
+}
+.note {
+  margin-top: 0.15rem;
+  font-family: var(--font-body);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+}

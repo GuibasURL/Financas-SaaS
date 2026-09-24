@@ -28,7 +28,7 @@
   min-width: 11rem;
 }
 
-.value:global(.out) {
+.value :global(.out) {
   color: var(--expense);
 }
 
