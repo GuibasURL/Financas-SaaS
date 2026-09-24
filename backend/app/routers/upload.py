@@ -15,6 +15,10 @@ from app.schemas.transaction import TransactionOut
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
+# Extrato de um ano inteiro em CSV/OFX tem poucas centenas de KB; o limite
+# barra arquivos gigantes que só serviriam para travar a API
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
 
 @router.post("", response_model=list[TransactionOut])
 def upload_csv(
@@ -36,7 +40,9 @@ def upload_csv(
     if not (file.filename or "").lower().endswith((".csv", ".ofx")):
         raise HTTPException(status_code=400, detail="Envie um arquivo .csv ou .ofx")
 
-    file_bytes = file.file.read()
+    file_bytes = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(file_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="O arquivo pode ter no máximo 5 MB")
 
     try:
         parsed = parse_csv(file_bytes)

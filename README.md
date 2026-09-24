@@ -104,7 +104,7 @@ A senha é pedida no terminal. Extratos e categorias que já existiam antes da a
 
 Configuração (variáveis de ambiente ou `backend/.env`):
 
-- `SECRET_KEY`: chave que assina os tokens (mínimo 32 bytes). Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Sem ela, a API sobe com uma chave de desenvolvimento que está no código (e avisa no log): serve para rodar local, mas **nunca publique a API assim**, porque qualquer um conseguiria forjar tokens. Uma chave com menos de 32 bytes faz a API recusar subir.
+- `SECRET_KEY`: chave que assina os tokens (mínimo 32 bytes). Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Sem ela, a API sobe com uma chave de desenvolvimento que está no código (e avisa no log): serve para rodar local, mas **nunca publique a API assim**, porque qualquer um conseguiria forjar tokens. Por isso, se o `CORS_ORIGINS` tiver um endereço público (qualquer um que não seja localhost), a API **se recusa a subir** sem uma `SECRET_KEY` própria. Uma chave com menos de 32 bytes também faz a API recusar subir.
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
 - `CORS_ORIGINS`: endereços do frontend que podem chamar a API, separados por vírgula (padrão: `http://localhost:5173`). Em produção, o endereço público do frontend.
 - `APP_TIMEZONE`: fuso dos horários gerados pela API, como o "Gerado em" do relatório (padrão: `America/Sao_Paulo`). Servidores costumam rodar em UTC; sem isso, o horário sairia 3h adiantado. Um nome inválido faz a API recusar subir.
@@ -119,6 +119,35 @@ Para dificultar quem tenta adivinhar senhas, o login conta as tentativas erradas
 - A contagem fica na memória da API: zera quando ela reinicia e vale só para uma instância (o suficiente para este projeto; com várias instâncias, ela precisaria ir para um lugar compartilhado, como o Redis).
 
 > ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API só enxerga o IP real de quem acessa se o uvicorn rodar com `--proxy-headers --forwarded-allow-ips="*"` (ou o IP do proxy). Sem isso, todo mundo parece vir do IP do proxy e 30 erros de pessoas diferentes bloqueariam o login de todos.
+
+## Segurança
+
+Nenhum usuário alcança dados de outro: toda consulta filtra pelo dono (extratos e categorias têm `user_id`; transações pertencem ao extrato), e um id de outro usuário responde `404` igual a um inexistente, sem revelar nem que ele existe. O `tests/test_security.py` garante isso:
+
+- **Inventário de rotas:** toda rota exige login, menos `/`, `/auth/register` e `/auth/login`. Uma rota nova faz o teste falhar até entrar na lista revisada, depois de conferir o isolamento.
+- **Ataque entre usuários:** B tenta ler, filtrar pelos ids de A, alterar, apagar, usar a categoria de A, rodar ações em massa, reenviar o extrato de A, trocar a senha e excluir a própria conta. No fim, tudo o que A vê (perfil, transações, categorias, extratos, gráficos, relatório) continua idêntico.
+- **Token:** assinado com HS256 e algoritmo fixo. Token com outra chave, sem assinatura (`alg: none`) ou com o usuário trocado na mão dá `401`. Trocar a senha derruba os tokens antigos, e excluir a conta também.
+- **Senha:** bcrypt, nunca devolvida; limite de tentativas no login, na troca de e-mail, na troca de senha e na exclusão da conta. O login leva o mesmo tempo para e-mail inexistente e senha errada, para não revelar quem tem conta.
+- **Planilha:** descrições que começam com `=` (uma mensagem de Pix pode trazer `=WEBSERVICE(...)`) são gravadas como texto, nunca como fórmula: abrir o relatório não executa nada.
+- **Cabeçalhos da API:** `Cache-Control: no-store` (dados financeiros não ficam em cache), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, CSP `default-src 'none'` e, em HTTPS, `Strict-Transport-Security`.
+- **Site:** o build publica uma Content-Security-Policy que só deixa rodar scripts do próprio site e só conversa com a API (`VITE_API_URL`). Um texto malicioso não conseguiria carregar código de fora nem mandar o token para outro endereço.
+- **Uploads:** extrato até 5 MB (`413` acima disso); foto até 1 MB, com o tipo conferido pelos bytes.
+
+### Checklist obrigatório do deploy
+
+1. `SECRET_KEY` própria e secreta (a API não sobe sem ela com frontend público).
+2. **HTTPS** no frontend e na API (a hospedagem costuma dar de graça). Sem HTTPS, senha e token trafegam abertos.
+3. `CORS_ORIGINS` só com o endereço do frontend publicado.
+4. `VITE_API_URL` apontando para a API no build do frontend (vai para a CSP).
+5. Na hospedagem do frontend, mandar também o header `Content-Security-Policy` com `frame-ancestors 'none'` (não funciona pela `<meta>`) e `X-Frame-Options: DENY`.
+6. Banco Postgres gerenciado, com criptografia em disco e backup automático; senha do banco só em variável de ambiente.
+7. uvicorn com `--proxy-headers` (veja o limite de tentativas acima).
+
+### Riscos que ficam (conhecidos)
+
+- O cadastro responde "E-mail já cadastrado", então dá para descobrir se um e-mail tem conta (não os dados dela). Fechar isso exige confirmar o e-mail por mensagem, ainda sem envio de e-mail no projeto.
+- O token de login fica no `localStorage`. A CSP reduz muito o risco de roubo; a alternativa mais forte é um cookie `HttpOnly`, que muda o login e o CORS.
+- Não há verificação em duas etapas (2FA).
 
 ## Testes do backend
 

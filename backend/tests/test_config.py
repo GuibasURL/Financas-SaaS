@@ -5,6 +5,7 @@ import pytest
 from app.config import (
     DEV_SECRET_KEY,
     MIN_SECRET_KEY_BYTES,
+    is_public_origin,
     load_secret_key,
     load_timezone,
     parse_cors_origins,
@@ -26,6 +27,39 @@ def test_sem_secret_key_usa_chave_de_dev_e_avisa(value, caplog):
 def test_secret_key_curta_demais_e_recusada():
     with pytest.raises(ValueError, match="pelo menos 32 bytes"):
         load_secret_key("curta")
+
+
+@pytest.mark.parametrize(
+    "origin, public",
+    [
+        ("http://localhost:5173", False),
+        ("http://127.0.0.1:5173", False),
+        ("http://[::1]:5173", False),
+        ("http://LOCALHOST", False),
+        ("https://vexira.com.br", True),
+        ("https://app.vexira.com.br:8443", True),
+        ("http://192.168.0.10:5173", True),  # outro aparelho da rede já é "publicado"
+    ],
+)
+def test_origem_publica(origin, public):
+    assert is_public_origin(origin) is public
+
+
+@pytest.mark.parametrize("value", [None, "", DEV_SECRET_KEY])
+def test_frontend_publico_sem_chave_propria_nao_sobe(value):
+    # Com a chave de desenvolvimento (pública no código), qualquer um forjaria logins
+    with pytest.raises(ValueError, match="SECRET_KEY é obrigatória com o frontend público"):
+        load_secret_key(value, ["http://localhost:5173", "https://vexira.com.br"])
+
+
+def test_frontend_publico_com_chave_propria_sobe():
+    key = "k" * MIN_SECRET_KEY_BYTES
+
+    assert load_secret_key(key, ["https://vexira.com.br"]) == key
+
+
+def test_so_localhost_continua_aceitando_a_chave_de_dev():
+    assert load_secret_key(None, ["http://localhost:5173"]) == DEV_SECRET_KEY
 
 
 def test_secret_key_valida_e_usada_sem_aviso(caplog):
