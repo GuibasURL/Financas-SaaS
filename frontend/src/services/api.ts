@@ -82,6 +82,8 @@ api.interceptors.response.use(
 export function apiErrorMessage(error: unknown, fallback: string): string {
   const detail = (error as any)?.response?.data?.detail;
   if (typeof detail === "string") return detail;
+  // Erros com dados extras (ex: extrato repetido) trazem a mensagem em "message"
+  if (typeof detail?.message === "string") return detail.message;
   if (Array.isArray(detail)) {
     return detail
       .map((d) => String(d?.msg ?? "").replace(/^Value error, /, ""))
@@ -143,10 +145,37 @@ export async function deleteAvatar(): Promise<User> {
 
 // ---------- Dados ----------
 
-export async function uploadCSV(file: File): Promise<Transaction[]> {
+/** O que fazer com transações que já foram importadas antes */
+export type DuplicatesMode = "skip" | "keep";
+
+/** Corpo do 409 do upload quando o extrato tem transações já importadas */
+export interface DuplicatesInfo {
+  code: "duplicates";
+  message: string;
+  duplicates: number;
+  total: number;
+  statements: string[];
+}
+
+/** O erro é o aviso de extrato repetido? Devolve os números dele, ou null. */
+export function duplicatesInfo(error: unknown): DuplicatesInfo | null {
+  const response = (error as any)?.response;
+  const detail = response?.data?.detail;
+  return response?.status === 409 && detail?.code === "duplicates" ? detail : null;
+}
+
+/**
+ * Envia o extrato. Sem `duplicates`, a API recusa (409) se houver transações
+ * já importadas; com "skip" importa só as novas, com "keep" importa tudo.
+ */
+export async function uploadCSV(file: File, duplicates?: DuplicatesMode): Promise<Transaction[]> {
   const formData = new FormData();
   formData.append("file", file);
-  const { data } = await api.post<Transaction[]>("/upload", formData);
+  const { data } = await api.post<Transaction[]>(
+    "/upload",
+    formData,
+    duplicates ? { params: { duplicates } } : undefined
+  );
   return data;
 }
 

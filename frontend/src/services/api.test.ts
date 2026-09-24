@@ -27,6 +27,12 @@ describe("apiErrorMessage", () => {
     );
   });
 
+  it("usa o message quando o detail é um objeto (ex: extrato repetido)", () => {
+    const detail = { code: "duplicates", message: "Este extrato já foi importado.", duplicates: 2 };
+
+    expect(apiErrorMessage(withDetail(detail), "x")).toBe("Este extrato já foi importado.");
+  });
+
   it("usa a mensagem padrão quando não há resposta da API", () => {
     expect(apiErrorMessage(new Error("Network Error"), "Falhou")).toBe("Falhou");
   });

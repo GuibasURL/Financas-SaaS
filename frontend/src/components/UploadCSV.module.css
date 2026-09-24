@@ -93,3 +93,31 @@
   color: var(--muted);
   font-size: 0.68rem;
 }
+
+/* "Extrato já importado": aviso em âmbar com as opções */
+.duplicates.duplicates {
+  margin: 0.9rem 0 0;
+  border-color: rgba(245, 165, 36, 0.45);
+  color: var(--text);
+  background: rgba(245, 165, 36, 0.08);
+}
+.duplicates > svg {
+  color: var(--amber);
+}
+.duplicates p {
+  margin: 0.25rem 0 0;
+}
+.duplicatesHint {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.duplicatesActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+/* .notice .btn empurra o botão para a direita; aqui ficam lado a lado */
+.duplicates .duplicatesActions :global(.btn) {
+  margin-left: 0;
+}

@@ -401,9 +401,44 @@ export const handlers = [
       if (!/\.(csv|ofx)$/i.test(file.name)) {
         return HttpResponse.json({ detail: "Envie um arquivo .csv ou .ofx" }, { status: 400 });
       }
-      const statement = addStatement(file.name, [
-        { date: "2025-05-01", description: "IMPORTADO", amount: -10 },
-      ]);
+      // Lê linhas "data,descricao,valor"; arquivo sem linhas vira uma transação fixa
+      let rows = (await file.text())
+        .split("\n")
+        .slice(1)
+        .filter(Boolean)
+        .map((line) => {
+          const [date, description, amount] = line.split(",");
+          return { date, description, amount: Number(amount) };
+        });
+      if (rows.length === 0) rows = [{ date: "2025-05-01", description: "IMPORTADO", amount: -10 }];
+
+      // Como no backend: mesma data, valor e descrição = já importada (uma a uma)
+      const available = db.transactions.map((t) => `${t.date}|${t.amount}|${t.description}`);
+      const repeated = new Set<number>();
+      rows.forEach((row, index) => {
+        const at = available.indexOf(`${row.date}|${row.amount}|${row.description}`);
+        if (at >= 0) {
+          available.splice(at, 1);
+          repeated.add(index);
+        }
+      });
+      const mode = new URL(request.url).searchParams.get("duplicates");
+      if (repeated.size && !mode) {
+        return HttpResponse.json(
+          {
+            detail: {
+              code: "duplicates",
+              message: `${repeated.size} de ${rows.length} transações deste extrato já foram importadas.`,
+              duplicates: repeated.size,
+              total: rows.length,
+              statements: db.statements.map((s) => s.filename),
+            },
+          },
+          { status: 409 }
+        );
+      }
+      if (mode === "skip") rows = rows.filter((_, index) => !repeated.has(index));
+      const statement = addStatement(file.name, rows);
       return HttpResponse.json(db.transactions.filter((t) => t.statement_id === statement.id));
     })
   ),

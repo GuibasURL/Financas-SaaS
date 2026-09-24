@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { apiErrorMessage, uploadCSV } from "../services/api";
+import {
+  apiErrorMessage,
+  duplicatesInfo,
+  uploadCSV,
+  type DuplicatesInfo,
+  type DuplicatesMode,
+} from "../services/api";
+import { formatCount } from "../utils/format";
 import Icon from "./Icon";
 import styles from "./UploadCSV.module.css";
 
@@ -22,19 +29,40 @@ const BANKS = [
   "Genérico",
 ];
 
+// Extrato com transações já importadas, esperando a pessoa decidir
+interface PendingDuplicates {
+  file: File;
+  info: DuplicatesInfo;
+}
+
 export default function UploadCSV({ onUploaded }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingDuplicates | null>(null);
   const [dragging, setDragging] = useState(false);
 
-  async function upload(file: File) {
+  async function upload(file: File, duplicates?: DuplicatesMode) {
     setLoading(true);
     setError(null);
+    setNotice(null);
+    setPending(null);
     try {
-      await uploadCSV(file);
+      const created = await uploadCSV(file, duplicates);
+      if (duplicates === "skip") {
+        setNotice(
+          `${formatCount(created.length, "transação nova importada", "transações novas importadas")}; ` +
+            "as repetidas ficaram de fora."
+        );
+      }
       onUploaded();
     } catch (err) {
-      setError(apiErrorMessage(err, "Erro ao enviar arquivo"));
+      const info = duplicatesInfo(err);
+      if (info) {
+        setPending({ file, info });
+      } else {
+        setError(apiErrorMessage(err, "Erro ao enviar arquivo"));
+      }
     } finally {
       setLoading(false);
     }
@@ -95,11 +123,58 @@ export default function UploadCSV({ onUploaded }: Props) {
           {error}
         </p>
       )}
+      {notice && (
+        <p className={`notice notice-success ${styles.error}`} role="status">
+          <Icon name="check" />
+          {notice}
+        </p>
+      )}
+      {pending && <DuplicatesPrompt pending={pending} onChoose={upload} onCancel={() => setPending(null)} />}
 
       <div className={styles.banks} aria-label="Bancos aceitos">
         {BANKS.map((bank) => (
           <span key={bank}>{bank}</span>
         ))}
+      </div>
+    </div>
+  );
+}
+
+interface PromptProps {
+  pending: PendingDuplicates;
+  onChoose: (file: File, duplicates: DuplicatesMode) => void;
+  onCancel: () => void;
+}
+
+/** "Esse extrato já foi importado": importar só as novas, tudo, ou cancelar. */
+function DuplicatesPrompt({ pending, onChoose, onCancel }: PromptProps) {
+  const { file, info } = pending;
+  const fresh = info.total - info.duplicates;
+
+  return (
+    <div className={`notice ${styles.duplicates}`} role="alert" aria-labelledby="duplicados-titulo">
+      <Icon name="alert" />
+      <div>
+        <strong id="duplicados-titulo">
+          {fresh === 0 ? "Extrato já importado" : "Parte deste extrato já foi importada"}
+        </strong>
+        <p>{info.message}</p>
+        <p className={styles.duplicatesHint}>
+          Importar de novo duplica essas transações e infla os totais.
+        </p>
+        <div className={styles.duplicatesActions}>
+          {fresh > 0 && (
+            <button className="btn btn-sm btn-primary" type="button" onClick={() => onChoose(file, "skip")}>
+              {fresh === 1 ? "Importar só a nova" : `Importar só as ${fresh} novas`}
+            </button>
+          )}
+          <button className="btn btn-sm" type="button" onClick={() => onChoose(file, "keep")}>
+            {fresh === 0 ? "Importar mesmo assim" : "Importar tudo mesmo assim"}
+          </button>
+          <button className="btn btn-sm btn-ghost" type="button" onClick={onCancel}>
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   );

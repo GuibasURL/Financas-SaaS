@@ -271,6 +271,16 @@ O mesmo vale para transferências entre suas próprias contas ou aplicações em
 
 Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e a quantidade de transações. Dá para filtrar transações e dashboard por extrato com `?statement_id=` e excluir um extrato inteiro (junto com as transações dele) via `DELETE /statements/{id}`.
 
+### Extrato repetido
+
+Antes de importar, o `POST /upload` confere se as transações já existem: mesma data, mesmo valor e mesma descrição (comparada sem acentos, maiúsculas, espaços ou pontuação). A contagem é uma a uma, então duas compras iguais no mesmo dia continuam sendo duas. O parâmetro `duplicates` decide o que fazer:
+
+- `check` (padrão): se houver repetidas, não importa nada e responde `409` com `{"code": "duplicates", "message", "duplicates", "total", "statements"}`
+- `skip`: importa só as novas (se não houver nenhuma nova, `400`)
+- `keep`: importa tudo, inclusive as repetidas
+
+No app, o `409` vira um aviso com as opções **Importar só as novas**, **Importar tudo mesmo assim** e **Cancelar**.
+
 ## Relatório em Excel
 
 A seção **Exportar relatório** do app (ou `GET /reports/export`) baixa uma planilha `.xlsx` com quatro abas:
