@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { apiErrorMessage, getMe, login, register } from "../services/api";
+import { useEffect, useState } from "react";
+import { apiErrorMessage, getMe, login, register, wakeUpServer } from "../services/api";
 import type { User } from "../types/user";
 import Logo from "../components/Logo";
 import { PasswordField, PasswordMatch, PasswordStrengthMeter } from "../components/PasswordInputs";
@@ -60,6 +60,11 @@ export default function AuthPage({
 
   const isRegister = mode === "register";
   const heading = HEADINGS[mode];
+
+  // Acorda a API (que dorme sem uso na hospedagem grátis) enquanto a pessoa digita
+  useEffect(() => {
+    wakeUpServer();
+  }, []);
   usePageTitle(
     resetToken
       ? "Criar senha nova"

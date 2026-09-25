@@ -12,7 +12,9 @@ config = context.config
 # Usa a URL do app, a não ser que quem chamou já tenha definido outra
 # (os testes fazem isso para rodar as migrations num banco temporário).
 db_url = config.get_main_option("sqlalchemy.url") or DATABASE_URL
-config.set_main_option("sqlalchemy.url", db_url)
+# O alembic.ini é lido com interpolação ("%(nome)s"): um "%" na senha do banco
+# (comum em senha codificada para URL, como "%40") quebraria a leitura. "%%" = "%".
+config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name, disable_existing_loggers=False)

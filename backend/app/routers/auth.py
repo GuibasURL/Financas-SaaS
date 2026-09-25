@@ -23,6 +23,7 @@ from app.schemas.user import (
     UserOut,
     normalize_email,
 )
+from app.services.client_ip import client_ip
 from app.services.default_categories import add_default_categories
 from app.services.email import send_email
 from app.services.login_limiter import LoginLimiter
@@ -93,9 +94,7 @@ def login(
     `Retry-After`, em segundos), mesmo que a senha certa seja enviada.
     """
     email = normalize_email(form.username)
-    # Atrás de um proxy (deploy), o IP real só chega aqui se o uvicorn rodar
-    # com --proxy-headers; sem isso, todos pareceriam vir do mesmo IP
-    ip = request.client.host if request.client else "desconhecido"
+    ip = client_ip(request)
 
     wait = login_limiter.retry_after(email, ip)
     if wait:
@@ -142,7 +141,7 @@ def forgot_password(
     o e-mail sai em segundo plano, então o tempo de resposta também não revela.
     """
     email = normalize_email(payload.email)
-    ip = request.client.host if request.client else "desconhecido"
+    ip = client_ip(request)
     wait = reset_limiter.retry_after(email, ip)
     if wait:
         minutes = max(1, round(wait / 60))
