@@ -1,9 +1,14 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { Blob as NodeBlob, File as NodeFile } from "node:buffer";
 import { cloneElement, type ReactElement } from "react";
 import { afterAll, afterEach, beforeAll, vi } from "vitest";
 import { resetDb, server } from "./fakeApi";
+
+// findBy*/waitFor esperam até 1s por padrão: com todos os arquivos rodando em
+// paralelo (e a cobertura ligada), a primeira tela às vezes demora mais que
+// isso para aparecer, e o teste falhava por tempo, não por erro
+configure({ asyncUtilTimeout: 5000 });
 
 // O FormData/File/Blob do jsdom não são reconhecidos pelo MSW: um upload
 // chegaria como texto ("[object FormData]") em vez de multipart, e o Blob do

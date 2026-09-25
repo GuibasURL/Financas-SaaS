@@ -57,26 +57,6 @@
   color: var(--expense);
 }
 
-/* Carregando */
-.skeleton {
-  display: grid;
-  gap: 0.65rem;
-  padding: 1rem 0;
-}
-.skeleton i {
-  display: block;
-  height: 2.5rem;
-  border-radius: var(--r-sm);
-  background: linear-gradient(90deg, var(--glass), var(--glass-strong), var(--glass));
-  background-size: 200% 100%;
-  animation: shimmer 1.2s infinite;
-}
-@keyframes shimmer {
-  to {
-    background-position: -200% 0;
-  }
-}
-
 @media (max-width: 620px) {
   .card .filterToggle {
     display: inline-flex;

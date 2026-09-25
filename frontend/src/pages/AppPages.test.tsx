@@ -209,3 +209,67 @@ describe("Categorias", () => {
     expect(screen.getByText("2 categorias · 2 transações categorizadas")).toBeInTheDocument();
   });
 });
+
+describe("Carregando", () => {
+  // A lista de transações nunca responde: a tela fica no estado de carregando
+  const hang = () => server.use(http.get(`${API}/transactions`, () => new Promise<never>(() => {})));
+
+  it("Visão geral: esqueleto no lugar de 'nenhum extrato' e R$ 0,00", async () => {
+    addStatement("marco.csv", [{ date: "2025-03-01", description: "SALARIO", amount: 4000 }]);
+    hang();
+    await renderLoggedIn();
+
+    // No topo da página e embaixo de cada card de resumo
+    expect(screen.getAllByText("Carregando…")).toHaveLength(4);
+    expect(screen.queryByText("Nenhum extrato importado ainda")).not.toBeInTheDocument();
+    expect(screen.queryByText("R$ 0,00")).not.toBeInTheDocument();
+    for (const name of ["gastos por categoria", "evolução mensal", "últimas transações"]) {
+      expect(screen.getByRole("status", { name: `Carregando ${name}` })).toBeInTheDocument();
+    }
+    expect(screen.getByRole("region", { name: "Entradas" })).toHaveAttribute("aria-busy", "true");
+  });
+
+  it.each([
+    ["/categorias", "Carregando categorias"],
+    ["/extratos", "Carregando extratos"],
+  ])("%s: esqueleto em vez da lista vazia", async (path, label) => {
+    hang();
+    await renderLoggedIn(path);
+
+    expect(screen.getByRole("status", { name: label })).toBeInTheDocument();
+  });
+
+  it("Transações: o topo não diz '0 transações'", async () => {
+    hang();
+    await renderLoggedIn("/transacoes");
+
+    expect(screen.getByText("Carregando…")).toBeInTheDocument();
+    expect(screen.queryByText(/0 transações/)).not.toBeInTheDocument();
+  });
+});
+
+describe("Navegação", () => {
+  it.each([
+    ["/", "Visão geral · Vexira"],
+    ["/transacoes", "Transações · Vexira"],
+    ["/categorias", "Categorias · Vexira"],
+    ["/extratos", "Extratos · Vexira"],
+    ["/perfil", "Perfil · Vexira"],
+  ])("título da aba em %s", async (path, title) => {
+    await renderLoggedIn(path);
+
+    expect(document.title).toBe(title);
+  });
+
+  it("'Pular para o conteúdo' leva ao conteúdo da página", async () => {
+    const user = await renderLoggedIn();
+
+    await user.tab();
+    const skip = screen.getByRole("link", { name: "Pular para o conteúdo" });
+    expect(skip).toHaveFocus();
+    expect(skip).toHaveAttribute("href", "#conteudo");
+    expect(document.getElementById("conteudo")).toContainElement(
+      screen.getByRole("heading", { level: 1, name: "Visão geral" })
+    );
+  });
+});

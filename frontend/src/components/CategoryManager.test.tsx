@@ -74,17 +74,17 @@ describe("CategoryManager", () => {
     expect(db.categories[0].ignore_in_reports).toBe(false);
   });
 
-  it("cria categoria ignorada nos gráficos", async () => {
+  it("cria categoria fora dos totais", async () => {
     const user = renderManager();
 
     await user.type(await within(newForm()).findByLabelText("Nome"), "Pagamento de fatura");
-    await user.click(within(newForm()).getByLabelText("Ignorar nos gráficos"));
+    await user.click(within(newForm()).getByLabelText("Deixar fora dos totais"));
     await user.click(screen.getByRole("button", { name: "Criar categoria" }));
 
     const row = await findCategoryRow("Pagamento de fatura");
-    expect(within(row).getByText("ignorada nos gráficos")).toBeInTheDocument();
+    expect(within(row).getByText("fora dos totais")).toBeInTheDocument();
     expect(db.categories[0].ignore_in_reports).toBe(true);
-    expect(within(newForm()).getByLabelText("Ignorar nos gráficos")).not.toBeChecked();
+    expect(within(newForm()).getByLabelText("Deixar fora dos totais")).not.toBeChecked();
   });
 
   it("cria categoria que vale só para entradas e mostra isso na linha", async () => {
@@ -206,7 +206,7 @@ describe("CategoryManager", () => {
     await user.clear(name);
     await user.type(name, "Comida");
     await user.type(within(form).getByLabelText("Palavras-chave"), ", padaria");
-    await user.click(within(form).getByLabelText("Ignorar nos gráficos"));
+    await user.click(within(form).getByLabelText("Deixar fora dos totais"));
     await user.click(within(form).getByRole("button", { name: "Salvar" }));
 
     expect(await findCategoryRow("Comida")).toBeInTheDocument();

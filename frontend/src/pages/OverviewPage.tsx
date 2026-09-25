@@ -1,5 +1,6 @@
 import PageHeader from "../components/PageHeader";
 import RecentTransactions from "../components/RecentTransactions";
+import Skeleton from "../components/Skeleton";
 import ReportExport from "../components/ReportExport";
 import SummaryCards from "../components/SummaryCards";
 import UploadCSV from "../components/UploadCSV";
@@ -12,7 +13,7 @@ import styles from "./pages.module.css";
 const UNCATEGORIZED = "Sem categoria";
 
 export default function OverviewPage() {
-  const { transactions, byCategory, monthly, selectedStatement, reload, categoryColor } =
+  const { transactions, byCategory, monthly, selectedStatement, reload, categoryColor, loaded } =
     useFinanceData();
 
   // O gráfico por categoria da API só traz saídas categorizadas; as sem
@@ -29,8 +30,9 @@ export default function OverviewPage() {
     name === UNCATEGORIZED ? "var(--muted)" : categoryColor(name);
 
   // Período coberto pelas transações carregadas (já vêm da mais recente para a mais antiga)
-  const period =
-    transactions.length > 0
+  const period = !loaded
+    ? "Carregando…"
+    : transactions.length > 0
       ? `${formatDate(transactions[transactions.length - 1].date)} a ${formatDate(transactions[0].date)}`
       : "Nenhum extrato importado ainda";
 
@@ -47,10 +49,14 @@ export default function OverviewPage() {
               <h2 className="card-title" id="pie-title">
                 Gastos por categoria
               </h2>
-              <p>Somente saídas · categorias ignoradas não entram</p>
+              <p>Somente saídas · o que está fora dos totais não entra</p>
             </div>
           </div>
-          <CategoryPieChart data={spending} categoryColor={sliceColor} />
+          {loaded ? (
+            <CategoryPieChart data={spending} categoryColor={sliceColor} />
+          ) : (
+            <Skeleton label="Carregando gastos por categoria" rows={1} rowHeight="12.5rem" />
+          )}
         </section>
 
         <section className={`card ${styles.span5}`} aria-labelledby="import-title">
@@ -74,7 +80,11 @@ export default function OverviewPage() {
               <p>Gastos por mês</p>
             </div>
           </div>
-          <MonthlyTrendChart data={monthly} />
+          {loaded ? (
+            <MonthlyTrendChart data={monthly} />
+          ) : (
+            <Skeleton label="Carregando evolução mensal" rows={1} rowHeight="14rem" />
+          )}
         </section>
 
         <section className={`card ${styles.span4}`} aria-labelledby="export-title">

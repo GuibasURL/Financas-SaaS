@@ -257,12 +257,12 @@ def test_categoria_ignorada_fica_fora_dos_totais_mas_na_lista(client, dados, cat
     summary = _summary(workbook)
     assert summary["Saídas"] == pytest.approx(171.50 - 35.50)
     assert summary["Transações"] == 6
-    assert summary["Fora dos totais (categorias ignoradas)"] == 2
-    assert _notes(workbook)["Fora dos totais (categorias ignoradas)"].startswith("R$ 35,50 em categorias")
+    assert summary["Fora dos totais"] == 2
+    assert _notes(workbook)["Fora dos totais"].startswith("R$ 35,50 em categorias")
     assert "Transporte" not in [r[0] for r in _table(workbook["Por categoria"])]
     sheet = workbook["Transações"]
     uber = [(i, r) for i, r in enumerate(_table(sheet), start=5) if r[1] == "UBER TRIP"]
-    assert [r[6] for _, r in uber] == ["Não (ignorada)", "Não (ignorada)"]
+    assert [r[6] for _, r in uber] == ["Não (fora dos totais)", "Não (fora dos totais)"]
     # Em cinza e itálico, para se destacar das que contam
     assert all(sheet.cell(row=i, column=2).font.i for i, _ in uber)
 

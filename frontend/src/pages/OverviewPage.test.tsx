@@ -63,7 +63,7 @@ describe("Visão geral", () => {
     await renderLoggedIn();
 
     expect(await within(kpi("Saídas")).findByText("− R$ 50,00")).toBeInTheDocument();
-    expect(within(kpi("Saldo do período")).getByText("1 transação ignorada nos totais")).toBeInTheDocument();
+    expect(within(kpi("Saldo do período")).getByText("1 transação fora dos totais")).toBeInTheDocument();
   });
 
   it("saldo negativo aparece com sinal", async () => {

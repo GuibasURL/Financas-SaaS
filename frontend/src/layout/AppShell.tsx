@@ -41,6 +41,9 @@ export default function AppShell({ user, onLogout }: Props) {
 
   return (
     <div className={styles.app}>
+      <a className="skip-link" href="#conteudo">
+        Pular para o conteúdo
+      </a>
       <aside className={styles.side} aria-label="Navegação principal">
         <Brand />
         <nav>
@@ -91,7 +94,10 @@ export default function AppShell({ user, onLogout }: Props) {
             Sair
           </button>
         </div>
-        <Outlet />
+        {/* Alvo do "Pular para o conteúdo" (tabIndex para receber o foco) */}
+        <div id="conteudo" className={styles.content} tabIndex={-1}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );

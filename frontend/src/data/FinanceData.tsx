@@ -86,7 +86,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       // 401 já é tratado no api.ts (volta para o login); o resto vira aviso
       if ((err as any)?.response?.status !== 401) {
-        setLoadError("Não foi possível carregar os dados. Verifique se a API está rodando.");
+        setLoadError("Não foi possível carregar os dados. Verifique sua conexão e tente de novo.");
       }
     } finally {
       setLoaded(true);

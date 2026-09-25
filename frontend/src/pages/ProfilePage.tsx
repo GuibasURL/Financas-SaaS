@@ -6,6 +6,7 @@ import Icon from "../components/Icon";
 import { useFeedback } from "../feedback/Feedback";
 import { apiErrorMessage, deleteAvatar, updateProfile, uploadAvatar } from "../services/api";
 import type { User } from "../types/user";
+import { usePageTitle } from "../utils/pageTitle";
 import {
   AVATAR_MAX_BYTES,
   AVATAR_TYPES,
@@ -48,6 +49,7 @@ function todayISO(): string {
 
 export default function ProfilePage({ user, onUserChange, onAccountDeleted }: Props) {
   const { toast } = useFeedback();
+  usePageTitle("Perfil");
   const [form, setForm] = useState<FormState>(() => formFromUser(user));
   const [photo, setPhoto] = useState<PhotoChange>({ kind: "keep" });
   const [currentPassword, setCurrentPassword] = useState("");

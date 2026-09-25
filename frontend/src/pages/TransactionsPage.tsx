@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import Icon from "../components/Icon";
 import PageHeader from "../components/PageHeader";
+import Skeleton from "../components/Skeleton";
 import Pagination from "../components/Pagination";
 import TransactionFilters, { FILTERS_ID } from "../components/TransactionFilters";
 import TransactionTable from "../components/TransactionTable";
@@ -62,13 +63,7 @@ export default function TransactionsPage() {
 
   function content() {
     if (!loaded) {
-      return (
-        <div className={styles.skeleton} role="status" aria-label="Carregando transações">
-          <i />
-          <i />
-          <i />
-        </div>
-      );
+      return <Skeleton label="Carregando transações" />;
     }
     if (transactions.length === 0) {
       return (
@@ -114,7 +109,11 @@ export default function TransactionsPage() {
     <>
       <PageHeader
         title="Transações"
-        eyebrow={`${formatCount(transactions.length, "transação", "transações")} · ${uncategorized} sem categoria`}
+        eyebrow={
+          loaded
+            ? `${formatCount(transactions.length, "transação", "transações")} · ${uncategorized} sem categoria`
+            : "Carregando…"
+        }
       />
 
       <section ref={cardRef} className={`card ${styles.card}`} aria-label="Filtros e transações">

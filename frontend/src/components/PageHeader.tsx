@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useFinanceData } from "../data/FinanceData";
+import { usePageTitle } from "../utils/pageTitle";
 import Icon from "./Icon";
 import styles from "./PageHeader.module.css";
 
@@ -14,6 +15,7 @@ interface Props {
  */
 export default function PageHeader({ title, eyebrow }: Props) {
   const { selectedStatement, selectStatement, loadError, reload } = useFinanceData();
+  usePageTitle(title);
 
   return (
     <>
@@ -39,8 +41,8 @@ export default function PageHeader({ title, eyebrow }: Props) {
         <div className="notice" role="alert">
           <Icon name="alert" />
           <span>
-            <strong>Não foi possível carregar os dados.</strong> Verifique se a API está rodando e
-            tente de novo.
+            <strong>Não foi possível carregar os dados.</strong> Verifique sua conexão com a
+            internet e tente de novo.
           </span>
           <button className="btn btn-sm" type="button" onClick={() => reload()}>
             Tentar de novo

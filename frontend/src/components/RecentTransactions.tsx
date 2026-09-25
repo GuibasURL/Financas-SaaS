@@ -2,13 +2,14 @@ import { Link } from "react-router";
 import { useFinanceData } from "../data/FinanceData";
 import { formatDate } from "../utils/format";
 import Icon from "./Icon";
+import Skeleton from "./Skeleton";
 import TransactionAmount from "./TransactionAmount";
 import styles from "./RecentTransactions.module.css";
 
 const LIMIT = 5;
 
 export default function RecentTransactions() {
-  const { transactions, categories, categoryColor } = useFinanceData();
+  const { transactions, categories, categoryColor, loaded } = useFinanceData();
   // A API já devolve da mais recente para a mais antiga
   const recent = transactions.slice(0, LIMIT);
   const names = new Map(categories.map((c) => [c.id, c.name]));
@@ -28,7 +29,9 @@ export default function RecentTransactions() {
         </Link>
       </div>
 
-      {recent.length === 0 ? (
+      {!loaded ? (
+        <Skeleton label="Carregando últimas transações" rows={LIMIT} />
+      ) : recent.length === 0 ? (
         <p className="empty">Nenhuma transação ainda. Importe um extrato para começar.</p>
       ) : (
         <div className="table-wrap">

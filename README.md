@@ -290,27 +290,27 @@ O nome e as palavras-chave são normalizados ao salvar (espaços nas pontas remo
 
 Contas novas já nascem com 17 categorias prontas, então o primeiro extrato já sai categorizado:
 
-| Categoria | Vale para | Nos gráficos |
+| Categoria | Vale para | Nos totais |
 |---|---|---|
-| Pagamento de fatura (também o "Limite convertido em saldo" do Nubank, que só leva limite do cartão para a conta) | entradas e saídas | ignorada |
-| Estornos e reembolsos | só entradas | conta |
-| Salário | só entradas | conta |
-| Investimentos (aplicação, resgate, CDB, tesouro, poupança, cofrinho) | entradas e saídas | ignorada |
-| Assinaturas, Compras, Alimentação, Mercado, Transporte, Saúde, Moradia, Educação, Lazer, Tarifas bancárias | entradas e saídas | conta |
-| Saques | só saídas | conta |
-| Transferências enviadas (pix, transf, ted) | só saídas | conta |
-| Transferências recebidas (pix, transf, ted) | só entradas | conta |
+| Pagamento de fatura (também o "Limite convertido em saldo" do Nubank, que só leva limite do cartão para a conta) | entradas e saídas | fora |
+| Estornos e reembolsos | só entradas | entra |
+| Salário | só entradas | entra |
+| Investimentos (aplicação, resgate, CDB, tesouro, poupança, cofrinho) | entradas e saídas | fora |
+| Assinaturas, Compras, Alimentação, Mercado, Transporte, Saúde, Moradia, Educação, Lazer, Tarifas bancárias | entradas e saídas | entra |
+| Saques | só saídas | entra |
+| Transferências enviadas (pix, transf, ted) | só saídas | entra |
+| Transferências recebidas (pix, transf, ted) | só entradas | entra |
 
-As transferências ficam por último de propósito: "pix" é genérico, então uma categoria mais específica vence ("PIX ALUGUEL" vai para Moradia, "PIX RECEBIDO SALARIO" vai para Salário). Elas contam nos totais porque um Pix para outra pessoa costuma ser gasto (ou renda) de verdade; para as transferências **entre as suas próprias contas**, que não são gasto nem renda, crie uma categoria com o seu nome como palavra-chave e marque "Ignorar nos gráficos". Como vence a categoria mais antiga, ela precisa ser criada **antes** das de transferência: exclua "Transferências enviadas" e "Transferências recebidas", crie a sua e clique em "Adicionar categorias sugeridas", que recria as duas depois dela. Contas antigas podem adicioná-las pelo botão; as que você já tem (pelo nome) não são alteradas.
+As transferências ficam por último de propósito: "pix" é genérico, então uma categoria mais específica vence ("PIX ALUGUEL" vai para Moradia, "PIX RECEBIDO SALARIO" vai para Salário). Elas contam nos totais porque um Pix para outra pessoa costuma ser gasto (ou renda) de verdade; para as transferências **entre as suas próprias contas**, que não são gasto nem renda, crie uma categoria com o seu nome como palavra-chave e marque "Deixar fora dos totais". Como vence a categoria mais antiga, ela precisa ser criada **antes** das de transferência: exclua "Transferências enviadas" e "Transferências recebidas", crie a sua e clique em "Adicionar categorias sugeridas", que recria as duas depois dela. Contas antigas podem adicioná-las pelo botão; as que você já tem (pelo nome) não são alteradas.
 
 A lista fica em `backend/app/services/default_categories.py`. Ao mexer nela, lembre que:
 
 - **A ordem importa:** quando duas categorias batem, vence a que vem primeiro (por isso "Compras", com "mercado livre", vem antes de "Mercado").
 - **Palavras curtas ou genéricas pegam demais:** mesmo valendo só no começo das palavras, "bar" pegaria "BARBEARIA" e "99" pegaria "LOJA 99 CENTAVOS". Use exclusões (`-`) ou palavras mais específicas. Os testes em `tests/test_default_categories.py` cobrem esses casos.
 
-### Ignorar nos gráficos (pagamento de fatura, transferências)
+### Fora dos totais (pagamento de fatura, transferências)
 
-Uma categoria pode ser marcada como **ignorar nos gráficos** (`ignore_in_reports`): as transações dela continuam na lista, mas não entram em "Gastos por categoria" nem em "Evolução mensal".
+Uma categoria pode ser marcada como **fora dos totais** (`ignore_in_reports`): as transações dela continuam na lista, com o valor em cinza e "não soma", mas não entram nas entradas, nas saídas, em "Gastos por categoria" nem em "Evolução mensal".
 
 Isso resolve a contagem dupla quando você importa a conta **e** a fatura do cartão: as compras da fatura já são os gastos, e o pagamento da fatura na conta é só o dinheiro indo da conta para o cartão. Exemplo:
 
@@ -345,7 +345,7 @@ A seção **Exportar relatório** do app (ou `GET /reports/export`) baixa uma pl
 
 Todas as abas têm uma faixa de título com uma frase explicando a aba, e ficam prontas para imprimir (paisagem, cabendo na largura). Nos resumos, "Saídas" aparece em valor positivo (quanto saiu); o sinal fica só na lista de transações.
 
-Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `statement_id`. No app, o extrato é o mesmo selecionado na seção Extratos. Categorias marcadas como "ignorar nos gráficos" ficam fora dos totais, mas aparecem na aba Transações (coluna "Nos totais"). As linhas de total usam fórmulas (`SUM`), então continuam certas se você editar a planilha.
+Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `statement_id`. No app, o extrato é o mesmo selecionado na seção Extratos. Categorias marcadas como "fora dos totais" não entram nas somas, mas aparecem na aba Transações (coluna "Nos totais"). As linhas de total usam fórmulas (`SUM`), então continuam certas se você editar a planilha.
 
 ## Roadmap sugerido
 

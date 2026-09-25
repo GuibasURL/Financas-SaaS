@@ -1,5 +1,8 @@
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
+// Abreviação dos meses, como aparece nos filtros e nos gráficos ("mar/2025", "mar/25")
+export const MONTH_NAMES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
 /** 1234.5 -> "R$ 1.234,50" (sem sinal; use formatSignedMoney para mostrar + / −) */
 export function formatMoney(value: number): string {
   return money.format(Math.abs(value)).replace(/ /g, " ");
