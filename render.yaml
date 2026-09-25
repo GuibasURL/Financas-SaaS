@@ -1,0 +1,51 @@
+# API no Render (plano grátis), criada pelo "Blueprint" a partir deste arquivo.
+# Passo a passo em DEPLOY.md. O banco (Neon) e o site (Vercel) ficam fora do Render.
+services:
+  - type: web
+    name: vexira-api
+    runtime: python
+    plan: free
+    # Mesma região do banco no Neon (AWS US East, N. Virginia): cada consulta
+    # atravessa essa distância, então os dois precisam ficar perto
+    region: virginia
+    # Publica a cada push na main; com rootDir, mudanças fora de backend/ não disparam deploy
+    branch: main
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    # Cria/atualiza as tabelas antes de subir (o plano grátis não tem "pre-deploy").
+    # --no-proxy-headers: o IP de quem acessa é lido pela API (TRUSTED_PROXY_HOPS,
+    # services/client_ip.py), não pelo uvicorn, que confiaria no começo da lista
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT --no-proxy-headers
+    # "/" responde sem tocar no banco: não acorda o Neon à toa
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      # Um proxy do Render na frente da API (ver services/client_ip.py)
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: APP_TIMEZONE
+        value: America/Sao_Paulo
+      # Gerada pelo Render: aleatória, 256 bits, ninguém precisa ver
+      - key: SECRET_KEY
+        generateValue: true
+      # sync: false = o Render pergunta o valor na criação (não fica no GitHub)
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SMTP_HOST
+        value: smtp-relay.brevo.com
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_SECURITY
+        value: starttls
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false

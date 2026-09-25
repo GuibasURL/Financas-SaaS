@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-route
 import { FinanceDataProvider } from "./data/FinanceData";
 import { FeedbackProvider } from "./feedback/Feedback";
 import { LogoMark } from "./components/Logo";
+import ServerWakeNotice from "./components/ServerWakeNotice";
 import AppShell from "./layout/AppShell";
 import CategoriesPage from "./pages/CategoriesPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -148,6 +149,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthenticatedApp />
+      <ServerWakeNotice />
     </BrowserRouter>
   );
 }

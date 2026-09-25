@@ -1,0 +1,31 @@
+/* No alto, centralizado: não disputa espaço com os avisos (toasts), que ficam embaixo */
+.wrap {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 45;
+  width: min(calc(100% - 2rem), 440px);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: var(--r-md);
+  background: var(--bg-2);
+  box-shadow: var(--shadow);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.notice p {
+  margin: 0;
+}
+.notice :global(.spinner) {
+  flex: none;
+  margin-top: 0.2rem;
+  border-top-color: var(--cyan);
+}

@@ -8,6 +8,7 @@ from alembic.config import Config
 from alembic.migration import MigrationContext
 from sqlalchemy import create_engine, text
 
+import app.config
 import app.models  # noqa: F401  (registra os models no Base.metadata)
 from app.db import Base
 from tests.conftest import TEST_DATABASE_URL
@@ -90,3 +91,18 @@ def test_migrations_podem_ser_desfeitas(db_url):
     command.upgrade(config, "head")
     command.downgrade(config, "base")
     command.upgrade(config, "head")
+
+
+
+def test_senha_do_banco_com_porcentagem(tmp_path, monkeypatch):
+    # Como no deploy: o endereço vem do DATABASE_URL, não do alembic.ini. Um "%"
+    # nele (senha codificada para URL: "p%40ss" = "p@ss") não pode quebrar a
+    # migration. No SQLite, o "%" vai no nome do arquivo.
+    db_file = tmp_path / "banco%40teste.db"
+    monkeypatch.setattr(app.config, "DATABASE_URL", f"sqlite:///{db_file}")
+    config = Config(str(BACKEND_DIR / "alembic.ini"))
+    config.set_main_option("script_location", str(BACKEND_DIR / "alembic"))
+
+    command.upgrade(config, "head")
+
+    assert db_file.exists()

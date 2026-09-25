@@ -12,6 +12,7 @@ from app.models.transaction import Transaction
 from app.models.user import User
 from app.routers.auth import login_limiter
 from app.schemas.user import AccountDelete, PasswordChange, ProfileUpdate, Token, UserOut
+from app.services.client_ip import client_ip
 from app.services.password_policy import weak_password_message
 from app.services.password_reset import delete_reset_tokens
 from app.services.security import create_access_token, hash_password, verify_password
@@ -38,7 +39,7 @@ def _check_current_password(request: Request, user: User, password: str | None, 
     Conta como tentativa de login: mesmo limite contra adivinhação.
     Erro 400, e não 401: o frontend desloga em qualquer 401.
     """
-    ip = request.client.host if request.client else "desconhecido"
+    ip = client_ip(request)
     if login_limiter.retry_after(user.email, ip):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

@@ -165,6 +165,8 @@ function reportable(t: Transaction) {
 }
 
 export const handlers = [
+  // "Acordar o servidor" (wakeUpServer), chamado ao abrir o login
+  http.get(`${API}/`, () => HttpResponse.json({ status: "ok" })),
   http.post(`${API}/auth/register`, async ({ request }) => {
     const { email, password } = (await request.json()) as { email: string; password: string };
     if (password.length < 8) {

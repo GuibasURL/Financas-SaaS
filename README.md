@@ -124,6 +124,7 @@ Configuração (variáveis de ambiente ou `backend/.env`):
 - `SMTP_HOST`, `SMTP_PORT` (padrão: 587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` (ex: `Vexira <nao-responda@seudominio.com>`) e `SMTP_SECURITY` (`starttls`, o padrão; `ssl` para a porta 465; `none` só para servidor local de teste): envio de e-mail (veja "Esqueceu a senha?")
 - `PASSWORD_RESET_MINUTES` (padrão: 30), `PASSWORD_RESET_MAX_PER_ACCOUNT` (padrão: 3) e `PASSWORD_RESET_MAX_PER_IP` (padrão: 10): validade do link e limite de pedidos
 - `LOGIN_MAX_FAILURES_PER_ACCOUNT` (padrão: 5), `LOGIN_MAX_FAILURES_PER_IP` (padrão: 30) e `LOGIN_WINDOW_MINUTES` (padrão: 15): limite de tentativas de login erradas (veja abaixo).
+- `TRUSTED_PROXY_HOPS` (padrão: 0): quantos proxies ficam na frente da API no deploy (no Render: 1), para achar o IP real de quem acessa. `LOG_CLIENT_IP=1` mostra no log o que chegou, para conferir (veja o limite de tentativas abaixo).
 
 ### Limite de tentativas de login
 
@@ -133,7 +134,9 @@ Para dificultar quem tenta adivinhar senhas, o login conta as tentativas erradas
 - Um login certo zera os erros daquele e-mail naquele IP.
 - A contagem fica na memória da API: zera quando ela reinicia e vale só para uma instância (o suficiente para este projeto; com várias instâncias, ela precisaria ir para um lugar compartilhado, como o Redis).
 
-> ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API só enxerga o IP real de quem acessa se o uvicorn rodar com `--proxy-headers --forwarded-allow-ips="*"` (ou o IP do proxy). Sem isso, todo mundo parece vir do IP do proxy e 30 erros de pessoas diferentes bloqueariam o login de todos.
+> ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API recebe a conexão do proxy, não a do visitante. Defina `TRUSTED_PROXY_HOPS` com o número de proxies na frente dela (no Render: `1`): o IP do visitante é lido no `X-Forwarded-For` **contando pela direita**, onde cada proxy acrescenta quem se conectou a ele. Sem isso, todo mundo parece vir do IP do proxy, e 30 erros de pessoas diferentes bloqueariam o login de todos.
+>
+> **Não use** `--proxy-headers --forwarded-allow-ips="*"` no uvicorn: nesse modo ele usa o **primeiro** IP da lista, que o próprio visitante escreve, e qualquer um trocaria de IP a cada tentativa para escapar do limite. Para conferir o número de proxies no deploy, ligue `LOG_CLIENT_IP=1` por um instante: cada login mostra no log o `X-Forwarded-For` recebido e o IP usado.
 
 ## Segurança
 
@@ -144,11 +147,13 @@ Nenhum usuário alcança dados de outro: toda consulta filtra pelo dono (extrato
 - **Token:** assinado com HS256 e algoritmo fixo. Token com outra chave, sem assinatura (`alg: none`) ou com o usuário trocado na mão dá `401`. Trocar a senha derruba os tokens antigos, e excluir a conta também.
 - **Senha:** bcrypt, nunca devolvida; limite de tentativas no login, na troca de e-mail, na troca de senha e na exclusão da conta. O login leva o mesmo tempo para e-mail inexistente e senha errada, para não revelar quem tem conta.
 - **Planilha:** descrições que começam com `=` (uma mensagem de Pix pode trazer `=WEBSERVICE(...)`) são gravadas como texto, nunca como fórmula: abrir o relatório não executa nada.
-- **Cabeçalhos da API:** `Cache-Control: no-store` (dados financeiros não ficam em cache), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, CSP `default-src 'none'` e, em HTTPS, `Strict-Transport-Security`.
-- **Site:** o build publica uma Content-Security-Policy que só deixa rodar scripts do próprio site e só conversa com a API (`VITE_API_URL`). Um texto malicioso não conseguiria carregar código de fora nem mandar o token para outro endereço.
+- **Cabeçalhos da API:** `Cache-Control: no-store` (dados financeiros não ficam em cache), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, CSP `default-src 'none'` e, em HTTPS, `Strict-Transport-Security` (atrás do proxy, o HTTPS vem do `X-Forwarded-Proto`).
+- **Site:** o build publica uma Content-Security-Policy que só deixa rodar scripts do próprio site e só conversa com a API (`VITE_API_URL`). Um texto malicioso não conseguiria carregar código de fora nem mandar o token para outro endereço. Na Vercel, o `frontend/vercel.json` completa com `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff` e `Referrer-Policy: no-referrer` (o link de "Esqueceu a senha?" leva o código na URL, e ela não vai para o Google Fonts nem para ninguém).
 - **Uploads:** extrato até 5 MB (`413` acima disso); foto até 1 MB, com o tipo conferido pelos bytes.
 
 ### Checklist obrigatório do deploy
+
+O passo a passo com Neon, Render, Vercel e Brevo está em [DEPLOY.md](DEPLOY.md); os arquivos `render.yaml` e `frontend/vercel.json` já cuidam da maior parte desta lista.
 
 1. `SECRET_KEY` própria e secreta (a API não sobe sem ela com frontend público).
 2. **HTTPS** no frontend e na API (a hospedagem costuma dar de graça). Sem HTTPS, senha e token trafegam abertos.
@@ -156,7 +161,7 @@ Nenhum usuário alcança dados de outro: toda consulta filtra pelo dono (extrato
 4. `VITE_API_URL` apontando para a API no build do frontend (vai para a CSP).
 5. Na hospedagem do frontend, mandar também o header `Content-Security-Policy` com `frame-ancestors 'none'` (não funciona pela `<meta>`) e `X-Frame-Options: DENY`.
 6. Banco Postgres gerenciado, com criptografia em disco e backup automático; senha do banco só em variável de ambiente.
-7. uvicorn com `--proxy-headers` (veja o limite de tentativas acima).
+7. `TRUSTED_PROXY_HOPS` com o número de proxies na frente da API (veja o limite de tentativas acima), **sem** `--forwarded-allow-ips="*"`.
 8. SMTP configurado (`SMTP_HOST` e companhia) e `FRONTEND_URL` com o endereço do site: sem isso, o "Esqueceu a senha?" não manda o link.
 
 ### Riscos que ficam (conhecidos)

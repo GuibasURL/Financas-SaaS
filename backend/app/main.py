@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import CORS_ORIGINS
+from app.services.client_ip import is_https
 from app.routers import (
     auth,
     categories,
@@ -49,8 +50,9 @@ async def security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "no-referrer"
     if not request.url.path.startswith(DOCS_PATHS):
         response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
-    # HTTPS obrigatório nas próximas visitas (só faz sentido já estando em HTTPS)
-    if request.url.scheme == "https":
+    # HTTPS obrigatório nas próximas visitas (só faz sentido já estando em HTTPS;
+    # atrás do proxy do deploy, quem diz se era HTTPS é o proxy)
+    if is_https(request):
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
 

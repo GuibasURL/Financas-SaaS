@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { AxiosError } from "axios";
-import { addUser, expireAllTokens, loginAs } from "../test/fakeApi";
+import { addUser, API, expireAllTokens, loginAs } from "../test/fakeApi";
 import {
   apiErrorMessage,
   getMe,
@@ -8,6 +8,7 @@ import {
   getToken,
   login,
   setUnauthorizedHandler,
+  wakeUpServer,
 } from "./api";
 
 describe("apiErrorMessage", () => {
@@ -79,5 +80,24 @@ describe("token de login", () => {
 
     expect(onUnauthorized).not.toHaveBeenCalled();
     setUnauthorizedHandler(null);
+  });
+});
+
+describe("wakeUpServer", () => {
+  it("chama a raiz da API, que responde sem tocar no banco", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("{}"));
+
+    wakeUpServer();
+
+    expect(fetchSpy).toHaveBeenCalledWith(`${API}/`);
+    fetchSpy.mockRestore();
+  });
+
+  it("erro de rede é ignorado (é só para acordar)", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("offline"));
+
+    expect(() => wakeUpServer()).not.toThrow();
+    await Promise.resolve();
+    fetchSpy.mockRestore();
   });
 });

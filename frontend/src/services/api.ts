@@ -55,7 +55,48 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   unauthorizedHandler = handler;
 }
 
+// ---------- Servidor acordando ----------
+// No plano grátis da hospedagem, a API "dorme" sem uso e a primeira visita
+// depois disso leva de 30 a 50s. Se algum pedido passar de SLOW_REQUEST_MS,
+// avisa quem estiver ouvindo (ServerWakeNotice), para o site não parecer travado.
+
+export const SLOW_REQUEST_MS = 4000;
+let pendingRequests = 0;
+let slowTimer: ReturnType<typeof setTimeout> | undefined;
+const slowListeners = new Set<(slow: boolean) => void>();
+
+export function onSlowRequests(listener: (slow: boolean) => void): () => void {
+  slowListeners.add(listener);
+  return () => {
+    slowListeners.delete(listener);
+  };
+}
+
+function requestStarted() {
+  pendingRequests += 1;
+  if (pendingRequests === 1) {
+    slowTimer = setTimeout(() => slowListeners.forEach((l) => l(true)), SLOW_REQUEST_MS);
+  }
+}
+
+function requestFinished() {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  if (pendingRequests === 0) {
+    clearTimeout(slowTimer);
+    slowListeners.forEach((l) => l(false));
+  }
+}
+
+/**
+ * Acorda a API sem esperar a resposta (ex: ao abrir o login, enquanto a
+ * pessoa digita). Usa "/", que responde sem tocar no banco. Erro aqui não importa.
+ */
+export function wakeUpServer(): void {
+  fetch(`${api.defaults.baseURL}/`).catch(() => {});
+}
+
 api.interceptors.request.use((config) => {
+  requestStarted();
   const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -64,8 +105,12 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    requestFinished();
+    return response;
+  },
   (error) => {
+    requestFinished();
     // Sem token salvo, o 401 é só "senha errada" no login: não desloga ninguém
     if (error.response?.status === 401 && getToken()) {
       clearToken();

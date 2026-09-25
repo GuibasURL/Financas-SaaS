@@ -44,6 +44,11 @@ function cspPlugin(apiUrl: string): Plugin {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  // Na Vercel, publicar sem VITE_API_URL daria um site chamando o localhost
+  // de quem abre (e com a CSP liberando só ele): melhor o build falhar
+  if (process.env.VERCEL && !env.VITE_API_URL) {
+    throw new Error("Defina VITE_API_URL (endereço da API) nas variáveis de ambiente da Vercel.");
+  }
   // Mesmo padrão do services/api.ts
   const apiUrl = env.VITE_API_URL || "http://localhost:8000";
 
