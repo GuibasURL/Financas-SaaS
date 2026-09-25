@@ -5,6 +5,35 @@
  * fica no CSS Module dela.
  */
 
+/* ---------- Acessibilidade ---------- */
+
+/* Só para leitor de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* "Pular para o conteúdo": escondido até receber o foco pelo Tab */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  border-radius: var(--r-sm);
+  color: var(--bg);
+  background: var(--cyan);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+.skip-link:focus {
+  transform: none;
+}
+
 /* ---------- Ícones (SVG inline, traço uniforme) ---------- */
 
 svg.icon {
@@ -125,6 +154,46 @@ svg.icon {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Abertura do app (enquanto confere a sessão): marca no centro + spinner */
+.boot {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1.1rem;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+.boot-mark {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Carregando: faixas piscando no lugar do conteúdo (componente Skeleton) */
+.skeleton {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem 0;
+}
+.skeleton i,
+.skeleton-bar {
+  display: block;
+  height: 2.5rem;
+  border-radius: var(--r-sm);
+  background: linear-gradient(90deg, var(--glass), var(--glass-strong), var(--glass));
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+}
+/* Uma faixa só, no lugar de um número (ex: cards da Visão geral) */
+.skeleton-bar {
+  width: min(11rem, 80%);
+  height: 1.9rem;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
   }
 }
 

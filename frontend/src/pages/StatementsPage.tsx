@@ -1,4 +1,5 @@
 import PageHeader from "../components/PageHeader";
+import Skeleton from "../components/Skeleton";
 import StatementList from "../components/StatementList";
 import UploadCSV, { CSV_INPUT_ID } from "../components/UploadCSV";
 import { useFinanceData } from "../data/FinanceData";
@@ -6,7 +7,7 @@ import { formatCount } from "../utils/format";
 import styles from "./pages.module.css";
 
 export default function StatementsPage() {
-  const { statements, selectedStatementId, selectStatement, deleteStatement, reload } =
+  const { statements, selectedStatementId, selectStatement, deleteStatement, reload, loaded } =
     useFinanceData();
   const total = statements.reduce((sum, s) => sum + s.transaction_count, 0);
 
@@ -24,18 +25,23 @@ export default function StatementsPage() {
                 Extratos importados
               </h2>
               <p>
-                {formatCount(statements.length, "arquivo", "arquivos")} ·{" "}
-                {formatCount(total, "transação", "transações")}
+                {loaded
+                  ? `${formatCount(statements.length, "arquivo", "arquivos")} · ${formatCount(total, "transação", "transações")}`
+                  : "Carregando…"}
               </p>
             </div>
           </div>
-          <StatementList
-            statements={statements}
-            selectedId={selectedStatementId}
-            onSelect={selectStatement}
-            onDelete={deleteStatement}
-            onImport={() => document.getElementById(CSV_INPUT_ID)?.click()}
-          />
+          {loaded ? (
+            <StatementList
+              statements={statements}
+              selectedId={selectedStatementId}
+              onSelect={selectStatement}
+              onDelete={deleteStatement}
+              onImport={() => document.getElementById(CSV_INPUT_ID)?.click()}
+            />
+          ) : (
+            <Skeleton label="Carregando extratos" rows={3} rowHeight="4rem" />
+          )}
         </section>
 
         <section className={`card ${styles.span4}`} aria-labelledby="import-title">

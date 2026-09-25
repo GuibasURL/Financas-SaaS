@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import CategoryManager, { type CategoryStats } from "../components/CategoryManager";
 import PageHeader from "../components/PageHeader";
+import Skeleton from "../components/Skeleton";
 import { useFinanceData } from "../data/FinanceData";
 
 export default function CategoriesPage() {
-  const { categories, transactions, reload, categoryColor } = useFinanceData();
+  const { categories, transactions, reload, categoryColor, loaded } = useFinanceData();
 
   // Quantidade e soma por categoria (respeita o filtro de extrato, como as outras páginas)
   const stats = useMemo(() => {
@@ -27,12 +28,18 @@ export default function CategoriesPage() {
         title="Categorias"
         eyebrow="Regras por palavra-chave para categorizar os extratos"
       />
-      <CategoryManager
-        categories={categories}
-        onChanged={reload}
-        categoryColor={categoryColor}
-        stats={stats}
-      />
+      {loaded ? (
+        <CategoryManager
+          categories={categories}
+          onChanged={reload}
+          categoryColor={categoryColor}
+          stats={stats}
+        />
+      ) : (
+        <section className="card">
+          <Skeleton label="Carregando categorias" rows={5} rowHeight="4.5rem" />
+        </section>
+      )}
     </>
   );
 }

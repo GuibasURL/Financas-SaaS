@@ -143,6 +143,10 @@
   padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem;
 }
 
+.content:focus {
+  outline: none;
+}
+
 /* Topo só do celular (a marca e o Sair saem do menu, que vira barra inferior) */
 .mobileTop {
   display: none;

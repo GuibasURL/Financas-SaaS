@@ -29,7 +29,8 @@ interface Props {
 }
 
 const IGNORE_HINT =
-  "Transações desta categoria continuam na lista, mas não entram nos gráficos nem nos totais. " +
+  "Transações desta categoria continuam na lista, mas não entram nas entradas, nas saídas " +
+  "nem nos gráficos. " +
   "Use para o que não é gasto de verdade: o pagamento da fatura do cartão (as compras " +
   "da fatura já são os gastos) ou transferências entre suas próprias contas.";
 
@@ -305,7 +306,7 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
                           checked={editIgnore}
                           onChange={(e) => setEditIgnore(e.target.checked)}
                         />
-                        Ignorar nos gráficos
+                        Deixar fora dos totais
                       </label>
                       {errorIn("edit")}
                       <div className={`${styles.rowActions} ${styles.full}`}>
@@ -402,7 +403,7 @@ export default function CategoryManager({ categories, onChanged, categoryColor, 
                   onChange={(e) => setNewIgnore(e.target.checked)}
                   aria-describedby="ignore-help"
                 />
-                Ignorar nos gráficos
+                Deixar fora dos totais
               </label>
               <p className={styles.checkboxHelp} id="ignore-help">
                 {IGNORE_HINT}
@@ -510,8 +511,8 @@ function CategoryRow({ category, color, stats, busy, onEdit, onDelete }: RowProp
             </span>
           )}
           {category.ignore_in_reports && (
-            <span className="badge badge-warning" title={IGNORE_HINT}>
-              ignorada nos gráficos
+            <span className="badge" title={IGNORE_HINT}>
+              fora dos totais
             </span>
           )}
         </div>

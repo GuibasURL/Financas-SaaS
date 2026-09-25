@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router";
 import { FinanceDataProvider } from "./data/FinanceData";
 import { FeedbackProvider } from "./feedback/Feedback";
+import { LogoMark } from "./components/Logo";
 import AppShell from "./layout/AppShell";
 import CategoriesPage from "./pages/CategoriesPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -93,9 +94,11 @@ function AuthenticatedApp() {
 
   if (auth.status === "loading") {
     return (
-      <p className="muted" style={{ padding: 24 }} role="status">
-        Carregando...
-      </p>
+      <div className="boot" role="status">
+        <LogoMark className="boot-mark" />
+        <span className="spinner" aria-hidden="true" />
+        <span className="sr-only">Carregando…</span>
+      </div>
     );
   }
 

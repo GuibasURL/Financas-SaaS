@@ -79,7 +79,12 @@ api.interceptors.response.use(
  * Mensagem legível a partir de um erro da API. O FastAPI devolve `detail`
  * como texto (erros nossos) ou como lista (erros de validação, 422).
  */
+export const NO_CONNECTION_HINT =
+  "Sem conexão com o servidor: verifique sua internet e tente de novo.";
+
 export function apiErrorMessage(error: unknown, fallback: string): string {
+  // O pedido nem chegou ao servidor (sem internet, servidor fora do ar)
+  if (axios.isAxiosError(error) && !error.response) return `${fallback} ${NO_CONNECTION_HINT}`;
   const detail = (error as any)?.response?.data?.detail;
   if (typeof detail === "string") return detail;
   // Erros com dados extras (ex: extrato repetido) trazem a mensagem em "message"

@@ -37,31 +37,34 @@ export default function CategoryPieChart({ data, categoryColor }: Props) {
   return (
     <div className={styles.donutWrap}>
       <div className={styles.donut}>
-        <ResponsiveContainer width="100%" height={200}>
-          <PieChart>
-            <Pie
-              data={slices}
-              dataKey="value"
-              nameKey="name"
-              innerRadius="72%"
-              outerRadius="100%"
-              startAngle={90}
-              endAngle={-270}
-              paddingAngle={1.5}
-              stroke="none"
-              isAnimationActive={false}
-            >
-              {slices.map((s) => (
-                <Cell key={s.name} fill={s.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={moneyTooltip}
-              contentStyle={TOOLTIP_STYLE}
-              itemStyle={{ color: "var(--text)" }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+        {/* A lista ao lado diz o mesmo em texto: o desenho fica fora do leitor de tela */}
+        <div aria-hidden="true">
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie
+                data={slices}
+                dataKey="value"
+                nameKey="name"
+                innerRadius="72%"
+                outerRadius="100%"
+                startAngle={90}
+                endAngle={-270}
+                paddingAngle={1.5}
+                stroke="none"
+                isAnimationActive={false}
+              >
+                {slices.map((s) => (
+                  <Cell key={s.name} fill={s.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={moneyTooltip}
+                contentStyle={TOOLTIP_STYLE}
+                itemStyle={{ color: "var(--text)" }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
         <span className={styles.donutCenter} aria-hidden="true">
           <small>Total de saídas</small>
           <b>{formatMoney(total)}</b>

@@ -3,6 +3,7 @@ import { apiErrorMessage, getMe, login, register } from "../services/api";
 import type { User } from "../types/user";
 import Logo from "../components/Logo";
 import { PasswordField, PasswordMatch, PasswordStrengthMeter } from "../components/PasswordInputs";
+import { usePageTitle } from "../utils/pageTitle";
 import { weakPasswordMessage } from "../utils/passwordStrength";
 import { ForgotPasswordForm, ResetPasswordForm } from "./PasswordRecovery";
 import styles from "./AuthPage.module.css";
@@ -59,6 +60,15 @@ export default function AuthPage({
 
   const isRegister = mode === "register";
   const heading = HEADINGS[mode];
+  usePageTitle(
+    resetToken
+      ? "Criar senha nova"
+      : forgot
+        ? "Esqueceu a senha?"
+        : isRegister
+          ? "Criar conta"
+          : "Entrar"
+  );
 
   function changeMode(next: Mode) {
     if (next === mode) return;

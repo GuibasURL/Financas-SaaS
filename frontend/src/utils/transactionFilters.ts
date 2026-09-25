@@ -3,6 +3,7 @@
  * navegador: as transações do extrato selecionado já estão carregadas.
  */
 import type { Transaction } from "../types/transaction";
+import { MONTH_NAMES } from "./format";
 
 export type CategoryFilter = "all" | "none" | number;
 export type KindFilter = "all" | "in" | "out";
@@ -56,14 +57,12 @@ export function filterTransactions(
   );
 }
 
-const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-
 /** Meses que têm transação, do mais recente para o mais antigo: [{ value: "2025-03", label: "mar/2025" }] */
 export function monthOptions(transactions: Transaction[]): { value: string; label: string }[] {
   const months = [...new Set(transactions.map((t) => t.date.slice(0, 7)))].sort().reverse();
   return months.map((value) => {
     const [year, month] = value.split("-");
-    return { value, label: `${MONTHS[Number(month) - 1]}/${year}` };
+    return { value, label: `${MONTH_NAMES[Number(month) - 1]}/${year}` };
   });
 }
 

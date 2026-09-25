@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AxiosError } from "axios";
 import { addUser, expireAllTokens, loginAs } from "../test/fakeApi";
 import {
   apiErrorMessage,
@@ -35,6 +36,14 @@ describe("apiErrorMessage", () => {
 
   it("usa a mensagem padrão quando não há resposta da API", () => {
     expect(apiErrorMessage(new Error("Network Error"), "Falhou")).toBe("Falhou");
+  });
+
+  it("sem conexão com o servidor: diz o motivo", () => {
+    const offline = new AxiosError("Network Error", AxiosError.ERR_NETWORK);
+
+    expect(apiErrorMessage(offline, "Não foi possível entrar.")).toBe(
+      "Não foi possível entrar. Sem conexão com o servidor: verifique sua internet e tente de novo."
+    );
   });
 });
 

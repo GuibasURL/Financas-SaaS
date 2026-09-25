@@ -8,7 +8,7 @@ import {
   YAxis,
 } from "recharts";
 import type { MonthlyTotal } from "../../types/transaction";
-import { compactThousands, monthlyTooltip, TOOLTIP_STYLE } from "./chartFormat";
+import { compactThousands, monthlySeries, monthlyTooltip, TOOLTIP_STYLE } from "./chartFormat";
 
 interface Props {
   data: MonthlyTotal[];
@@ -17,10 +17,7 @@ interface Props {
 const AXIS_TICK = { fill: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 10 };
 
 export default function MonthlyTrendChart({ data }: Props) {
-  const chartData = data.map((d) => ({
-    label: `${d.month}/${d.year}`,
-    total: Math.abs(d.total),
-  }));
+  const chartData = monthlySeries(data);
 
   if (chartData.length === 0) {
     return <p className="empty">Nenhum gasto no período.</p>;
@@ -36,8 +33,17 @@ export default function MonthlyTrendChart({ data }: Props) {
           </linearGradient>
         </defs>
         <CartesianGrid stroke="var(--line-soft)" strokeDasharray="3 4" vertical={false} />
-        <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: "var(--line)" }} />
-        <YAxis tick={AXIS_TICK} tickFormatter={compactThousands} tickLine={false} axisLine={false} width={48} />
+        {/* Sem espaço para todos os meses, pula alguns, mas sempre mostra o primeiro e o último */}
+        <XAxis
+          dataKey="label"
+          tick={AXIS_TICK}
+          tickLine={false}
+          axisLine={{ stroke: "var(--line)" }}
+          interval="preserveStartEnd"
+          minTickGap={12}
+        />
+        {/* Largura para "4,5 mil" caber inteiro (com 48 cortava o começo) */}
+        <YAxis tick={AXIS_TICK} tickFormatter={compactThousands} tickLine={false} axisLine={false} width={58} />
         <Tooltip
           formatter={monthlyTooltip}
           contentStyle={TOOLTIP_STYLE}

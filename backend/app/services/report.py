@@ -12,7 +12,7 @@ Abas:
 Nos resumos, "Saídas" aparece como valor positivo (quanto saiu); o sinal só
 fica na lista de transações, igual ao extrato do banco.
 
-Transações de categorias marcadas como "ignorar nos gráficos" (ex:
+Transações de categorias marcadas como "fora dos totais" (ex:
 pagamento de fatura) aparecem na aba Transações, mas ficam fora de todos
 os totais, igual ao dashboard.
 """
@@ -196,10 +196,10 @@ def _summary_sheet(sheet: Worksheet, totals: Totals, ignored, filters, generated
             row,
             [
                 (
-                    "Fora dos totais (categorias ignoradas)",
+                    "Fora dos totais",
                     len(ignored),
                     COUNT_FORMAT,
-                    f"{_money_text(ignored_value)} em categorias marcadas como \"ignorar nos gráficos\" "
+                    f"{_money_text(ignored_value)} em categorias marcadas como \"fora dos totais\" "
                     "(ex: pagamento de fatura, investimentos). Estão na aba Transações, mas não "
                     "entram em nenhum total, para não contar o mesmo gasto duas vezes.",
                 )
@@ -464,7 +464,7 @@ def _transactions_sheet(sheet: Worksheet, transactions):
         sheet,
         "Transações",
         "Todos os lançamentos do período. Use as setas do cabeçalho para filtrar ou ordenar. "
-        "Linhas em cinza são de categorias ignoradas nos totais.",
+        "Linhas em cinza ficam fora dos totais.",
         columns=len(headers),
     )
     header_row = TABLE_START
@@ -483,7 +483,7 @@ def _transactions_sheet(sheet: Worksheet, transactions):
                 "Entrada" if t.amount > 0 else "Saída",
                 t.amount,
                 t.statement.filename,
-                "Sim" if counted else "Não (ignorada)",
+                "Sim" if counted else "Não (fora dos totais)",
             ],
             formats={1: DATE_FORMAT, 5: SIGNED_MONEY_FORMAT},
             zebra=index % 2 == 1,

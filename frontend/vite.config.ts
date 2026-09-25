@@ -59,6 +59,10 @@ export default defineConfig(({ mode }) => {
       setupFiles: ["./src/test/setup.tsx"],
       // Fuso fixo para os testes de data/hora não dependerem da máquina
       env: { TZ: "America/Sao_Paulo" },
+      // Os testes que digitam formulários inteiros levam 1-2s; com cobertura e
+      // todos os arquivos em paralelo, passavam dos 5s padrão numa máquina
+      // ocupada e falhavam por tempo, não por erro
+      testTimeout: 15000,
       coverage: {
         include: ["src/**"],
         // types/ só tem declarações de tipo (nada roda); main.tsx só monta o App
