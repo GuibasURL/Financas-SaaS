@@ -8,3 +8,5 @@ PyJWT==2.14.0
 bcrypt==5.0.0
 openpyxl==3.1.5
 tzdata==2026.4
+# Driver do Postgres (banco do deploy); o SQLite do desenvolvimento não precisa
+psycopg[binary]==3.3.6

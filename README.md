@@ -115,6 +115,7 @@ A senha é pedida no terminal. Extratos e categorias que já existiam antes da a
 
 Configuração (variáveis de ambiente ou `backend/.env`):
 
+- `DATABASE_URL`: banco de dados (padrão: SQLite em `backend/financas.db`). No deploy, o Postgres, no formato que o provedor entregar (`postgres://...` ou `postgresql://...`): a API troca sozinha para o driver instalado (psycopg 3). Crie as tabelas com `alembic upgrade head` antes de subir a API.
 - `SECRET_KEY`: chave que assina os tokens (mínimo 32 bytes). Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Sem ela, a API sobe com uma chave de desenvolvimento que está no código (e avisa no log): serve para rodar local, mas **nunca publique a API assim**, porque qualquer um conseguiria forjar tokens. Por isso, se o `CORS_ORIGINS` tiver um endereço público (qualquer um que não seja localhost), a API **se recusa a subir** sem uma `SECRET_KEY` própria. Uma chave com menos de 32 bytes também faz a API recusar subir.
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
 - `CORS_ORIGINS`: endereços do frontend que podem chamar a API, separados por vírgula (padrão: `http://localhost:5173`). Em produção, o endereço público do frontend.
@@ -174,7 +175,13 @@ cd backend
 pytest
 ```
 
-Cada teste usa um banco SQLite em memória, então o `financas.db` não é tocado. Há também um teste que roda as migrations do Alembic e confere se batem com os models.
+Cada teste usa um banco SQLite em memória, então o `financas.db` não é tocado. Há também testes que rodam as migrations do Alembic e conferem se batem com os models (inclusive o tipo de cada coluna), se preservam dados antigos e se podem ser desfeitas.
+
+Para rodar os mesmos testes no **Postgres** (o banco do deploy), aponte `TEST_DATABASE_URL` para um banco vazio usado só para isso: ele é apagado e recriado a cada teste.
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg://usuario:senha@localhost:5432/vexira_test pytest
+```
 
 Para ver quais linhas nenhum teste executa (o CI exige pelo menos 95%):
 
@@ -208,6 +215,7 @@ Vitest + Testing Library, com os componentes renderizados no jsdom. As chamadas 
 A cada push e pull request para `dev` ou `main`, o workflow `.github/workflows/ci.yml` roda em paralelo:
 
 - **Backend:** instala `requirements-dev.txt` e roda o `pytest` com cobertura (falha abaixo de 95%)
+- **Backend no Postgres:** os mesmos testes, e as migrations, num Postgres 17 de verdade (serviço do próprio GitHub Actions)
 - **Frontend:** `npm ci`, testes com cobertura (mínimos em `vite.config.ts`) e `npm run build` (que também faz o typecheck)
 
 O resultado aparece no PR (✓ ou ✗) e na aba **Actions** do repositório.
@@ -355,7 +363,7 @@ Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `state
 
 ## Stack
 
-- Backend: FastAPI + SQLAlchemy + Alembic + SQLite (trocar para Postgres depois é só mudar `DATABASE_URL`)
+- Backend: FastAPI + SQLAlchemy + Alembic; SQLite no desenvolvimento e Postgres no deploy (testado no CI), escolhido pelo `DATABASE_URL`
 - Frontend: React + TypeScript + Vite + Recharts
 
 ## Identidade visual

@@ -8,6 +8,7 @@ from app.config import (
     is_public_origin,
     load_secret_key,
     load_timezone,
+    normalize_database_url,
     parse_cors_origins,
 )
 
@@ -97,3 +98,21 @@ def test_fuso_configurado():
 def test_fuso_invalido_impede_de_subir(value):
     with pytest.raises(ValueError, match="não é um fuso válido"):
         load_timezone(value)
+
+
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        # Como Neon, Render e Railway entregam: vira o psycopg 3 (o driver instalado)
+        ("postgres://u:s@host:5432/db", "postgresql+psycopg://u:s@host:5432/db"),
+        (
+            "postgresql://u:s@host/db?sslmode=require",
+            "postgresql+psycopg://u:s@host/db?sslmode=require",
+        ),
+        # Já com driver, ou SQLite: não mexe
+        ("postgresql+psycopg://u:s@host/db", "postgresql+psycopg://u:s@host/db"),
+        ("sqlite:///./financas.db", "sqlite:///./financas.db"),
+    ],
+)
+def test_endereco_do_postgres_usa_o_psycopg_3(url, expected):
+    assert normalize_database_url(url) == expected

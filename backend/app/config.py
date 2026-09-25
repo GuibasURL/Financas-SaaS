@@ -9,10 +9,24 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Por padrão usa SQLite (arquivo local) para facilitar o começo.
-# Quando quiser migrar para Postgres, basta trocar essa variável de ambiente:
-# DATABASE_URL=postgresql://usuario:senha@localhost:5432/financas
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./financas.db")
+def normalize_database_url(url: str) -> str:
+    """
+    Os provedores de Postgres (Neon, Render, Railway...) entregam o endereço
+    como "postgres://" ou "postgresql://". O SQLAlchemy lê os dois como o driver
+    antigo (psycopg2, que nem está instalado): aqui vira o psycopg 3.
+        "postgres://u:s@host/db" -> "postgresql+psycopg://u:s@host/db"
+    Endereços com o driver escolhido (ou SQLite) ficam como estão.
+    """
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+# Por padrão usa SQLite (arquivo local) para facilitar o começo. No deploy,
+# DATABASE_URL aponta para o Postgres, no formato que o provedor entregar:
+# DATABASE_URL=postgresql://usuario:senha@host:5432/vexira
+DATABASE_URL = normalize_database_url(os.getenv("DATABASE_URL", "sqlite:///./financas.db"))
 
 # Chave usada para assinar os tokens JWT. Quem a conhece consegue forjar um
 # token de qualquer usuário, então em produção ela precisa ser secreta e
