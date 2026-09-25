@@ -8,6 +8,8 @@ dependem uns dos outros nem encostam no financas.db de verdade.
 - `other_client`: autenticado como `other_user` (testes de isolamento)
 - `anon_client`: sem token
 """
+import os
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -57,15 +59,30 @@ def reset_login_limiter():
     reset_limiter.reset()
 
 
-@pytest.fixture
-def db_session():
+# Com TEST_DATABASE_URL (ex: postgresql+psycopg://usuario@localhost/vexira_test),
+# os testes rodam nesse banco em vez do SQLite em memória: o CI usa isso para
+# rodar tudo também no Postgres, o banco do deploy. O banco é apagado e
+# recriado a cada teste, então use um banco só para isso.
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+
+
+def _test_engine():
+    if TEST_DATABASE_URL:
+        engine = create_engine(TEST_DATABASE_URL)
+        Base.metadata.drop_all(engine)
+        return engine
     # StaticPool: todas as conexões usam o mesmo banco em memória
     # (sem ele, cada conexão nova veria um banco vazio).
-    engine = create_engine(
+    return create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+
+@pytest.fixture
+def db_session():
+    engine = _test_engine()
     Base.metadata.create_all(engine)
     TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -74,6 +91,8 @@ def db_session():
     yield session
     app.dependency_overrides.clear()
     session.close()
+    if TEST_DATABASE_URL:
+        Base.metadata.drop_all(engine)
     engine.dispose()
 
 
