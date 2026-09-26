@@ -117,7 +117,7 @@ LOGIN_MAX_FAILURES_PER_ACCOUNT = int(os.getenv("LOGIN_MAX_FAILURES_PER_ACCOUNT",
 LOGIN_MAX_FAILURES_PER_IP = int(os.getenv("LOGIN_MAX_FAILURES_PER_IP", 30))
 
 # Quantos proxies confiáveis ficam na frente da API (ver services/client_ip.py).
-# 0 (padrão, rodando local): usa o IP da conexão. No Render: 1.
+# 0 (padrão, rodando local): usa o IP da conexão. No Render: 3 (conferido no deploy).
 TRUSTED_PROXY_HOPS = int(os.getenv("TRUSTED_PROXY_HOPS", 0))
 # Loga o X-Forwarded-For de cada login, para conferir o TRUSTED_PROXY_HOPS no deploy
 LOG_CLIENT_IP = os.getenv("LOG_CLIENT_IP", "").lower() in ("1", "true", "sim")

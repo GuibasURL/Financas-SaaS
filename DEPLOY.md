@@ -84,7 +84,7 @@ No site publicado:
 - [ ] Dar F5 em `/transacoes`: a página abre normalmente (não dá 404).
 - [ ] Headers: em [securityheaders.com](https://securityheaders.com), o site e a API devem tirar nota A ou A+.
 
-**IP de quem acessa** (limite de tentativas de login): no Render, **Environment**, adicione `LOG_CLIENT_IP` = `1`. Faça um login errado no site e abra **Logs**. A linha `X-Forwarded-For=[...] -> IP usado=...` precisa mostrar o **seu** IP (veja em [meuip.com.br](https://meuip.com.br)). Se o IP usado for de outra rede (do Render ou de uma CDN), aumente `TRUSTED_PROXY_HOPS` para `2` e confira de novo. No fim, **apague `LOG_CLIENT_IP`**: IP é dado pessoal e não deve ficar no log.
+**IP de quem acessa** (limite de tentativas de login): no Render, **Environment**, adicione `LOG_CLIENT_IP` = `1`. Faça um login errado no site e abra **Logs**. A linha `X-Forwarded-For=[...] -> IP usado=...` precisa mostrar o **seu** IP (veja em [meuip.com.br](https://meuip.com.br)). O `TRUSTED_PROXY_HOPS` é o número de itens **depois** do seu IP na lista, mais um: no primeiro deploy a lista veio com 3 itens e o seu IP no primeiro (`[seu IP, proxy, 10.x]`), por isso o `render.yaml` usa `3`. Se o Render mudar a rede e o IP usado virar outro (um `10.x`, por exemplo), conte de novo e ajuste. No fim, **apague `LOG_CLIENT_IP`**: IP é dado pessoal e não deve ficar no log.
 
 ## Depois
 

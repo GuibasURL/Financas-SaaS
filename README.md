@@ -124,7 +124,7 @@ Configuração (variáveis de ambiente ou `backend/.env`):
 - `SMTP_HOST`, `SMTP_PORT` (padrão: 587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` (ex: `Vexira <nao-responda@seudominio.com>`) e `SMTP_SECURITY` (`starttls`, o padrão; `ssl` para a porta 465; `none` só para servidor local de teste): envio de e-mail (veja "Esqueceu a senha?"). Algumas hospedagens bloqueiam as portas 25, 465 e 587 (o Render no plano grátis): aí use a porta alternativa do provedor, como a 2525 do Brevo.
 - `PASSWORD_RESET_MINUTES` (padrão: 30), `PASSWORD_RESET_MAX_PER_ACCOUNT` (padrão: 3) e `PASSWORD_RESET_MAX_PER_IP` (padrão: 10): validade do link e limite de pedidos
 - `LOGIN_MAX_FAILURES_PER_ACCOUNT` (padrão: 5), `LOGIN_MAX_FAILURES_PER_IP` (padrão: 30) e `LOGIN_WINDOW_MINUTES` (padrão: 15): limite de tentativas de login erradas (veja abaixo).
-- `TRUSTED_PROXY_HOPS` (padrão: 0): quantos proxies ficam na frente da API no deploy (no Render: 1), para achar o IP real de quem acessa. `LOG_CLIENT_IP=1` mostra no log o que chegou, para conferir (veja o limite de tentativas abaixo).
+- `TRUSTED_PROXY_HOPS` (padrão: 0): quantos proxies ficam na frente da API no deploy (no Render: 3), para achar o IP real de quem acessa. `LOG_CLIENT_IP=1` mostra no log o que chegou, para conferir (veja o limite de tentativas abaixo).
 
 ### Limite de tentativas de login
 
@@ -134,7 +134,7 @@ Para dificultar quem tenta adivinhar senhas, o login conta as tentativas erradas
 - Um login certo zera os erros daquele e-mail naquele IP.
 - A contagem fica na memória da API: zera quando ela reinicia e vale só para uma instância (o suficiente para este projeto; com várias instâncias, ela precisaria ir para um lugar compartilhado, como o Redis).
 
-> ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API recebe a conexão do proxy, não a do visitante. Defina `TRUSTED_PROXY_HOPS` com o número de proxies na frente dela (no Render: `1`): o IP do visitante é lido no `X-Forwarded-For` **contando pela direita**, onde cada proxy acrescenta quem se conectou a ele. Sem isso, todo mundo parece vir do IP do proxy, e 30 erros de pessoas diferentes bloqueariam o login de todos.
+> ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API recebe a conexão do proxy, não a do visitante. Defina `TRUSTED_PROXY_HOPS` com o número de proxies na frente dela (no Render: `3`, conferido com `LOG_CLIENT_IP`): o IP do visitante é lido no `X-Forwarded-For` **contando pela direita**, onde cada proxy acrescenta quem se conectou a ele. Sem isso, todo mundo parece vir do IP do proxy, e 30 erros de pessoas diferentes bloqueariam o login de todos.
 >
 > **Não use** `--proxy-headers --forwarded-allow-ips="*"` no uvicorn: nesse modo ele usa o **primeiro** IP da lista, que o próprio visitante escreve, e qualquer um trocaria de IP a cada tentativa para escapar do limite. Para conferir o número de proxies no deploy, ligue `LOG_CLIENT_IP=1` por um instante: cada login mostra no log o `X-Forwarded-For` recebido e o IP usado.
 
