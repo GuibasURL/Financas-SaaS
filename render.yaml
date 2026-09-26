@@ -22,9 +22,11 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
-      # Um proxy do Render na frente da API (ver services/client_ip.py)
+      # Três proxies do Render na frente da API (ver services/client_ip.py):
+      # conferido no deploy com LOG_CLIENT_IP, o X-Forwarded-For chega como
+      # [visitante, proxy, 10.x (rede interna)]. Com 1, o IP usado era o interno
       - key: TRUSTED_PROXY_HOPS
-        value: "1"
+        value: "3"
       - key: APP_TIMEZONE
         value: America/Sao_Paulo
       # Gerada pelo Render: aleatória, 256 bits, ninguém precisa ver
