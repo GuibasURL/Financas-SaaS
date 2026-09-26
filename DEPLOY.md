@@ -36,6 +36,8 @@ A API cria as tabelas sozinha ao subir (`alembic upgrade head`); não precisa ro
 
 Sem domínio próprio, os e-mails podem cair no spam no começo; avise quem for testar.
 
+A chave SMTP do Brevo **expira em um ano**. Quando expirar, o "Esqueceu a senha?" para de enviar: gere outra e troque o `SMTP_PASSWORD` no Render.
+
 ## 3. API no Render
 
 1. Crie a conta com o GitHub e autorize o acesso ao repositório `financas-saas`.
@@ -62,6 +64,15 @@ Sem domínio próprio, os e-mails podem cair no spam no começo; avise quem for 
 4. Em **Environment Variables**: `VITE_API_URL` = o endereço da API do passo 3 (sem `/` no fim). Sem ela o build falha de propósito.
 5. **Deploy**. O endereço final aparece no painel (ex: `https://vexira.vercel.app`).
 6. Se o endereço for diferente do que você pôs no Render, corrija `CORS_ORIGINS` e `FRONTEND_URL` lá (**Environment** do serviço) e salve: o Render reinicia a API.
+
+### Se o e-mail não chegar
+
+No Render, **Logs**, procure `Falha ao enviar`: o erro vem nas linhas de baixo.
+
+- `TimeoutError: timed out`: a porta está bloqueada pela hospedagem. O plano grátis do Render bloqueia 25, 465 e 587; por isso o `render.yaml` usa a **2525**, que o Brevo também atende.
+- `SMTPAuthenticationError`: `SMTP_USER` ou `SMTP_PASSWORD` errado (espaço sobrando, chave incompleta).
+- Erro sobre o remetente (*sender*): o `SMTP_FROM` precisa ser exatamente o remetente confirmado no Brevo.
+- Nenhum erro: o e-mail saiu. Olhe o spam e o log do Brevo (**Transacional → Logs**).
 
 ## 5. Conferir
 
