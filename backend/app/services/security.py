@@ -15,6 +15,7 @@ import jwt
 from app.config import ACCESS_TOKEN_EXPIRE_MINUTES, SECRET_KEY
 
 ALGORITHM = "HS256"
+MAX_PASSWORD_BYTES = 72  # limite do bcrypt
 
 
 def hash_password(password: str) -> str:
@@ -22,7 +23,14 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+    encoded = password.encode("utf-8")
+    # O bcrypt recusa (com erro) mais de 72 bytes, e nenhuma senha salva
+    # passa disso: é senha errada. Roda o bcrypt mesmo assim, para a
+    # resposta levar o mesmo tempo que as outras.
+    if len(encoded) > MAX_PASSWORD_BYTES:
+        bcrypt.checkpw(encoded[:MAX_PASSWORD_BYTES], hashed_password.encode("utf-8"))
+        return False
+    return bcrypt.checkpw(encoded, hashed_password.encode("utf-8"))
 
 
 class AccessToken(NamedTuple):
@@ -46,7 +54,10 @@ def create_access_token(
 def decode_access_token(token: str) -> Optional[AccessToken]:
     """Retorna o dono e a emissão do token, ou None se for inválido/expirado."""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Sem "exp" o token valeria para sempre: todo token emitido aqui tem
+        payload = jwt.decode(
+            token, SECRET_KEY, algorithms=[ALGORITHM], options={"require": ["exp", "sub"]}
+        )
         issued_at = payload.get("iat")
         return AccessToken(
             user_id=int(payload["sub"]),

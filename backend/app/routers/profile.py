@@ -66,6 +66,10 @@ def update_profile(
         if db.query(User).filter(User.email == payload.email).first():
             raise HTTPException(status_code=400, detail="E-mail já cadastrado")
         user.email = payload.email
+        # Um link de "Esqueceu a senha?" mandado para o e-mail antigo deixa de
+        # valer: quem troca o e-mail porque perdeu o acesso a ele (ou porque
+        # alguém invadiu) não quer que o link antigo ainda troque a senha
+        delete_reset_tokens(db, user.id)
 
     user.name = payload.name
     user.birth_date = payload.birth_date

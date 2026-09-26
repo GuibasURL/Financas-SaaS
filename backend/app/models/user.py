@@ -1,11 +1,19 @@
 from base64 import b64encode
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import Column, Date, DateTime, Integer, LargeBinary, String
 from sqlalchemy.orm import deferred
 from sqlalchemy.sql import func
 
 from app.db import Base
+
+# Diferença tolerada entre o relógio do banco e o da API
+CLOCK_SKEW = timedelta(minutes=5)
+
+
+def _utc(value: datetime) -> datetime:
+    # O SQLite devolve a data sem fuso; ela foi gravada em UTC
+    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
 
 
 class User(Base):
@@ -27,17 +35,19 @@ class User(Base):
     avatar_type = Column(String(20), nullable=True)  # "image/png", "image/jpeg"...
 
     def token_is_current(self, issued_at: datetime | None) -> bool:
-        """O token foi emitido depois da última troca de senha (se houve alguma)?"""
+        """O token foi emitido para esta conta, e depois da última troca de senha (se houve alguma)?"""
+        # Token de antes de a conta existir era de uma conta excluída com o
+        # mesmo id (o SQLite reaproveita o id): não abre a conta nova. Com
+        # folga, porque o created_at vem do relógio do banco, e o "iat" do da API.
+        if issued_at is not None and self.created_at is not None:
+            if issued_at < _utc(self.created_at) - CLOCK_SKEW:
+                return False
         if self.password_changed_at is None:
             return True
         if issued_at is None:
             return False
-        changed = self.password_changed_at
-        # O SQLite devolve a data sem fuso; ela foi gravada em UTC
-        if changed.tzinfo is None:
-            changed = changed.replace(tzinfo=timezone.utc)
         # O "iat" do token só tem segundos inteiros
-        return issued_at >= changed.replace(microsecond=0)
+        return issued_at >= _utc(self.password_changed_at).replace(microsecond=0)
 
     @property
     def avatar_url(self) -> str | None:
