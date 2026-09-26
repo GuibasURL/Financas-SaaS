@@ -8,6 +8,7 @@ Segurança, parte 2: ataques que não são "B mexendo nos dados de A".
 - Campos extras no corpo (user_id, id, hashed_password) são ignorados
 - CORS, SQL injection, fórmula no nome da categoria e do arquivo
 - Limites de tamanho do que fica guardado no banco
+- Limite de cadastros por IP (contas em massa e teste de quais e-mails existem)
 """
 import io
 from datetime import datetime, timedelta, timezone
@@ -16,9 +17,11 @@ import jwt
 import pytest
 from openpyxl import load_workbook
 
+from app import config
 from app.config import CORS_ORIGINS, SECRET_KEY
 from app.models.category import Category
 from app.models.user import User
+from app.routers.auth import register_limiter
 from app.services.password_reset import create_reset_token
 from app.services.security import create_access_token
 from tests.conftest import CSV_JANEIRO, PASSWORD, TEST_DATABASE_URL, _create_user, upload_csv
@@ -272,3 +275,63 @@ def test_nome_do_arquivo_tem_limite(client):
     )
     assert client.get("/statements").json() == []
     assert upload_csv(client, CSV_JANEIRO, filename="a" * 251 + ".csv").status_code == 200
+
+
+# ---------- Limite de cadastros por IP ----------
+
+
+@pytest.fixture
+def register_limit(monkeypatch):
+    """Limite baixo (3) para o teste não precisar de muitos cadastros."""
+    monkeypatch.setattr(register_limiter, "max_per_ip", 3)
+    monkeypatch.setattr(register_limiter, "max_per_account", 3)
+
+
+def _register(anon_client, email: str, **kwargs):
+    return anon_client.post("/auth/register", json={"email": email, "password": NEW_PASSWORD}, **kwargs)
+
+
+def test_limite_de_cadastros_por_ip(anon_client, db_session, register_limit):
+    assert [_register(anon_client, f"conta{i}@teste.com").status_code for i in range(3)] == [201, 201, 201]
+
+    response = _register(anon_client, "conta3@teste.com")
+
+    assert response.status_code == 429
+    assert response.json()["detail"] == "Muitos cadastros a partir desta conexão. Tente de novo em 60 minutos."
+    assert int(response.headers["retry-after"]) > 59 * 60
+    assert db_session.query(User).filter(User.email == "conta3@teste.com").first() is None
+
+
+def test_testar_emails_no_cadastro_tambem_conta(anon_client, user, register_limit):
+    # "E-mail já cadastrado" revela quem tem conta: quem testa vários também para
+    assert [_register(anon_client, user.email).status_code for _ in range(3)] == [400, 400, 400]
+
+    assert _register(anon_client, "ninguem@teste.com").status_code == 429
+
+
+def test_cadastro_invalido_nao_gasta_o_limite(anon_client, register_limit):
+    # Senha fraca volta 422 antes de chegar à rota: não revela nada nem cria conta
+    for _ in range(5):
+        anon_client.post("/auth/register", json={"email": "nova@teste.com", "password": "123"})
+
+    assert _register(anon_client, "nova@teste.com").status_code == 201
+
+
+def test_limite_de_cadastro_e_separado_do_login(anon_client, user, register_limit):
+    for i in range(3):
+        _register(anon_client, f"conta{i}@teste.com")
+
+    assert _login(anon_client, user.email, PASSWORD).status_code == 200
+
+
+def test_trocar_o_ip_no_header_nao_escapa_do_limite_de_cadastro(anon_client, register_limit, monkeypatch):
+    monkeypatch.setattr(config, "TRUSTED_PROXY_HOPS", 1)
+
+    def attempt(i: int, real_ip: str = "200.1.1.1"):
+        # O visitante inventa um IP a cada tentativa; o proxy acrescenta o real
+        return _register(anon_client, f"conta{i}@teste.com", headers={"X-Forwarded-For": f"6.6.6.{i}, {real_ip}"})
+
+    assert [attempt(i).status_code for i in range(3)] == [201, 201, 201]
+    assert attempt(3).status_code == 429
+    # Outra pessoa, de outro IP de verdade, cadastra normalmente
+    assert attempt(4, real_ip="177.2.2.2").status_code == 201
