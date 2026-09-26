@@ -3,10 +3,17 @@ from typing import Literal, Optional
 from pydantic import BaseModel, ConfigDict, field_validator
 
 
+NAME_MAX_LENGTH = 100
+# As categorias sugeridas mais longas têm uns 250 caracteres de palavras-chave
+KEYWORDS_MAX_LENGTH = 2000
+
+
 def normalize_name(value: str) -> str:
     value = value.strip()
     if not value:
         raise ValueError("O nome da categoria não pode ficar vazio")
+    if len(value) > NAME_MAX_LENGTH:
+        raise ValueError(f"O nome da categoria pode ter no máximo {NAME_MAX_LENGTH} caracteres")
     return value
 
 
@@ -25,7 +32,10 @@ def normalize_keywords(value: str) -> str:
             keyword = "-" + keyword.lstrip("-").strip()
         if keyword.strip("-") and keyword not in keywords:
             keywords.append(keyword)
-    return ",".join(keywords)
+    value = ",".join(keywords)
+    if len(value) > KEYWORDS_MAX_LENGTH:
+        raise ValueError(f"As palavras-chave podem ter no máximo {KEYWORDS_MAX_LENGTH} caracteres")
+    return value
 
 
 # Para que transações a regra vale: entradas e saídas, só entradas ou só saídas
