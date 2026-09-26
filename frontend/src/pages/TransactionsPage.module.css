@@ -1,0 +1,73 @@
+.card {
+  scroll-margin-top: 1rem;
+}
+
+/* Botão "Filtros": só aparece no celular. ".card" na frente para vencer o
+   display do .btn global, que é carregado depois deste arquivo */
+.card .filterToggle {
+  display: none;
+}
+
+/* Faixa "N transações sem categoria · Revisar" */
+.review {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px dashed rgba(245, 182, 56, 0.45);
+  border-radius: var(--r-md);
+  background: rgba(245, 182, 56, 0.07);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.review > svg {
+  color: var(--warning);
+}
+.review > span {
+  display: grid;
+}
+.review strong {
+  font-weight: 600;
+}
+.review .muted {
+  font-size: 0.76rem;
+}
+.review button {
+  margin-left: auto;
+}
+
+/* "37 transações · Entradas + R$ ... · Saídas − R$ ..." */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.55rem;
+  margin: 1rem 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.summary strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.summary :global(.amount.in) {
+  color: var(--income);
+}
+.summary :global(.amount.out) {
+  color: var(--expense);
+}
+
+@media (max-width: 620px) {
+  .card .filterToggle {
+    display: inline-flex;
+    width: 100%;
+    margin-bottom: 0.9rem;
+  }
+  .review {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .review button {
+    margin-left: 0;
+  }
+}

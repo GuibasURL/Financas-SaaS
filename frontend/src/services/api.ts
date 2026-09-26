@@ -2,23 +2,266 @@ import axios from "axios";
 import type {
   Transaction,
   Category,
+  Statement,
   CategoryTotal,
   MonthlyTotal,
 } from "../types/transaction";
+import type { ProfileFields, TokenResponse, User } from "../types/user";
 
+// Endereço da API: configurável por VITE_API_URL (ex: no deploy), com o
+// backend local como padrão
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
 });
 
-export async function uploadCSV(file: File): Promise<Transaction[]> {
-  const formData = new FormData();
-  formData.append("file", file);
-  const { data } = await api.post<Transaction[]>("/upload", formData);
+// ---------- Token de login ----------
+// Fica no localStorage para o login sobreviver a um F5. Se o navegador
+// bloquear o storage (alguns modos privados lançam erro em qualquer acesso),
+// o token fica só em memória: o login funciona, mas acaba ao recarregar.
+
+const TOKEN_KEY = "financas.token";
+let memoryToken: string | null = null;
+
+export function getToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return memoryToken;
+  }
+}
+
+function setToken(token: string) {
+  memoryToken = token;
+  try {
+    localStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // storage bloqueado: fica só o memoryToken
+  }
+}
+
+export function clearToken() {
+  memoryToken = null;
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // storage bloqueado: já limpou o memoryToken
+  }
+}
+
+// Chamado quando a API responde 401 com um token salvo (ex: token expirado)
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  unauthorizedHandler = handler;
+}
+
+// ---------- Servidor acordando ----------
+// No plano grátis da hospedagem, a API "dorme" sem uso e a primeira visita
+// depois disso leva de 30 a 50s. Se algum pedido passar de SLOW_REQUEST_MS,
+// avisa quem estiver ouvindo (ServerWakeNotice), para o site não parecer travado.
+
+export const SLOW_REQUEST_MS = 4000;
+let pendingRequests = 0;
+let slowTimer: ReturnType<typeof setTimeout> | undefined;
+const slowListeners = new Set<(slow: boolean) => void>();
+
+export function onSlowRequests(listener: (slow: boolean) => void): () => void {
+  slowListeners.add(listener);
+  return () => {
+    slowListeners.delete(listener);
+  };
+}
+
+function requestStarted() {
+  pendingRequests += 1;
+  if (pendingRequests === 1) {
+    slowTimer = setTimeout(() => slowListeners.forEach((l) => l(true)), SLOW_REQUEST_MS);
+  }
+}
+
+function requestFinished() {
+  pendingRequests = Math.max(0, pendingRequests - 1);
+  if (pendingRequests === 0) {
+    clearTimeout(slowTimer);
+    slowListeners.forEach((l) => l(false));
+  }
+}
+
+/**
+ * Acorda a API sem esperar a resposta (ex: ao abrir o login, enquanto a
+ * pessoa digita). Usa "/", que responde sem tocar no banco. Erro aqui não importa.
+ */
+export function wakeUpServer(): void {
+  fetch(`${api.defaults.baseURL}/`).catch(() => {});
+}
+
+api.interceptors.request.use((config) => {
+  requestStarted();
+  const token = getToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => {
+    requestFinished();
+    return response;
+  },
+  (error) => {
+    requestFinished();
+    // Sem token salvo, o 401 é só "senha errada" no login: não desloga ninguém
+    if (error.response?.status === 401 && getToken()) {
+      clearToken();
+      unauthorizedHandler?.();
+    }
+    return Promise.reject(error);
+  }
+);
+
+/**
+ * Mensagem legível a partir de um erro da API. O FastAPI devolve `detail`
+ * como texto (erros nossos) ou como lista (erros de validação, 422).
+ */
+export const NO_CONNECTION_HINT =
+  "Sem conexão com o servidor: verifique sua internet e tente de novo.";
+
+export function apiErrorMessage(error: unknown, fallback: string): string {
+  // O pedido nem chegou ao servidor (sem internet, servidor fora do ar)
+  if (axios.isAxiosError(error) && !error.response) return `${fallback} ${NO_CONNECTION_HINT}`;
+  const detail = (error as any)?.response?.data?.detail;
+  if (typeof detail === "string") return detail;
+  // Erros com dados extras (ex: extrato repetido) trazem a mensagem em "message"
+  if (typeof detail?.message === "string") return detail.message;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) => String(d?.msg ?? "").replace(/^Value error, /, ""))
+      .filter(Boolean)
+      .join(". ");
+  }
+  return fallback;
+}
+
+// ---------- Autenticação ----------
+
+export async function login(email: string, password: string): Promise<void> {
+  // O endpoint segue o padrão OAuth2: form-data com "username" (o e-mail)
+  const form = new URLSearchParams({ username: email, password });
+  const { data } = await api.post<TokenResponse>("/auth/login", form);
+  setToken(data.access_token);
+}
+
+export async function register(email: string, password: string): Promise<User> {
+  const { data } = await api.post<User>("/auth/register", { email, password });
   return data;
 }
 
-export async function getTransactions(): Promise<Transaction[]> {
-  const { data } = await api.get<Transaction[]>("/transactions");
+/** "Esqueceu a senha?": pede o link por e-mail. A resposta é a mesma com ou sem conta. */
+export async function forgotPassword(email: string): Promise<string> {
+  const { data } = await api.post<{ message: string }>("/auth/forgot-password", { email });
+  return data.message;
+}
+
+/** Cria a senha nova com o código do link do e-mail. */
+export async function resetPassword(token: string, newPassword: string): Promise<string> {
+  const { data } = await api.post<{ message: string }>("/auth/reset-password", {
+    token,
+    new_password: newPassword,
+  });
+  return data.message;
+}
+
+export async function getMe(): Promise<User> {
+  const { data } = await api.get<User>("/auth/me");
+  return data;
+}
+
+// ---------- Perfil ----------
+
+export async function updateProfile(fields: ProfileFields): Promise<User> {
+  const { data } = await api.patch<User>("/auth/me", fields);
+  return data;
+}
+
+export async function uploadAvatar(photo: Blob): Promise<User> {
+  const formData = new FormData();
+  formData.append("file", photo, "foto");
+  const { data } = await api.put<User>("/auth/me/avatar", formData);
+  return data;
+}
+
+/**
+ * Troca a senha. A API derruba as sessões antigas (outros aparelhos) e
+ * devolve um token novo, que passa a ser o desta sessão.
+ */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  const { data } = await api.post<TokenResponse>("/auth/me/password", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
+  setToken(data.access_token);
+}
+
+/** Exclui a conta e todos os dados dela. Sem volta: o token também deixa de valer. */
+export async function deleteAccount(password: string): Promise<void> {
+  await api.delete("/auth/me", { data: { password } });
+  clearToken();
+}
+
+export async function deleteAvatar(): Promise<User> {
+  const { data } = await api.delete<User>("/auth/me/avatar");
+  return data;
+}
+
+// ---------- Dados ----------
+
+/** O que fazer com transações que já foram importadas antes */
+export type DuplicatesMode = "skip" | "keep";
+
+/** Corpo do 409 do upload quando o extrato tem transações já importadas */
+export interface DuplicatesInfo {
+  code: "duplicates";
+  message: string;
+  duplicates: number;
+  total: number;
+  statements: string[];
+}
+
+/** O erro é o aviso de extrato repetido? Devolve os números dele, ou null. */
+export function duplicatesInfo(error: unknown): DuplicatesInfo | null {
+  const response = (error as any)?.response;
+  const detail = response?.data?.detail;
+  return response?.status === 409 && detail?.code === "duplicates" ? detail : null;
+}
+
+/**
+ * Envia o extrato. Sem `duplicates`, a API recusa (409) se houver transações
+ * já importadas; com "skip" importa só as novas, com "keep" importa tudo.
+ */
+export async function uploadCSV(file: File, duplicates?: DuplicatesMode): Promise<Transaction[]> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await api.post<Transaction[]>(
+    "/upload",
+    formData,
+    duplicates ? { params: { duplicates } } : undefined
+  );
+  return data;
+}
+
+// statementId opcional: sem ele, considera todos os extratos
+function statementParams(statementId?: number | null) {
+  return statementId ? { params: { statement_id: statementId } } : undefined;
+}
+
+export async function getTransactions(
+  statementId?: number | null
+): Promise<Transaction[]> {
+  const { data } = await api.get<Transaction[]>(
+    "/transactions",
+    statementParams(statementId)
+  );
   return data;
 }
 
@@ -37,12 +280,101 @@ export async function getCategories(): Promise<Category[]> {
   return data;
 }
 
-export async function getByCategoryTotals(): Promise<CategoryTotal[]> {
-  const { data } = await api.get<CategoryTotal[]>("/dashboard/by-category");
+type CategoryFields = Pick<Category, "name" | "keywords" | "ignore_in_reports" | "direction">;
+
+export async function createCategory(fields: CategoryFields): Promise<Category> {
+  const { data } = await api.post<Category>("/categories", fields);
   return data;
 }
 
-export async function getMonthlyTotals(): Promise<MonthlyTotal[]> {
-  const { data } = await api.get<MonthlyTotal[]>("/dashboard/monthly");
+export async function updateCategory(
+  id: number,
+  changes: Partial<CategoryFields>
+): Promise<Category> {
+  const { data } = await api.patch<Category>(`/categories/${id}`, changes);
   return data;
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  await api.delete(`/categories/${id}`);
+}
+
+// Cria as categorias sugeridas que o usuário ainda não tem; devolve quantas criou
+export async function addDefaultCategories(): Promise<number> {
+  const { data } = await api.post<{ created: number }>("/categories/defaults");
+  return data.created;
+}
+
+// Reaplica as palavras-chave às transações sem categoria; devolve quantas mudaram
+export async function applyCategoryRules(): Promise<number> {
+  const { data } = await api.post<{ categorized: number }>("/categories/apply-rules");
+  return data.categorized;
+}
+
+export async function getStatements(): Promise<Statement[]> {
+  const { data } = await api.get<Statement[]>("/statements");
+  return data;
+}
+
+export async function deleteStatement(id: number): Promise<void> {
+  await api.delete(`/statements/${id}`);
+}
+
+export async function getByCategoryTotals(
+  statementId?: number | null
+): Promise<CategoryTotal[]> {
+  const { data } = await api.get<CategoryTotal[]>(
+    "/dashboard/by-category",
+    statementParams(statementId)
+  );
+  return data;
+}
+
+export async function getMonthlyTotals(
+  statementId?: number | null
+): Promise<MonthlyTotal[]> {
+  const { data } = await api.get<MonthlyTotal[]>(
+    "/dashboard/monthly",
+    statementParams(statementId)
+  );
+  return data;
+}
+
+// ---------- Relatório ----------
+
+export interface ReportParams {
+  startDate?: string; // AAAA-MM-DD
+  endDate?: string;
+  statementId?: number | null;
+}
+
+/** Baixa o relatório .xlsx; devolve o arquivo e o nome sugerido pela API. */
+export async function downloadReport(
+  params: ReportParams
+): Promise<{ blob: Blob; filename: string }> {
+  try {
+    const response = await api.get<Blob>("/reports/export", {
+      params: {
+        start_date: params.startDate || undefined,
+        end_date: params.endDate || undefined,
+        statement_id: params.statementId ?? undefined,
+      },
+      responseType: "blob",
+    });
+    const disposition = String(response.headers["content-disposition"] ?? "");
+    const filename = /filename="([^"]+)"/.exec(disposition)?.[1] ?? "vexira-relatorio.xlsx";
+    return { blob: response.data, filename };
+  } catch (error) {
+    // Com responseType "blob" até o erro chega como Blob; converte de volta
+    // para JSON para o apiErrorMessage conseguir ler o "detail"
+    const data = (error as any)?.response?.data;
+    if (data instanceof Blob) {
+      try {
+        (error as any).response.data = JSON.parse(await data.text());
+      } catch {
+        // corpo não era JSON: fica a mensagem padrão
+      }
+    }
+    throw error;
+  }
 }

@@ -1,0 +1,70 @@
+.list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-md);
+  background: rgba(234, 243, 248, 0.02);
+}
+.selected {
+  border-color: rgba(34, 211, 238, 0.52);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.file {
+  min-width: 0;
+}
+.name {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.period {
+  display: block;
+  font-weight: 600;
+}
+.meta {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+/* Largura fixa: "Filtrar" e "Filtrando" não desalinham as colunas */
+.filter {
+  min-width: 5.6rem;
+}
+/* "Filtrando": botão pressionado */
+.pressed {
+  border-color: rgba(34, 211, 238, 0.52);
+  color: var(--cyan);
+  background: rgba(34, 211, 238, 0.12);
+}
+
+@media (max-width: 620px) {
+  .row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .actions {
+    justify-content: flex-start;
+  }
+}

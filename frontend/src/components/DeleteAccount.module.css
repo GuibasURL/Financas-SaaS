@@ -1,0 +1,59 @@
+/* Mesmo layout dos outros cartões do perfil, com borda vermelha de alerta */
+.card.card {
+  display: grid;
+  max-width: 60rem;
+  grid-template-columns: 13rem 1fr;
+  gap: 1.5rem 2rem;
+  margin-top: 1.25rem;
+  padding: clamp(1.15rem, 3vw, 2rem);
+  border-color: rgba(240, 80, 110, 0.35);
+}
+.intro h2 {
+  color: #ffb0bd;
+}
+.intro p {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.body {
+  max-width: 32rem;
+}
+.lead {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+}
+.form :global(.checkbox) {
+  align-items: flex-start;
+  line-height: 1.45;
+}
+.form :global(.notice) {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+@media (max-width: 720px) {
+  .card.card {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-direction: column-reverse;
+  }
+  .actions :global(.btn) {
+    width: 100%;
+  }
+}

@@ -1,6 +1,15 @@
-# Finanças SaaS
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="Docs/marca/vexira-logo.png">
+  <img alt="Vexira — Controle financeiro inteligente" src="Docs/marca/vexira-logo-claro.png" width="420">
+</picture>
 
-SaaS simples de gestão financeira: importa extrato em CSV, categoriza gastos automaticamente por regras de palavra-chave, e mostra dashboard com gráficos.
+# Vexira
+
+**Controle financeiro inteligente.**
+
+[![CI](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml)
+
+Vexira é um app de gestão financeira pessoal: importa extrato em CSV, categoriza gastos automaticamente por regras de palavra-chave, e mostra dashboard com gráficos.
 
 ## Rodando o backend
 
@@ -13,6 +22,21 @@ python -m venv venv
 source venv/bin/activate          # Windows (PowerShell): venv\Scripts\Activate.ps1
 pip install -r backend/requirements.txt
 ```
+
+Criar/atualizar as tabelas do banco (de dentro de `backend/`, com o venv ativado):
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+O schema do banco é versionado com Alembic (`backend/alembic/versions`). Sempre que puxar uma migration nova, rode `alembic upgrade head` de novo. Para criar uma migration depois de mudar um model:
+
+```bash
+alembic revision --autogenerate -m "descricao da mudanca"
+```
+
+> Bancos criados antes do Alembic (pelo antigo `create_all`) precisam ser marcados uma vez com `alembic stamp 0001` antes do `alembic upgrade head`.
 
 Para subir a API (a partir da raiz, com o venv ativado):
 
@@ -32,6 +56,144 @@ O `--reload` reinicia o servidor automaticamente a cada alteração no código. 
 
 A API sobe em `http://localhost:8000`. Documentação automática (Swagger) em `http://localhost:8000/docs` — útil para testar os endpoints sem precisar do frontend pronto.
 
+## Autenticação
+
+Todas as rotas (menos `/auth/register` e `/auth/login`) exigem login, e cada usuário só vê os próprios extratos, transações e categorias.
+
+- `POST /auth/register` com `{"email": "...", "password": "..."}`. A senha precisa ser **mediana ou forte**: pelo menos 8 caracteres e 3 dos 4 tipos (letra minúscula, letra maiúscula, número, caractere especial); com os 4 é forte. Senhas óbvias também contam como fracas: palavra comum com números e símbolos em volta ("Senha123!", "P@ssword2024"), sequência ou repetição de letras ("Abcdefg1!") e senha que contém o próprio e-mail. Senha fraca volta `422` dizendo o que falta. Na tela de cadastro, uma barra (vermelha, laranja, verde) e uma checklist mostram isso enquanto a pessoa digita, e o campo "Repetir senha" avisa quando as senhas conferem. Contas antigas com senha fraca continuam entrando normalmente.
+- `POST /auth/login` com form-data `username` (o e-mail) e `password`: devolve um token JWT
+- Mande o token nas outras chamadas no header `Authorization: Bearer <token>`
+- `GET /auth/me` devolve o usuário logado (com nome, data de nascimento e foto, se preenchidos)
+
+### Perfil
+
+A tela **Editar perfil** (cartão com a foto no rodapé do menu, ou "Perfil" na barra do celular) usa:
+
+- `PATCH /auth/me` com `{"name", "email", "birth_date"}`: nome obrigatório (2 a 100 caracteres), data de nascimento opcional (não pode ser no futuro). **Trocar o e-mail pede `current_password`**: senha errada volta `400` e conta no limite de tentativas de login.
+- `PUT /auth/me/avatar` (form-data `file`): foto em JPG, PNG ou WebP, até 1 MB. O tipo é conferido pelos bytes do arquivo, não pelo nome. O navegador já recorta o centro e reduz para 256×256 antes de enviar (uma foto de celular vira poucos KB).
+- `DELETE /auth/me/avatar` remove a foto.
+
+A foto fica no próprio banco e volta em `avatar_url` como data URL, então o deploy não precisa de um disco para arquivos.
+
+### Alterar senha
+
+No cartão **Alterar senha**, logo abaixo do perfil: `POST /auth/me/password` com `{"current_password", "new_password"}`.
+
+- A nova senha segue a mesma regra do cadastro (mediana ou forte, nada óbvio, sem o e-mail) e precisa ser diferente da atual. A tela mostra a mesma barra de força, a checklist e o "as senhas conferem".
+- Senha atual errada volta `400` e conta no limite de tentativas de login.
+- **Trocar a senha encerra as outras sessões**: o token guarda quando foi emitido (`iat`), e tokens de antes da troca (`users.password_changed_at`) passam a dar `401`. A resposta traz um token novo, então quem trocou continua logado.
+
+### Esqueceu a senha?
+
+Na tela de login, o link **Esqueceu a senha?** (embaixo do campo de senha) pede o e-mail e manda um link para criar uma senha nova.
+
+- `POST /auth/forgot-password` com `{"email"}`: a resposta é sempre a mesma, com ou sem conta no e-mail, e o e-mail sai em segundo plano. Assim, nem a mensagem nem o tempo de resposta revelam quem tem cadastro. Limite: 3 pedidos por e-mail e 10 por IP a cada 15 minutos (`429` acima disso).
+- O link (`/redefinir-senha?token=...`) vale **30 minutos** e **uma vez só**. O código é aleatório (256 bits), e o banco guarda só o SHA-256 dele, então quem lesse o banco não conseguiria usar o link. Pedir outro link cancela o anterior; trocar a senha pelo perfil e excluir a conta também.
+- `POST /auth/reset-password` com `{"token", "new_password"}`: mesma regra de senha do cadastro. Redefinir derruba todas as sessões abertas, como a troca pelo perfil.
+- O site tira o código da barra de endereço assim que abre a página, para ele não ficar na tela nem no histórico.
+
+**Envio do e-mail (SMTP):** funciona com qualquer provedor (Gmail com senha de app, Brevo, Resend, SendGrid...). Sem `SMTP_HOST`, nenhum e-mail sai: com o site local, o e-mail inteiro (com o link) aparece no log da API, para testar; com o site publicado, o log só avisa que não enviou, porque um link de redefinição num log de servidor deixaria quem lê o log trocar a senha de qualquer um.
+
+### Excluir conta
+
+No cartão **Excluir conta**, no fim do perfil: `DELETE /auth/me` com `{"password"}` responde `204` e apaga a conta com tudo o que é dela (extratos, transações, categorias e foto). Não tem volta.
+
+- A tela pede duas etapas: o botão "Excluir minha conta" e, depois, a senha e a caixa "Entendo que... serão apagados para sempre". O botão final só libera com as duas.
+- Senha errada volta `400` e conta no limite de tentativas de login.
+- Depois de excluir, o token deixa de valer, o app volta para a tela de entrada com o aviso, e o e-mail fica livre para um cadastro novo, que começa do zero.
+- A exclusão apaga as tabelas explicitamente (transações, extratos, categorias, usuário), sem depender do `ON DELETE CASCADE`, que o SQLite só aplica com `PRAGMA foreign_keys` ligado.
+
+No Swagger (`/docs`), o botão **Authorize** faz o login e passa o token automaticamente.
+
+Para criar um usuário pelo terminal (de dentro de `backend/`, com o venv ativado):
+
+```bash
+python -m app.create_user voce@email.com
+```
+
+A senha é pedida no terminal. Extratos e categorias que já existiam antes da autenticação ficam sem dono (invisíveis na API) até esse comando atribuí-los ao usuário criado.
+
+Configuração (variáveis de ambiente ou `backend/.env`):
+
+- `DATABASE_URL`: banco de dados (padrão: SQLite em `backend/financas.db`). No deploy, o Postgres, no formato que o provedor entregar (`postgres://...` ou `postgresql://...`): a API troca sozinha para o driver instalado (psycopg 3). Crie as tabelas com `alembic upgrade head` antes de subir a API.
+- `SECRET_KEY`: chave que assina os tokens (mínimo 32 bytes). Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Sem ela, a API sobe com uma chave de desenvolvimento que está no código (e avisa no log): serve para rodar local, mas **nunca publique a API assim**, porque qualquer um conseguiria forjar tokens. Por isso, se o `CORS_ORIGINS` tiver um endereço público (qualquer um que não seja localhost), a API **se recusa a subir** sem uma `SECRET_KEY` própria. Uma chave com menos de 32 bytes também faz a API recusar subir.
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: validade do token (padrão: 1440, ou seja, 1 dia)
+- `CORS_ORIGINS`: endereços do frontend que podem chamar a API, separados por vírgula (padrão: `http://localhost:5173`). Em produção, o endereço público do frontend.
+- `APP_TIMEZONE`: fuso dos horários gerados pela API, como o "Gerado em" do relatório (padrão: `America/Sao_Paulo`). Servidores costumam rodar em UTC; sem isso, o horário sairia 3h adiantado. Um nome inválido faz a API recusar subir.
+- `FRONTEND_URL`: endereço do site, usado no link do e-mail de "Esqueceu a senha?" (padrão: o primeiro endereço do `CORS_ORIGINS`)
+- `SMTP_HOST`, `SMTP_PORT` (padrão: 587), `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM` (ex: `Vexira <nao-responda@seudominio.com>`) e `SMTP_SECURITY` (`starttls`, o padrão; `ssl` para a porta 465; `none` só para servidor local de teste): envio de e-mail (veja "Esqueceu a senha?")
+- `PASSWORD_RESET_MINUTES` (padrão: 30), `PASSWORD_RESET_MAX_PER_ACCOUNT` (padrão: 3) e `PASSWORD_RESET_MAX_PER_IP` (padrão: 10): validade do link e limite de pedidos
+- `LOGIN_MAX_FAILURES_PER_ACCOUNT` (padrão: 5), `LOGIN_MAX_FAILURES_PER_IP` (padrão: 30) e `LOGIN_WINDOW_MINUTES` (padrão: 15): limite de tentativas de login erradas (veja abaixo).
+- `TRUSTED_PROXY_HOPS` (padrão: 0): quantos proxies ficam na frente da API no deploy (no Render: 1), para achar o IP real de quem acessa. `LOG_CLIENT_IP=1` mostra no log o que chegou, para conferir (veja o limite de tentativas abaixo).
+
+### Limite de tentativas de login
+
+Para dificultar quem tenta adivinhar senhas, o login conta as tentativas erradas nos últimos 15 minutos:
+
+- **5 erros no mesmo e-mail, a partir do mesmo IP**, ou **30 erros de um mesmo IP** (em qualquer e-mail) bloqueiam o login por um tempo: a API responde `429` com a mensagem "Muitas tentativas de login. Tente de novo em N minutos." e o header `Retry-After` (em segundos). Enquanto durar, nem a senha certa entra.
+- Um login certo zera os erros daquele e-mail naquele IP.
+- A contagem fica na memória da API: zera quando ela reinicia e vale só para uma instância (o suficiente para este projeto; com várias instâncias, ela precisaria ir para um lugar compartilhado, como o Redis).
+
+> ⚠️ **No deploy, atrás de um proxy** (Render, Railway, Nginx...), a API recebe a conexão do proxy, não a do visitante. Defina `TRUSTED_PROXY_HOPS` com o número de proxies na frente dela (no Render: `1`): o IP do visitante é lido no `X-Forwarded-For` **contando pela direita**, onde cada proxy acrescenta quem se conectou a ele. Sem isso, todo mundo parece vir do IP do proxy, e 30 erros de pessoas diferentes bloqueariam o login de todos.
+>
+> **Não use** `--proxy-headers --forwarded-allow-ips="*"` no uvicorn: nesse modo ele usa o **primeiro** IP da lista, que o próprio visitante escreve, e qualquer um trocaria de IP a cada tentativa para escapar do limite. Para conferir o número de proxies no deploy, ligue `LOG_CLIENT_IP=1` por um instante: cada login mostra no log o `X-Forwarded-For` recebido e o IP usado.
+
+## Segurança
+
+Nenhum usuário alcança dados de outro: toda consulta filtra pelo dono (extratos e categorias têm `user_id`; transações pertencem ao extrato), e um id de outro usuário responde `404` igual a um inexistente, sem revelar nem que ele existe. O `tests/test_security.py` garante isso:
+
+- **Inventário de rotas:** toda rota exige login, menos `/`, `/auth/register` e `/auth/login`. Uma rota nova faz o teste falhar até entrar na lista revisada, depois de conferir o isolamento.
+- **Ataque entre usuários:** B tenta ler, filtrar pelos ids de A, alterar, apagar, usar a categoria de A, rodar ações em massa, reenviar o extrato de A, trocar a senha e excluir a própria conta. No fim, tudo o que A vê (perfil, transações, categorias, extratos, gráficos, relatório) continua idêntico.
+- **Token:** assinado com HS256 e algoritmo fixo. Token com outra chave, sem assinatura (`alg: none`) ou com o usuário trocado na mão dá `401`. Trocar a senha derruba os tokens antigos, e excluir a conta também.
+- **Senha:** bcrypt, nunca devolvida; limite de tentativas no login, na troca de e-mail, na troca de senha e na exclusão da conta. O login leva o mesmo tempo para e-mail inexistente e senha errada, para não revelar quem tem conta.
+- **Planilha:** descrições que começam com `=` (uma mensagem de Pix pode trazer `=WEBSERVICE(...)`) são gravadas como texto, nunca como fórmula: abrir o relatório não executa nada.
+- **Cabeçalhos da API:** `Cache-Control: no-store` (dados financeiros não ficam em cache), `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, CSP `default-src 'none'` e, em HTTPS, `Strict-Transport-Security` (atrás do proxy, o HTTPS vem do `X-Forwarded-Proto`).
+- **Site:** o build publica uma Content-Security-Policy que só deixa rodar scripts do próprio site e só conversa com a API (`VITE_API_URL`). Um texto malicioso não conseguiria carregar código de fora nem mandar o token para outro endereço. Na Vercel, o `frontend/vercel.json` completa com `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff` e `Referrer-Policy: no-referrer` (o link de "Esqueceu a senha?" leva o código na URL, e ela não vai para o Google Fonts nem para ninguém).
+- **Uploads:** extrato até 5 MB (`413` acima disso); foto até 1 MB, com o tipo conferido pelos bytes.
+
+### Checklist obrigatório do deploy
+
+O passo a passo com Neon, Render, Vercel e Brevo está em [DEPLOY.md](DEPLOY.md); os arquivos `render.yaml` e `frontend/vercel.json` já cuidam da maior parte desta lista.
+
+1. `SECRET_KEY` própria e secreta (a API não sobe sem ela com frontend público).
+2. **HTTPS** no frontend e na API (a hospedagem costuma dar de graça). Sem HTTPS, senha e token trafegam abertos.
+3. `CORS_ORIGINS` só com o endereço do frontend publicado.
+4. `VITE_API_URL` apontando para a API no build do frontend (vai para a CSP).
+5. Na hospedagem do frontend, mandar também o header `Content-Security-Policy` com `frame-ancestors 'none'` (não funciona pela `<meta>`) e `X-Frame-Options: DENY`.
+6. Banco Postgres gerenciado, com criptografia em disco e backup automático; senha do banco só em variável de ambiente.
+7. `TRUSTED_PROXY_HOPS` com o número de proxies na frente da API (veja o limite de tentativas acima), **sem** `--forwarded-allow-ips="*"`.
+8. SMTP configurado (`SMTP_HOST` e companhia) e `FRONTEND_URL` com o endereço do site: sem isso, o "Esqueceu a senha?" não manda o link.
+
+### Riscos que ficam (conhecidos)
+
+- O cadastro responde "E-mail já cadastrado", então dá para descobrir se um e-mail tem conta (não os dados dela). Fechar isso exige confirmar o e-mail por mensagem, ainda sem envio de e-mail no projeto.
+- O token de login fica no `localStorage`. A CSP reduz muito o risco de roubo; a alternativa mais forte é um cookie `HttpOnly`, que muda o login e o CORS.
+- Não há verificação em duas etapas (2FA).
+
+## Testes do backend
+
+Instale as dependências de desenvolvimento (uma vez) e rode o pytest de dentro de `backend/`:
+
+```bash
+pip install -r backend/requirements-dev.txt
+cd backend
+pytest
+```
+
+Cada teste usa um banco SQLite em memória, então o `financas.db` não é tocado. Há também testes que rodam as migrations do Alembic e conferem se batem com os models (inclusive o tipo de cada coluna), se preservam dados antigos e se podem ser desfeitas.
+
+Para rodar os mesmos testes no **Postgres** (o banco do deploy), aponte `TEST_DATABASE_URL` para um banco vazio usado só para isso: ele é apagado e recriado a cada teste.
+
+```bash
+TEST_DATABASE_URL=postgresql+psycopg://usuario:senha@localhost:5432/vexira_test pytest
+```
+
+Para ver quais linhas nenhum teste executa (o CI exige pelo menos 95%):
+
+```bash
+pytest --cov=app --cov-report=term-missing
+```
+
 ## Rodando o frontend
 
 ```bash
@@ -42,7 +204,60 @@ npm run dev
 
 O app sobe em `http://localhost:5173`.
 
-## Formato de CSV esperado (v1)
+## Testes do frontend
+
+```bash
+cd frontend
+npm test            # roda uma vez
+npm run test:watch  # fica rodando e repete a cada alteração
+npm run test:coverage  # com relatório de cobertura (texto + frontend/coverage/index.html)
+```
+
+Vitest + Testing Library, com os componentes renderizados no jsdom. As chamadas HTTP vão para uma API falsa em memória (`src/test/fakeApi.ts`, feita com [MSW](https://mswjs.io/)), então o `api.ts` roda de verdade, incluindo o envio do token e a volta para o login quando a sessão expira. Cada teste começa com a API falsa vazia; os helpers `addUser`, `loginAs`, `addCategory` e `addStatement` montam o cenário.
+
+## Integração contínua (GitHub Actions)
+
+A cada push e pull request para `dev` ou `main`, o workflow `.github/workflows/ci.yml` roda em paralelo:
+
+- **Backend:** instala `requirements-dev.txt` e roda o `pytest` com cobertura (falha abaixo de 95%)
+- **Backend no Postgres:** os mesmos testes, e as migrations, num Postgres 17 de verdade (serviço do próprio GitHub Actions)
+- **Frontend:** `npm ci`, testes com cobertura (mínimos em `vite.config.ts`) e `npm run build` (que também faz o typecheck)
+
+O resultado aparece no PR (✓ ou ✗) e na aba **Actions** do repositório.
+
+## Formatos de extrato aceitos
+
+O upload aceita **OFX** (de qualquer banco) e **CSV** (dos bancos abaixo), e reconhece o formato sozinho.
+
+### OFX: qualquer banco
+
+OFX é o formato padrão de extrato bancário, igual em todos os bancos. Muitos oferecem a opção de baixar o extrato (ou a fatura do cartão) em OFX, então ele funciona mesmo para bancos que não têm um CSV conhecido pelo app.
+
+- Aceita OFX 1.x (SGML, o mais comum nos bancos brasileiros, geralmente em Windows-1252) e 2.x (XML).
+- De cada lançamento usa a data (`DTPOSTED`), o valor com sinal (`TRNAMT`) e a descrição (`NAME` e `MEMO`).
+- Tolera o que costuma aparecer fora do padrão: valor com vírgula (`-55,90`), débito com valor positivo (vira saída), `</STMTTRN>` faltando e lançamento repetido no mesmo arquivo (mesmo `FITID`, entra uma vez só).
+- O código fica em `backend/app/services/ofx_parser.py`; os exemplos (dados fictícios) em `backend/tests/fixtures/extratos/*.ofx`.
+
+### CSV: bancos conhecidos
+
+O banco é reconhecido pelo cabeçalho do CSV:
+
+| Banco | Particularidades tratadas |
+|---|---|
+| Nubank (conta) | `Data,Valor,Identificador,Descrição` |
+| Nubank (fatura do cartão) | `date,title,amount`; compra vem positiva e é convertida em saída; valor `"20,60"` ou `20.60`, pagamento `"- 385,58"`; parcela fica na descrição (`- 1/3`) |
+| Itaú | `;`, valores `1.234,56`, linhas de cabeçalho antes da tabela |
+| Banco Inter | `;`, descrição = Histórico + Descrição |
+| Bradesco | `;`, crédito e débito em colunas separadas |
+| Banco do Brasil | tudo entre aspas, coluna "Dependência Origem" |
+| PicPay | descrição = Tipo + Origem/Destino ("Pix enviado - IFOOD..."); valor `−R$ 3,30` / `+R$ 4,00`, com o sinal de menos tipográfico (−) |
+| Genérico | `data,descricao,valor` (abaixo) |
+
+Em todos: linhas de saldo (`SALDO ANTERIOR`, `SALDO DO DIA`, `S A L D O`...) e linhas em branco são ignoradas, e arquivos em UTF-8 (com ou sem BOM) ou Windows-1252 são aceitos. Datas em `dd/mm/aaaa` ou `aaaa-mm-dd`.
+
+> ⚠️ Os formatos do **PicPay** e da **fatura do Nubank** foram conferidos com extratos reais (os exemplos `picpay.csv` e `nubank_cartao_2026.csv`, em `backend/tests/fixtures/extratos/`, têm a mesma estrutura, com dados fictícios). Os dos outros bancos foram montados a partir de exemplos gerados por IA (`backend/tests/fixtures/extratos/`), não de extratos reais. Se o extrato do seu banco não for reconhecido ou vier com valores errados, ajuste o formato dele em `FORMATS` (`backend/app/services/csv_parser.py`) e troque o arquivo de exemplo por um real, com os dados anonimizados.
+
+Formato genérico, para montar um CSV à mão:
 
 ```csv
 data,descricao,valor
@@ -50,27 +265,118 @@ data,descricao,valor
 2025-01-06,SALARIO EMPRESA,5000.00
 ```
 
-- `data`: qualquer formato que o pandas reconheça (ex: `2025-01-05`, `05/01/2025`)
-- `descricao`: texto livre
 - `valor`: negativo para saída, positivo para entrada
 
 ## Categorização automática
 
-Crie categorias via `POST /categories` com uma lista de `keywords` separadas por vírgula, ex:
+Cada categoria tem uma lista de palavras-chave separadas por vírgula, ex:
 
 ```json
 { "name": "Alimentação", "keywords": "ifood,restaurante,lanchonete" }
 ```
 
-Toda vez que uma transação for importada, o sistema verifica se alguma keyword aparece na descrição (case-insensitive) e categoriza automaticamente. O que não bater fica sem categoria (`category_id: null`) para você categorizar manualmente via `PATCH /transactions/{id}`.
+Toda vez que uma transação for importada, o sistema verifica se alguma palavra-chave aparece na descrição e categoriza automaticamente. A comparação:
+
+- ignora maiúsculas, acentos e pontuação: "farmácia" pega "FARMACIA SAO JOAO", e "uber eats" pega "UBER *EATS";
+- exige que a palavra-chave esteja no **começo de uma palavra** da descrição: "farmacia" pega "FARMACIAS", mas "posto" não pega "IMPOSTO";
+- aceita **exclusões** com `-` na frente: `mercado, -mercado pago` pega "MERCADO EXTRA", mas não "MERCADO PAGO".
+
+ Se mais de uma categoria bater, vale a criada primeiro. O que não bater fica sem categoria para você escolher na tabela de transações.
+
+### Vale para: entradas, saídas ou as duas
+
+Cada categoria diz para que transações a regra vale (`direction`): **entradas e saídas** (`all`, o padrão), **só saídas** (`out`, valor negativo) ou **só entradas** (`in`, valor positivo).
+
+Isso resolve o texto que aparece nos dois sentidos: no Itaú, por exemplo, "PIX TRANSF MARIA" tanto pode ser um Pix enviado quanto recebido; quem diz é o sinal do valor. Com "pix" em "Transferências enviadas" (só saídas) e em "Transferências recebidas" (só entradas), cada Pix cai na certa. Também evita que um "estorno" vire gasto ou que "salário" pegue um pagamento que você fez.
+
+As categorias são gerenciadas na seção **Categorias** do app (ou pela API):
+
+- `GET /categories`, `POST /categories`: listar e criar
+- `PATCH /categories/{id}`: renomear e/ou trocar as palavras-chave (só os campos enviados mudam)
+- `DELETE /categories/{id}`: excluir; as transações dela ficam sem categoria (não são apagadas)
+- `POST /categories/defaults`: cria as categorias sugeridas que você ainda não tem (botão "Adicionar categorias sugeridas")
+- `POST /categories/apply-rules`: aplica as palavras-chave atuais às transações **já importadas que estão sem categoria**. Transações que já têm categoria, inclusive as escolhidas à mão, não são alteradas.
+
+O nome e as palavras-chave são normalizados ao salvar (espaços nas pontas removidos, palavras-chave em minúsculo e sem repetição).
+
+### Categorias sugeridas
+
+Contas novas já nascem com 17 categorias prontas, então o primeiro extrato já sai categorizado:
+
+| Categoria | Vale para | Nos totais |
+|---|---|---|
+| Pagamento de fatura (também o "Limite convertido em saldo" do Nubank, que só leva limite do cartão para a conta) | entradas e saídas | fora |
+| Estornos e reembolsos | só entradas | entra |
+| Salário | só entradas | entra |
+| Investimentos (aplicação, resgate, CDB, tesouro, poupança, cofrinho) | entradas e saídas | fora |
+| Assinaturas, Compras, Alimentação, Mercado, Transporte, Saúde, Moradia, Educação, Lazer, Tarifas bancárias | entradas e saídas | entra |
+| Saques | só saídas | entra |
+| Transferências enviadas (pix, transf, ted) | só saídas | entra |
+| Transferências recebidas (pix, transf, ted) | só entradas | entra |
+
+As transferências ficam por último de propósito: "pix" é genérico, então uma categoria mais específica vence ("PIX ALUGUEL" vai para Moradia, "PIX RECEBIDO SALARIO" vai para Salário). Elas contam nos totais porque um Pix para outra pessoa costuma ser gasto (ou renda) de verdade; para as transferências **entre as suas próprias contas**, que não são gasto nem renda, crie uma categoria com o seu nome como palavra-chave e marque "Deixar fora dos totais". Como vence a categoria mais antiga, ela precisa ser criada **antes** das de transferência: exclua "Transferências enviadas" e "Transferências recebidas", crie a sua e clique em "Adicionar categorias sugeridas", que recria as duas depois dela. Contas antigas podem adicioná-las pelo botão; as que você já tem (pelo nome) não são alteradas.
+
+A lista fica em `backend/app/services/default_categories.py`. Ao mexer nela, lembre que:
+
+- **A ordem importa:** quando duas categorias batem, vence a que vem primeiro (por isso "Compras", com "mercado livre", vem antes de "Mercado").
+- **Palavras curtas ou genéricas pegam demais:** mesmo valendo só no começo das palavras, "bar" pegaria "BARBEARIA" e "99" pegaria "LOJA 99 CENTAVOS". Use exclusões (`-`) ou palavras mais específicas. Os testes em `tests/test_default_categories.py` cobrem esses casos.
+
+### Fora dos totais (pagamento de fatura, transferências)
+
+Uma categoria pode ser marcada como **fora dos totais** (`ignore_in_reports`): as transações dela continuam na lista, com o valor em cinza e "não soma", mas não entram nas entradas, nas saídas, em "Gastos por categoria" nem em "Evolução mensal".
+
+Isso resolve a contagem dupla quando você importa a conta **e** a fatura do cartão: as compras da fatura já são os gastos, e o pagamento da fatura na conta é só o dinheiro indo da conta para o cartão. Exemplo:
+
+```json
+{ "name": "Pagamento de fatura", "keywords": "pagamento de fatura,pagamento recebido", "ignore_in_reports": true }
+```
+
+O mesmo vale para transferências entre suas próprias contas ou aplicações em investimento. Ajuste as palavras-chave para o texto que o seu banco usa.
+
+## Extratos
+
+Cada upload de CSV vira um extrato (`GET /statements`), com o período coberto e a quantidade de transações. Dá para filtrar transações e dashboard por extrato com `?statement_id=` e excluir um extrato inteiro (junto com as transações dele) via `DELETE /statements/{id}`.
+
+### Extrato repetido
+
+Antes de importar, o `POST /upload` confere se as transações já existem: mesma data, mesmo valor e mesma descrição (comparada sem acentos, maiúsculas, espaços ou pontuação). A contagem é uma a uma, então duas compras iguais no mesmo dia continuam sendo duas. O parâmetro `duplicates` decide o que fazer:
+
+- `check` (padrão): se houver repetidas, não importa nada e responde `409` com `{"code": "duplicates", "message", "duplicates", "total", "statements"}`
+- `skip`: importa só as novas (se não houver nenhuma nova, `400`)
+- `keep`: importa tudo, inclusive as repetidas
+
+No app, o `409` vira um aviso com as opções **Importar só as novas**, **Importar tudo mesmo assim** e **Cancelar**.
+
+## Relatório em Excel
+
+A seção **Exportar relatório** do app (ou `GET /reports/export`) baixa uma planilha `.xlsx` com quatro abas:
+
+- **Resumo:** filtros usados; entradas, saídas, saldo, taxa de economia e média de saídas por mês, cada número com uma coluna "o que significa"; destaques (maior gasto, maior entrada, categoria que mais pesou, mês com mais gastos, quantas transações ficaram sem categoria); os 5 maiores gastos; e um guia "Como ler este relatório"
+- **Por mês:** entradas, saídas, saldo, saldo acumulado, economia (%) e quantidade de transações de cada mês, com gráfico de entradas x saídas
+- **Por categoria:** saídas por categoria (inclusive "Sem categoria") com % (e barrinha de proporção), quantidade e média por transação; entradas por categoria; gráfico das saídas
+- **Transações:** a lista completa, com coluna Tipo (entrada/saída), entradas em verde e saídas em vermelho, linhas alternadas, filtro do Excel e cabeçalho fixo
+
+Todas as abas têm uma faixa de título com uma frase explicando a aba, e ficam prontas para imprimir (paisagem, cabendo na largura). Nos resumos, "Saídas" aparece em valor positivo (quanto saiu); o sinal fica só na lista de transações.
+
+Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `statement_id`. No app, o extrato é o mesmo selecionado na seção Extratos. Categorias marcadas como "fora dos totais" não entram nas somas, mas aparecem na aba Transações (coluna "Nos totais"). As linhas de total usam fórmulas (`SUM`), então continuam certas se você editar a planilha.
 
 ## Roadmap sugerido
 
 - [x] Fase 1: upload CSV, categorização por regra, dashboard básico
-- [ ] Fase 2: autenticação, edição manual de categoria no frontend, múltiplos extratos
-- [ ] Fase 3: suporte a formatos de CSV de bancos diferentes, exportar relatórios, deploy
+- [x] Fase 2: autenticação, edição manual de categoria no frontend, múltiplos extratos, gerenciamento de categorias
+- [ ] Fase 3: ~~suporte a formatos de CSV de bancos diferentes~~ (falta validar com extratos reais), ~~exportar relatórios~~, deploy
 
 ## Stack
 
-- Backend: FastAPI + SQLAlchemy + pandas + SQLite (trocar para Postgres depois é só mudar `DATABASE_URL`)
+- Backend: FastAPI + SQLAlchemy + Alembic; SQLite no desenvolvimento e Postgres no deploy (testado no CI), escolhido pelo `DATABASE_URL`
 - Frontend: React + TypeScript + Vite + Recharts
+
+## Identidade visual
+
+A marca é a letra V que vira uma seta para cima (dinheiro subindo), no degradê ciano `#22d3ee` → azul `#38bdf8`, as mesmas cores do app. Os arquivos ficam em [`Docs/marca`](Docs/marca):
+
+- `vexira-marca.svg` / `.png`: só o símbolo (também é o favicon, em `frontend/public/`)
+- `vexira-logo.svg` / `.png`: símbolo + nome, para fundo escuro
+- `vexira-logo-claro.svg` / `.png`: símbolo + nome, para fundo claro
+
+No app, a marca é desenhada pelo componente `Logo` (`frontend/src/components/Logo.tsx`), com as cores vindas do tema.

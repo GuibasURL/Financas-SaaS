@@ -1,0 +1,123 @@
+.drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.4rem 1rem;
+  border: 1.5px dashed rgba(234, 243, 248, 0.22);
+  border-radius: var(--r-md);
+  background: rgba(234, 243, 248, 0.025);
+  text-align: center;
+  cursor: pointer;
+  transition: 160ms;
+}
+.drop:hover,
+.dragging {
+  border-color: rgba(34, 211, 238, 0.55);
+  background: rgba(34, 211, 238, 0.05);
+}
+/* Foco do teclado no input (escondido) aparece na área inteira */
+.drop:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.drop svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  color: var(--cyan);
+}
+.drop span {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+/* Escondido visualmente, mas acessível (leitores de tela e teclado) */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.uploading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--r-sm);
+  background: var(--glass-strong);
+  font-size: 0.78rem;
+}
+.bar {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--line);
+}
+/* Barra "indeterminada": o envio não informa progresso */
+.bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  background: linear-gradient(90deg, var(--sky), var(--cyan));
+  animation: slide 1.1s ease-in-out infinite;
+}
+@keyframes slide {
+  from {
+    left: -40%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.error {
+  margin: 0.9rem 0 0;
+}
+
+.banks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+.banks span {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+/* "Extrato já importado": aviso em âmbar com as opções */
+.duplicates.duplicates {
+  margin: 0.9rem 0 0;
+  border-color: rgba(245, 165, 36, 0.45);
+  color: var(--text);
+  background: rgba(245, 165, 36, 0.08);
+}
+.duplicates > svg {
+  color: var(--amber);
+}
+.duplicates p {
+  margin: 0.25rem 0 0;
+}
+.duplicatesHint {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.duplicatesActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+/* .notice .btn empurra o botão para a direita; aqui ficam lado a lado */
+.duplicates .duplicatesActions :global(.btn) {
+  margin-left: 0;
+}

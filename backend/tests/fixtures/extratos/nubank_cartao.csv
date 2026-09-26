@@ -1,0 +1,13 @@
+date,category,title,amount
+2025-03-05,alimentacao,Padaria São João,35.50
+2025-03-10,transporte,Uber,15.90
+2025-03-12,alimentacao,iFood,55.90
+2025-03-18,servicos,Netflix,39.90
+2025-03-25,saude,"Farmacia Preço, Saude e Cia",124.99
+2025-03-28,eletronicos,Celular Novo,1500.00
+2025-04-02,pagamento,Pagamento recebido,-1000.00
+2025-04-05,supermercado,Mercado Extra,450.00
+2025-04-08,alimentacao,Estorno Padaria São João,-35.50
+2025-04-10,transporte,Uber,20.00
+2025-04-12,servicos,Spotify,21.90
+2025-04-15,outros,Tarifa Avaliação Emergencial,15.00

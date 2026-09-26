@@ -1,0 +1,110 @@
+# Roda os testes do backend e do frontend a cada push e pull request
+# para dev e main. Um PR com teste quebrado aparece em vermelho no GitHub.
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+# Push novo na mesma branch/PR cancela a execução anterior, que já ficou velha
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements-dev.txt
+
+      # Falha se menos de 95% do código do backend for executado pelos testes
+      - name: Rodar testes (com cobertura)
+        run: pytest --cov=app --cov-report=term-missing:skip-covered --cov-fail-under=95
+
+  # Os mesmos testes no Postgres, o banco do deploy (o job acima usa SQLite):
+  # pega diferença de SQL, tipo de coluna ou migration que só aparece nele
+  backend-postgres:
+    name: Backend (pytest no Postgres)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vexira
+          POSTGRES_PASSWORD: vexira
+          POSTGRES_DB: vexira_test
+        ports:
+          - 5432:5432
+        # Espera o banco aceitar conexões antes de rodar os testes
+        options: >-
+          --health-cmd "pg_isready -U vexira"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://vexira:vexira@localhost:5432/vexira_test
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/requirements-dev.txt
+
+      - name: Instalar dependências
+        run: pip install -r requirements-dev.txt
+
+      - name: Rodar testes no Postgres
+        run: pytest
+
+  frontend:
+    name: Frontend (typecheck, testes e build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Mínimos de cobertura em vite.config.ts (test.coverage.thresholds)
+      - name: Rodar testes (com cobertura)
+        run: npm run test:coverage
+
+      # tsc -b (typecheck, inclusive dos testes) + vite build
+      - name: Build
+        run: npm run build

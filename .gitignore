@@ -4,11 +4,16 @@ backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
 backend/*.db
+backend/*.db.bak
 backend/.env
 
 # Frontend (Node)
 frontend/node_modules/
 frontend/dist/
+frontend/*.tsbuildinfo
+frontend/coverage/
+backend/.coverage
+backend/htmlcov/
 
 # Editor / SO
 .vscode/

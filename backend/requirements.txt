@@ -1,6 +1,12 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
 sqlalchemy==2.0.35
-pandas==2.2.3
 python-multipart==0.0.9
 python-dotenv==1.0.1
+alembic==1.20.0
+PyJWT==2.14.0
+bcrypt==5.0.0
+openpyxl==3.1.5
+tzdata==2026.4
+# Driver do Postgres (banco do deploy); o SQLite do desenvolvimento não precisa
+psycopg[binary]==3.3.6

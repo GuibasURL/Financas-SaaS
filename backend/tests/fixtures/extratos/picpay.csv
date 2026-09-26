@@ -1,0 +1,14 @@
+﻿data,hora,tipo,"origem / destino",valor,"forma de pagamento"
+2025-04-15,09:10,"Pix recebido","Maria Oliveira","+R$ 200,00",
+2025-04-14,19:42,"Pix enviado","IFOOD.COM AGENCIA DE RESTAURANTES ONLINE S.A.","−R$ 48,90","Com saldo"
+2025-04-14,19:41,"Dinheiro resgatado","Do cofrinho Viagem","+R$ 40,00",
+2025-04-12,08:30,"Compra realizada","PADARIA SAO JOAO","−R$ 18,50","Com cartão"
+2025-04-11,18:05,"Pix enviado","UBER DO BRASIL TECNOLOGIA LTDA.","−R$ 23,40","Com saldo"
+2025-04-10,12:00,"Pagamento realizado","Fatura PicPay Card","−R$ 350,00","Com saldo"
+2025-04-10,11:59,"Dinheiro resgatado","Do cofrinho Viagem","+R$ 300,00",
+2025-04-08,07:15,"Compra realizada",NETFLIX.COM,"−R$ 39,90","Com saldo + cartão"
+2025-04-06,16:20,"Pix enviado","DROGASIL 1234","−R$ 32,70","Com saldo"
+2025-04-05,10:00,"Dinheiro guardado","No cofrinho Viagem","−R$ 100,00",
+2025-04-03,09:00,"Pagamento realizado","Tarifa de saque","−R$ 6,50","Com saldo"
+2025-04-02,14:30,"Pix enviado","Joao da Silva","−R$ 1.250,00","Com saldo"
+2025-04-01,08:00,"Pix recebido","EMPRESA X LTDA - SALARIO","+R$ 3.500,00",

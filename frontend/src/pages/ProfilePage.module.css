@@ -1,0 +1,128 @@
+.top {
+  margin-bottom: 1.5rem;
+}
+.top :global(.page-title) {
+  margin-bottom: 0.45rem;
+}
+.top p:last-child {
+  margin: 0;
+}
+
+.card.card {
+  max-width: 60rem;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Cada bloco: título e explicação à esquerda, campos à direita */
+.section {
+  display: grid;
+  grid-template-columns: 13rem 1fr;
+  gap: 1.5rem 2rem;
+  padding: clamp(1.15rem, 3vw, 2rem);
+}
+.section + .section {
+  border-top: 1px solid var(--line-soft);
+}
+.intro p {
+  margin: 0.3rem 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.photoRow {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.preview {
+  position: relative;
+  flex: none;
+}
+.previewBadge {
+  position: absolute;
+  right: 0.1rem;
+  bottom: 0.1rem;
+  display: grid;
+  width: 1.9rem;
+  height: 1.9rem;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--cyan);
+  background: var(--bg-2);
+}
+.previewBadge svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+.photoActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.photoActions p {
+  flex-basis: 100%;
+  margin: 0;
+}
+/* Escondido: o botão "Escolher foto" é quem abre o seletor */
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fields {
+  display: grid;
+  max-width: 32rem;
+  gap: 1.1rem;
+}
+.dateField {
+  max-width: 14rem;
+}
+.hint {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.fieldError {
+  color: #ffb0bd;
+  font-size: 0.76rem;
+}
+
+.error.error {
+  margin: 0 clamp(1.15rem, 3vw, 2rem) 1.25rem;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 1rem clamp(1.15rem, 3vw, 2rem);
+  border-top: 1px solid var(--line-soft);
+  background: rgba(234, 243, 248, 0.03);
+}
+
+@media (max-width: 720px) {
+  .section {
+    grid-template-columns: 1fr;
+  }
+  .photoRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dateField {
+    max-width: none;
+  }
+  .footer {
+    flex-direction: column-reverse;
+  }
+  .footer :global(.btn) {
+    width: 100%;
+  }
+}

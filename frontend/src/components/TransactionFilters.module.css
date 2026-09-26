@@ -1,0 +1,59 @@
+.bar {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) repeat(2, minmax(130px, 1fr)) auto auto;
+  align-items: end;
+  gap: 0.7rem;
+}
+.bar > * {
+  min-width: 0;
+}
+
+/* Todas / Entradas / Saídas */
+.segmented {
+  display: flex;
+  height: 2.5rem;
+  padding: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--glass);
+}
+.segmented button {
+  flex: 1;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: calc(var(--r-sm) - 2px);
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.74rem;
+  white-space: nowrap;
+}
+.segmented button:hover {
+  color: var(--text);
+}
+.segmented button[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--glass-strong);
+}
+
+@media (max-width: 1100px) {
+  .bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .search {
+    grid-column: span 2;
+  }
+}
+
+/* Celular: recolhidos atrás do botão "Filtros" */
+@media (max-width: 620px) {
+  .bar {
+    display: none;
+    grid-template-columns: 1fr;
+  }
+  .bar.open {
+    display: grid;
+  }
+  .search {
+    grid-column: auto;
+  }
+}

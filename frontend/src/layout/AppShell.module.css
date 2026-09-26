@@ -1,0 +1,202 @@
+.app {
+  position: relative;
+  display: grid;
+  grid-template-columns: 232px 1fr;
+  min-height: 100svh;
+}
+
+/* Faixa de luz desfocada no fundo, como na tela de acesso */
+.app::before {
+  content: "";
+  position: fixed;
+  inset: -30% auto auto -10%;
+  width: 50%;
+  height: 120%;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.1), transparent);
+  filter: blur(50px);
+  transform: rotate(18deg);
+}
+
+/* ---------- Menu lateral ---------- */
+
+.side {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  height: 100svh;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.4rem 1rem;
+  border-right: 1px solid var(--line-soft);
+  background: rgba(8, 19, 34, 0.6);
+  backdrop-filter: blur(16px);
+}
+
+/* Marca Vexira: o V-seta + o nome na fonte de títulos, como no logo */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0 0.4rem;
+}
+.brandMark {
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+}
+.brandName {
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  font-weight: 500;
+  text-decoration: none;
+  transition: 160ms;
+}
+.nav a:hover {
+  color: var(--text);
+  background: var(--glass);
+}
+.nav a[aria-current="page"] {
+  border-color: var(--line);
+  color: var(--text);
+  background: var(--glass-strong);
+}
+.nav a[aria-current="page"] svg {
+  color: var(--cyan);
+}
+
+.sideFoot {
+  display: flex;
+  margin-top: auto;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.9rem 0.4rem 0;
+  border-top: 1px solid var(--line-soft);
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+/* Cartão do perfil no rodapé do menu: foto, nome e "Meu perfil" */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  text-decoration: none;
+  transition: 160ms;
+}
+.profile:hover {
+  background: var(--glass);
+}
+.profile[aria-current="page"] {
+  border-color: var(--line);
+  background: var(--glass-strong);
+}
+.profileText {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.user {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+/* ---------- Conteúdo ---------- */
+
+.main {
+  position: relative;
+  min-width: 0;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem;
+}
+
+.content:focus {
+  outline: none;
+}
+
+/* Topo só do celular (a marca e o Sair saem do menu, que vira barra inferior) */
+.mobileTop {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 820px) {
+  .app {
+    grid-template-columns: 1fr;
+  }
+  .side {
+    position: fixed;
+    inset: auto 0 0 0;
+    height: auto;
+    flex-direction: row;
+    padding: 0.4rem;
+    border-top: 1px solid var(--line);
+    border-right: 0;
+  }
+  .side .brand,
+  .sideFoot {
+    display: none;
+  }
+  /* O <nav> em volta da lista também precisa ocupar a barra inteira */
+  .side nav {
+    flex: 1;
+  }
+  .nav {
+    width: 100%;
+    flex-direction: row;
+  }
+  .nav li {
+    flex: 1;
+  }
+  .nav li.mobileOnly {
+    display: block;
+  }
+  .nav a {
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.45rem 0.2rem;
+    font-size: 0.66rem;
+    text-align: center;
+  }
+  .main {
+    padding-bottom: 6rem;
+  }
+  .mobileTop {
+    display: flex;
+  }
+}
