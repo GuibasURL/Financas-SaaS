@@ -18,6 +18,8 @@ router = APIRouter(prefix="/upload", tags=["upload"])
 # Extrato de um ano inteiro em CSV/OFX tem poucas centenas de KB; o limite
 # barra arquivos gigantes que só serviriam para travar a API
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+# O nome fica guardado e aparece na tela: 255 é o limite dos sistemas de arquivos
+MAX_FILENAME_LENGTH = 255
 
 
 @router.post("", response_model=list[TransactionOut])
@@ -39,6 +41,11 @@ def upload_csv(
     # CSV dos bancos que o app conhece, ou OFX (padrão, de qualquer banco)
     if not (file.filename or "").lower().endswith((".csv", ".ofx")):
         raise HTTPException(status_code=400, detail="Envie um arquivo .csv ou .ofx")
+    if len(file.filename) > MAX_FILENAME_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"O nome do arquivo pode ter no máximo {MAX_FILENAME_LENGTH} caracteres",
+        )
 
     file_bytes = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(file_bytes) > MAX_UPLOAD_BYTES:
