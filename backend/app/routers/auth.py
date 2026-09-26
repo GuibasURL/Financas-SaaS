@@ -10,6 +10,8 @@ from app.config import (
     LOGIN_WINDOW_MINUTES,
     PASSWORD_RESET_MAX_PER_ACCOUNT,
     PASSWORD_RESET_MAX_PER_IP,
+    REGISTER_MAX_PER_IP,
+    REGISTER_WINDOW_MINUTES,
 )
 from app.db import get_db
 from app.dependencies import get_current_user
@@ -56,6 +58,14 @@ reset_limiter = LoginLimiter(
     window_seconds=LOGIN_WINDOW_MINUTES * 60,
 )
 
+# Cadastros: só o IP importa (cada tentativa costuma ser com um e-mail
+# diferente), então o limite "por conta" é o mesmo do IP e nunca estoura antes
+register_limiter = LoginLimiter(
+    max_per_account=REGISTER_MAX_PER_IP,
+    max_per_ip=REGISTER_MAX_PER_IP,
+    window_seconds=REGISTER_WINDOW_MINUTES * 60,
+)
+
 FORGOT_PASSWORD_MESSAGE = (
     "Se houver uma conta com esse e-mail, enviamos um link para criar uma senha nova. "
     "Confira também a caixa de spam."
@@ -64,7 +74,27 @@ INVALID_RESET_LINK = 'Este link é inválido ou já expirou. Peça um novo em "E
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(payload: UserCreate, db: Session = Depends(get_db)):
+def register(payload: UserCreate, request: Request, db: Session = Depends(get_db)):
+    """
+    Cria a conta. Depois de REGISTER_MAX_PER_IP tentativas do mesmo IP na
+    janela, responde 429 por um tempo (header `Retry-After`, em segundos).
+    """
+    ip = client_ip(request)
+    wait = register_limiter.retry_after("", ip)
+    if wait:
+        minutes = max(1, round(wait / 60))
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "Muitos cadastros a partir desta conexão. "
+                f"Tente de novo em {minutes} minuto{'s' if minutes > 1 else ''}."
+            ),
+            headers={"Retry-After": str(wait)},
+        )
+    # Conta com ou sem sucesso: quem testa e-mails recebe "já cadastrado", e
+    # quem cria contas em massa recebe 201; os dois precisam parar
+    register_limiter.record_failure("", ip)
+
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(status_code=400, detail="E-mail já cadastrado")
 

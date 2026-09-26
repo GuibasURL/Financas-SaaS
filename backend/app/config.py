@@ -116,6 +116,11 @@ LOGIN_WINDOW_MINUTES = int(os.getenv("LOGIN_WINDOW_MINUTES", 15))
 LOGIN_MAX_FAILURES_PER_ACCOUNT = int(os.getenv("LOGIN_MAX_FAILURES_PER_ACCOUNT", 5))
 LOGIN_MAX_FAILURES_PER_IP = int(os.getenv("LOGIN_MAX_FAILURES_PER_IP", 30))
 
+# Cadastros por IP (contra quem cria contas em massa ou testa no cadastro quais
+# e-mails já têm conta). Conta toda tentativa, criando a conta ou não.
+REGISTER_WINDOW_MINUTES = int(os.getenv("REGISTER_WINDOW_MINUTES", 60))
+REGISTER_MAX_PER_IP = int(os.getenv("REGISTER_MAX_PER_IP", 10))
+
 # Quantos proxies confiáveis ficam na frente da API (ver services/client_ip.py).
 # 0 (padrão, rodando local): usa o IP da conexão. No Render: 3 (conferido no deploy).
 TRUSTED_PROXY_HOPS = int(os.getenv("TRUSTED_PROXY_HOPS", 0))
