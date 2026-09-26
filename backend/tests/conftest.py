@@ -21,7 +21,7 @@ from app.db import Base, get_db
 from app.main import app
 from app.models.category import Category
 from app.models.user import User
-from app.routers.auth import login_limiter, reset_limiter
+from app.routers.auth import login_limiter, register_limiter, reset_limiter
 from app.services.security import create_access_token, hash_password
 
 PASSWORD = "senha-forte-123"
@@ -51,12 +51,12 @@ def upload_csv(client: TestClient, content: str, filename: str = "extrato.csv"):
 
 @pytest.fixture(autouse=True)
 def reset_login_limiter():
-    # O limite de tentativas de login fica em memória: não passa de um teste para outro
-    login_limiter.reset()
-    reset_limiter.reset()
+    # Os limites de tentativas ficam em memória: não passam de um teste para outro
+    for limiter in (login_limiter, reset_limiter, register_limiter):
+        limiter.reset()
     yield
-    login_limiter.reset()
-    reset_limiter.reset()
+    for limiter in (login_limiter, reset_limiter, register_limiter):
+        limiter.reset()
 
 
 # Com TEST_DATABASE_URL (ex: postgresql+psycopg://usuario@localhost/vexira_test),
