@@ -7,6 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import {
   deleteStatement as apiDeleteStatement,
+  deleteTransaction as apiDeleteTransaction,
   getByCategoryTotals,
   getCategories,
   getMonthlyTotals,
@@ -22,7 +23,7 @@ import type {
   Transaction,
 } from "../types/transaction";
 import { useFeedback } from "../feedback/Feedback";
-import { categoryColorVar } from "../utils/format";
+import { categoryColorVar, formatDate, formatSignedMoney } from "../utils/format";
 
 interface FinanceData {
   transactions: Transaction[];
@@ -38,9 +39,17 @@ interface FinanceData {
   loadError: string | null;
   reload: () => Promise<void>;
   changeTransactionCategory: (transactionId: number, categoryId: number | null) => Promise<void>;
+  deleteTransaction: (transaction: Transaction) => Promise<void>;
   deleteStatement: (statement: Statement) => Promise<void>;
   /** Cor (var(--cat-N)) de uma categoria, pelo id ou pelo nome */
   categoryColor: (idOrName: number | string) => string;
+}
+
+function deleteTransactionMessage({ description, date, amount }: Transaction) {
+  return (
+    `"${description}" de ${formatDate(date)}, ${formatSignedMoney(amount)}, será apagada. ` +
+    "O extrato e as outras transações dele continuam. Isso não pode ser desfeito."
+  );
 }
 
 function deleteStatementMessage({ filename, transaction_count: count }: Statement) {
@@ -111,6 +120,27 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     [selectedStatementId, toast]
   );
 
+  const deleteTransaction = useCallback(
+    async (transaction: Transaction) => {
+      try {
+        const deleted = await confirm({
+          title: "Excluir transação?",
+          message: deleteTransactionMessage(transaction),
+          confirmLabel: "Excluir transação",
+          action: () => apiDeleteTransaction(transaction.id),
+        });
+        if (!deleted) return;
+      } catch {
+        toast.error("Não foi possível excluir a transação.");
+        return;
+      }
+      toast.success("Transação excluída.");
+      // Muda os totais, os gráficos e a contagem do extrato
+      await reload();
+    },
+    [reload, confirm, toast]
+  );
+
   const deleteStatement = useCallback(
     async (statement: Statement) => {
       try {
@@ -162,6 +192,7 @@ export function FinanceDataProvider({ children }: { children: ReactNode }) {
     loadError,
     reload,
     changeTransactionCategory,
+    deleteTransaction,
     deleteStatement,
     categoryColor,
   };

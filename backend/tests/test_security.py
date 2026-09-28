@@ -46,6 +46,7 @@ REVIEWED_ROUTES = PUBLIC_ROUTES | {
     ("POST", "/upload"),
     ("GET", "/transactions"),
     ("PATCH", "/transactions/{transaction_id}"),
+    ("DELETE", "/transactions/{transaction_id}"),
     ("GET", "/categories"),
     ("POST", "/categories"),
     ("PATCH", "/categories/{category_id}"),
@@ -181,6 +182,7 @@ def test_outro_usuario_nao_le_nem_altera_nada_de_ninguem(client, other_client, v
 
     # --- Escrita: toda tentativa nos ids de A responde "não encontrado" ---
     assert other_client.patch(f"/transactions/{a_tx}", json={"category_id": None}).status_code == 404
+    assert other_client.delete(f"/transactions/{a_tx}").status_code == 404
     assert other_client.patch(f"/categories/{a_cat}", json={"name": "Hackeada"}).status_code == 404
     assert other_client.patch(f"/categories/{a_cat}", json={"keywords": "tudo"}).status_code == 404
     assert other_client.delete(f"/categories/{a_cat}").status_code == 404
@@ -228,6 +230,8 @@ def test_ids_de_outro_usuario_respondem_igual_a_inexistentes(client, other_clien
         assert (response.status_code, response.json()) == (404, {"detail": "Extrato não encontrado"})
     for path in (f"/transactions/{victim['transaction']['id']}", "/transactions/999999"):
         response = other_client.patch(path, json={"category_id": None})
+        assert (response.status_code, response.json()) == (404, {"detail": "Transação não encontrada"})
+        response = other_client.delete(path)
         assert (response.status_code, response.json()) == (404, {"detail": "Transação não encontrada"})
 
 

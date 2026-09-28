@@ -1,7 +1,7 @@
 import { screen, within } from "@testing-library/react";
-import { http } from "msw";
-import { describe, expect, it } from "vitest";
-import { addCategory, addStatement, API, server } from "../test/fakeApi";
+import { http, HttpResponse } from "msw";
+import { describe, expect, it, vi } from "vitest";
+import { addCategory, addStatement, API, db, server } from "../test/fakeApi";
 import { renderLoggedIn } from "../test/renderApp";
 
 // Selects de categoria das linhas (os filtros se chamam só "Categoria")
@@ -202,5 +202,52 @@ describe("Transações: estados", () => {
     await renderLoggedIn("/transacoes");
 
     expect(screen.getByRole("status", { name: "Carregando transações" })).toBeInTheDocument();
+  });
+});
+
+describe("Transações: excluir", () => {
+  it("excluir pede confirmação com os dados da transação, e cancelar não apaga", async () => {
+    seed();
+    const user = await renderLoggedIn("/transacoes");
+
+    await user.click(await screen.findByRole("button", { name: "Excluir FARMÁCIA SÃO JOÃO de 10/03/2025" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Excluir transação?" });
+    expect(dialog).toHaveTextContent(
+      '"FARMÁCIA SÃO JOÃO" de 10/03/2025, − R$ 45,50, será apagada. ' +
+        "O extrato e as outras transações dele continuam. Isso não pode ser desfeito."
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(db.transactions).toHaveLength(4);
+  });
+
+  it("confirmar exclui só aquela transação e atualiza os totais", async () => {
+    seed();
+    const user = await renderLoggedIn("/transacoes");
+
+    await user.click(await screen.findByRole("button", { name: "Excluir FARMÁCIA SÃO JOÃO de 10/03/2025" }));
+    await user.click(screen.getByRole("button", { name: "Excluir transação" }));
+
+    expect(await screen.findByText("Transação excluída.")).toBeInTheDocument();
+    await screen.findByText("3 transações · 1 sem categoria");
+    expect(descriptions()).not.toContain("FARMÁCIA SÃO JOÃO");
+    expect(summary()).toHaveTextContent("Saídas − R$ 30,00");
+    expect(db.statements).toHaveLength(1);
+  });
+
+  it("avisa quando não consegue excluir", async () => {
+    seed();
+    server.use(http.delete(`${API}/transactions/:id`, () => HttpResponse.error()));
+    const user = await renderLoggedIn("/transacoes");
+
+    await user.click(await screen.findByRole("button", { name: "Excluir IFOOD LANCHE de 01/03/2025" }));
+    await user.click(screen.getByRole("button", { name: "Excluir transação" }));
+
+    await vi.waitFor(() =>
+      expect(screen.getByText("Não foi possível excluir a transação.")).toBeInTheDocument()
+    );
+    expect(db.transactions).toHaveLength(4);
   });
 });
