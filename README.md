@@ -9,7 +9,36 @@
 
 [![CI](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml)
 
-Vexira é um app de gestão financeira pessoal: importa extrato em CSV, categoriza gastos automaticamente por regras de palavra-chave, e mostra dashboard com gráficos.
+### 👉 [Acesse o Vexira](https://vexira.vercel.app)
+
+## Sobre o projeto
+
+O Vexira é um app web de finanças pessoais para quem quer entender para onde o dinheiro está indo, sem digitar gasto por gasto. Você envia o extrato que baixou do banco, e o app organiza tudo em categorias, mostra gráficos e gera um relatório pronto em Excel.
+
+### Como funciona
+
+1. **Crie sua conta** e entre no app.
+2. **Envie o extrato** da conta ou da fatura do cartão, em CSV ou OFX. Funciona com Nubank, Itaú, Inter, Bradesco, Banco do Brasil, PicPay e qualquer banco que exporte OFX.
+3. **Pronto:** as transações já chegam separadas em categorias (Alimentação, Transporte, Mercado, Assinaturas...), e o painel mostra quanto entrou, quanto saiu e em que você mais gastou.
+
+### O que dá para fazer
+
+- 📥 **Importar extratos** de vários bancos. O app avisa quando um extrato já foi importado, para nada contar em dobro.
+- 🏷️ **Categorizar automaticamente**, com 17 categorias prontas e regras de palavra-chave que você pode criar e ajustar. O que não for reconhecido fica para você escolher com um clique.
+- 📊 **Acompanhar no painel** os gastos por categoria e a evolução mês a mês.
+- 📑 **Exportar um relatório em Excel** com resumo, totais por mês e por categoria, gráficos e a lista completa de transações.
+- 🔁 **Deixar fora dos totais** o que não é gasto de verdade, como pagamento de fatura e transferências entre as suas contas.
+- 👤 **Gerenciar a conta:** perfil com foto, troca de senha, "Esqueceu a senha?" por e-mail e exclusão da conta com todos os dados.
+
+> O servidor fica no plano grátis do Render e "dorme" quando ninguém usa: o primeiro acesso depois de um tempo parado pode levar cerca de um minuto.
+
+### Privacidade e segurança
+
+Seus dados financeiros são só seus: cada pessoa vê apenas os próprios extratos, e isso é conferido por testes automáticos a cada mudança no código. As senhas são guardadas com criptografia (bcrypt), há limite de tentativas contra quem tenta adivinhar senhas, e excluir a conta apaga tudo de verdade. Os detalhes estão em [Segurança](#segurança).
+
+### Tecnologias
+
+Backend em **Python (FastAPI)** com banco **Postgres**, e frontend em **React + TypeScript**. Publicado no Render (API) e na Vercel (site), com testes rodando no GitHub Actions a cada mudança.
 
 ## Rodando o backend
 
