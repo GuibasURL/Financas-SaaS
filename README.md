@@ -390,12 +390,6 @@ Todas as abas têm uma faixa de título com uma frase explicando a aba, e ficam 
 
 Filtros opcionais: `start_date` e `end_date` (`AAAA-MM-DD`, inclusivas) e `statement_id`. No app, o extrato é o mesmo selecionado na seção Extratos. Categorias marcadas como "fora dos totais" não entram nas somas, mas aparecem na aba Transações (coluna "Nos totais"). As linhas de total usam fórmulas (`SUM`), então continuam certas se você editar a planilha.
 
-## Roadmap sugerido
-
-- [x] Fase 1: upload CSV, categorização por regra, dashboard básico
-- [x] Fase 2: autenticação, edição manual de categoria no frontend, múltiplos extratos, gerenciamento de categorias
-- [ ] Fase 3: ~~suporte a formatos de CSV de bancos diferentes~~ (falta validar com extratos reais), ~~exportar relatórios~~, deploy
-
 ## Stack
 
 - Backend: FastAPI + SQLAlchemy + Alembic; SQLite no desenvolvimento e Postgres no deploy (testado no CI), escolhido pelo `DATABASE_URL`
