@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import extract
 from sqlalchemy.orm import Session
 
@@ -66,6 +66,27 @@ def update_transaction(
     db.commit()
     db.refresh(transaction)
     return transaction
+
+
+@router.delete("/{transaction_id}", status_code=204)
+def delete_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """
+    Exclui uma transação só (ex: a mesma compra que entrou duas vezes porque
+    o banco mudou a descrição entre um extrato e outro). O extrato continua,
+    com as outras transações.
+    """
+    transaction = user_transactions(db, user).filter(Transaction.id == transaction_id).first()
+    # Transação de outro usuário responde igual a inexistente
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transação não encontrada")
+
+    db.delete(transaction)
+    db.commit()
+    return Response(status_code=204)
 
 
 def _user_owns_category(db: Session, user: User, category_id: int) -> bool:

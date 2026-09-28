@@ -119,3 +119,20 @@ describe("TransactionTable", () => {
     expect(within(rowOf("IFOOD")).queryByText("não soma")).not.toBeInTheDocument();
   });
 });
+
+describe("TransactionTable: excluir", () => {
+  it("sem onDelete, não mostra o botão de excluir", () => {
+    renderTable();
+
+    expect(screen.queryByRole("button", { name: /^Excluir/ })).not.toBeInTheDocument();
+  });
+
+  it("o botão de excluir manda a transação da linha", async () => {
+    const onDelete = vi.fn();
+    renderTable([transaction], { onDelete });
+
+    await userEvent.click(screen.getByRole("button", { name: "Excluir IFOOD de 01/03/2025" }));
+
+    expect(onDelete).toHaveBeenCalledWith(transaction);
+  });
+});

@@ -32,6 +32,21 @@
   color: var(--expense);
 }
 
+/* Excluir: discreto na lista, vermelho só ao apontar. ".actions" na frente
+   para vencer o .btn-sm e o .btn-ghost globais, carregados depois */
+.actions {
+  width: 1%;
+  text-align: right;
+}
+.actions .delete {
+  padding: 0 0.5rem;
+}
+.actions .delete:hover:not(:disabled),
+.actions .delete:focus-visible {
+  color: #ffb0bd;
+  background: rgba(240, 80, 110, 0.12);
+}
+
 /* ---------- Celular: cada linha vira um cartão ---------- */
 @media (max-width: 620px) {
   .table thead {
@@ -47,7 +62,7 @@
     grid-template-areas:
       "description value"
       "date value"
-      "category category";
+      "category actions";
     column-gap: 0.75rem;
     padding: 0.9rem 0.25rem;
     border-top: 1px solid var(--line-soft);
@@ -92,5 +107,15 @@
   .select select {
     min-width: 0;
     height: 2.5rem;
+  }
+  .actions {
+    grid-area: actions;
+    align-self: end;
+    width: auto;
+  }
+  /* Alvo de toque do tamanho do select ao lado */
+  .actions .delete {
+    min-height: 2.5rem;
+    min-width: 2.5rem;
   }
 }

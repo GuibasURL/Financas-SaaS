@@ -1,5 +1,6 @@
 import type { Transaction, Category } from "../types/transaction";
 import { formatDate } from "../utils/format";
+import Icon from "./Icon";
 import TransactionAmount, { IGNORED_AMOUNT_HINT } from "./TransactionAmount";
 import styles from "./TransactionTable.module.css";
 
@@ -7,6 +8,8 @@ interface Props {
   transactions: Transaction[];
   categories: Category[];
   onCategoryChange: (transactionId: number, categoryId: number | null) => void;
+  // Sem ele, a tabela não mostra o botão de excluir
+  onDelete?: (transaction: Transaction) => void;
   // Cor da categoria (a mesma dos gráficos); opcional
   categoryColor?: (id: number) => string;
 }
@@ -19,6 +22,7 @@ export default function TransactionTable({
   transactions,
   categories,
   onCategoryChange,
+  onDelete,
   categoryColor,
 }: Props) {
   const ignoredIds = new Set(categories.filter((c) => c.ignore_in_reports).map((c) => c.id));
@@ -32,6 +36,11 @@ export default function TransactionTable({
             <th>Descrição</th>
             <th>Categoria</th>
             <th className="num">Valor</th>
+            {onDelete && (
+              <th>
+                <span className="sr-only">Ações</span>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -78,6 +87,19 @@ export default function TransactionTable({
                 <td className={`num ${styles.value}`}>
                   <TransactionAmount amount={t.amount} ignored={ignored} />
                 </td>
+                {onDelete && (
+                  <td className={styles.actions}>
+                    <button
+                      className={`btn btn-sm btn-ghost ${styles.delete}`}
+                      type="button"
+                      onClick={() => onDelete(t)}
+                      aria-label={`Excluir ${t.description} de ${formatDate(t.date)}`}
+                      title="Excluir transação"
+                    >
+                      <Icon name="trash" />
+                    </button>
+                  </td>
+                )}
               </tr>
             );
           })}
