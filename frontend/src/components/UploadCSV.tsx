@@ -7,6 +7,7 @@ import {
   type DuplicatesMode,
 } from "../services/api";
 import { formatCount } from "../utils/format";
+import DownloadGuide from "./DownloadGuide";
 import Icon from "./Icon";
 import styles from "./UploadCSV.module.css";
 
@@ -29,6 +30,13 @@ const BANKS = [
   "Genérico",
 ];
 
+// Formatos que muita gente baixa do banco, mas que o app ainda não lê: em
+// vez de mandar para a API, explica e abre o guia de como baixar em OFX/CSV
+const UNSUPPORTED_FORMATS: [RegExp, string][] = [
+  [/\.pdf$/i, "Ainda não conseguimos ler extratos em PDF."],
+  [/\.xlsx?$/i, "Ainda não conseguimos ler planilhas do Excel (.xls ou .xlsx)."],
+];
+
 // Extrato com transações já importadas, esperando a pessoa decidir
 interface PendingDuplicates {
   file: File;
@@ -41,12 +49,21 @@ export default function UploadCSV({ onUploaded }: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingDuplicates | null>(null);
   const [dragging, setDragging] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   async function upload(file: File, duplicates?: DuplicatesMode) {
-    setLoading(true);
     setError(null);
     setNotice(null);
     setPending(null);
+
+    const unsupported = UNSUPPORTED_FORMATS.find(([pattern]) => pattern.test(file.name));
+    if (unsupported) {
+      setError(`${unsupported[1]} Veja abaixo como baixar o extrato em OFX ou CSV.`);
+      setGuideOpen(true);
+      return;
+    }
+
+    setLoading(true);
     try {
       const created = await uploadCSV(file, duplicates);
       if (duplicates === "skip") {
@@ -136,6 +153,8 @@ export default function UploadCSV({ onUploaded }: Props) {
           <span key={bank}>{bank}</span>
         ))}
       </div>
+
+      <DownloadGuide open={guideOpen} onToggle={setGuideOpen} />
     </div>
   );
 }
