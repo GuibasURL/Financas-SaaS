@@ -275,6 +275,10 @@ export async function updateTransactionCategory(
   return data;
 }
 
+export async function deleteTransaction(id: number): Promise<void> {
+  await api.delete(`/transactions/${id}`);
+}
+
 export async function getCategories(): Promise<Category[]> {
   const { data } = await api.get<Category[]>("/categories");
   return data;

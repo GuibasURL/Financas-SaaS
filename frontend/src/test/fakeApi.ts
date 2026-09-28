@@ -355,6 +355,16 @@ export const handlers = [
     })
   ),
 
+  http.delete(
+    `${API}/transactions/:id`,
+    authed(({ params }) => {
+      const id = Number(params.id);
+      if (!db.transactions.some((t) => t.id === id)) return notFound("Transação não encontrada");
+      db.transactions = db.transactions.filter((t) => t.id !== id);
+      return new HttpResponse(null, { status: 204 });
+    })
+  ),
+
   http.get(
     `${API}/categories`,
     authed(() => HttpResponse.json([...db.categories].sort((a, b) => a.name.localeCompare(b.name))))

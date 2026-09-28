@@ -21,8 +21,14 @@ import styles from "./TransactionsPage.module.css";
 export const PAGE_SIZE = 25;
 
 export default function TransactionsPage() {
-  const { transactions, categories, changeTransactionCategory, categoryColor, loaded } =
-    useFinanceData();
+  const {
+    transactions,
+    categories,
+    changeTransactionCategory,
+    deleteTransaction,
+    categoryColor,
+    loaded,
+  } = useFinanceData();
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -93,6 +99,7 @@ export default function TransactionsPage() {
           transactions={visible}
           categories={categories}
           onCategoryChange={changeTransactionCategory}
+          onDelete={deleteTransaction}
           categoryColor={categoryColor}
         />
         <Pagination

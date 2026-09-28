@@ -377,6 +377,8 @@ Antes de importar, o `POST /upload` confere se as transações já existem: mesm
 
 No app, o `409` vira um aviso com as opções **Importar só as novas**, **Importar tudo mesmo assim** e **Cancelar**.
 
+**Quando a mesma compra entra duas vezes mesmo assim:** se o banco muda a descrição entre um download e outro (comum em compra que estava "pendente"), ela não é reconhecida como repetida. Na tela **Transações**, o botão de lixeira de cada linha exclui só aquela transação (`DELETE /transactions/{id}`, com confirmação); o extrato e as outras transações dele continuam.
+
 ## Relatório em Excel
 
 A seção **Exportar relatório** do app (ou `GET /reports/export`) baixa uma planilha `.xlsx` com quatro abas:
