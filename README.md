@@ -9,7 +9,7 @@
 
 [![CI](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/GuibasURL/financas-saas/actions/workflows/ci.yml)
 
-### 👉 [Acesse o Vexira](https://vexira.vercel.app)
+### 👉 [Acesse o Vexira](https://vexira-financas.vercel.app/)
 
 ## Sobre o projeto
 
