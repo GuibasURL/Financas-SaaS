@@ -85,6 +85,54 @@ describe("UploadCSV", () => {
     expect(banks).toHaveTextContent("OFX de qualquer banco");
   });
 
+  it("o guia de como baixar o extrato começa fechado e abre com um clique", async () => {
+    render(<UploadCSV onUploaded={vi.fn()} />);
+    const guide = screen.getByText("Como baixar o extrato do seu banco?").closest("details")!;
+
+    expect(guide).not.toHaveAttribute("open");
+
+    await userEvent.click(screen.getByText("Como baixar o extrato do seu banco?"));
+
+    expect(guide).toHaveAttribute("open");
+    expect(within(guide).getByText("Nubank (conta)")).toBeInTheDocument();
+    expect(within(guide).getByText("Itaú")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["extrato.pdf", "Ainda não conseguimos ler extratos em PDF."],
+    ["EXTRATO.PDF", "Ainda não conseguimos ler extratos em PDF."],
+    ["extrato.xls", "Ainda não conseguimos ler planilhas do Excel (.xls ou .xlsx)."],
+    ["extrato.xlsx", "Ainda não conseguimos ler planilhas do Excel (.xls ou .xlsx)."],
+  ])("arrastar %s explica, abre o guia e não envia nada", async (filename, message) => {
+    const onUploaded = vi.fn();
+    render(<UploadCSV onUploaded={onUploaded} />);
+    const dropZone = screen.getByText("Selecionar arquivo .csv ou .ofx").closest("label")!;
+
+    fireEvent.drop(dropZone, { dataTransfer: { files: [new File(["%PDF-1.7"], filename)] } });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      `${message} Veja abaixo como baixar o extrato em OFX ou CSV.`
+    );
+    expect(screen.getByText("Como baixar o extrato do seu banco?").closest("details")).toHaveAttribute("open");
+    expect(onUploaded).not.toHaveBeenCalled();
+    expect(db.statements).toHaveLength(0);
+  });
+
+  it("depois do aviso de PDF, um extrato certo envia normalmente", async () => {
+    const onUploaded = vi.fn();
+    render(<UploadCSV onUploaded={onUploaded} />);
+    const dropZone = screen.getByText("Selecionar arquivo .csv ou .ofx").closest("label")!;
+
+    fireEvent.drop(dropZone, { dataTransfer: { files: [new File(["x"], "extrato.pdf")] } });
+    await screen.findByRole("alert");
+    fireEvent.drop(dropZone, {
+      dataTransfer: { files: [new File(["data,descricao,valor\n"], "maio.csv", { type: "text/csv" })] },
+    });
+
+    await vi.waitFor(() => expect(onUploaded).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("o campo aceita .csv e .ofx", () => {
     render(<UploadCSV onUploaded={vi.fn()} />);
 

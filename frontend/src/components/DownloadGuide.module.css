@@ -1,0 +1,61 @@
+.guide {
+  margin-top: 0.9rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  font-size: 0.78rem;
+}
+.guide summary {
+  padding: 0.55rem 0.75rem;
+  color: var(--cyan);
+  font-weight: 600;
+  cursor: pointer;
+}
+.guide summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+.guide[open] summary {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.body {
+  padding: 0.3rem 0.75rem 0.75rem;
+  color: var(--muted);
+}
+.body p {
+  margin: 0.5rem 0 0;
+}
+.body strong,
+.banks dt {
+  color: var(--text);
+}
+
+.tips {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.55rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.title {
+  margin: 0.9rem 0 0;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.banks {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0;
+}
+.banks dt {
+  font-weight: 600;
+}
+.banks dd {
+  margin: 0.1rem 0 0;
+}
+
+.note {
+  font-size: 0.72rem;
+}
